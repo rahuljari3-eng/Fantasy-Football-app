@@ -15,8 +15,6 @@ import {
   RANK_DECAY_K,
   RANK_WEIGHT,
   POINTS_WEIGHT,
-  INJURY_DISCOUNT,
-  INJURY_DISCOUNT_DEFAULT,
   ROS_WEEKS,
   ROS_STATUS_MULTIPLIER,
   ROS_STATUS_MULTIPLIER_DEFAULT,
@@ -57,14 +55,18 @@ export function playerValue(p: Player): number {
   return Math.max(1, pointsPart * POINTS_WEIGHT + rankPart * RANK_WEIGHT);
 }
 
-export function injuryDiscount(status: PlayerStatus): number {
-  return INJURY_DISCOUNT[status] ?? INJURY_DISCOUNT_DEFAULT;
-}
-
-/** playerValue discounted for current injury status -- used when judging how
- * strong a position group is, so a banged-up star isn't counted at full value. */
+/** A player's value as a roster ASSET for the rest of the season, not just
+ * this week -- used everywhere the app judges "how good is this player":
+ * AI Coach needs analysis (and its position-by-position outlook), free-agent
+ * recommendations, and trade-suggestion candidate filtering. Discounted by
+ * the season-outlook injury multiplier (a "Questionable"/"Out" tag this week
+ * barely moves a 16-game outlook, unlike a single week) and nudged for tier
+ * trajectory (elite players tend to hold their role over a season; deep
+ * bench/flex players carry more bust risk across one). Deliberately NOT the
+ * same thing as playerValue/rosValue below, which price a SPECIFIC TRADE and
+ * are explicitly split by the Trade Analyzer's own week/season toggle. */
 export function qualityScore(p: Player): number {
-  return playerValue(p) * injuryDiscount(p.status);
+  return playerValue(p) * rosStatusMultiplier(p.status) * rosTierTrend(p.tier);
 }
 
 export function isPlayerStarter(player: Player, needsObj: RosterNeeds): boolean {

@@ -1,11 +1,12 @@
 import { Activity, AlertTriangle } from "lucide-react";
 import { SLOTS } from "../config/league";
 import { PosBadge } from "../components/PosBadge";
+import { PlayerNameLink } from "../components/PlayerNameLink";
 import { statusColor } from "../lib/format";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 
 export function LineupPage({ app }: { app: FantasyApp }) {
-  const { roster, playerById, rosterTotal, autoOptimize } = app;
+  const { roster, playerById, rosterTotal, autoOptimize, playerHasNews, openPlayerNews } = app;
 
   return (
     <div className="space-y-4">
@@ -39,11 +40,27 @@ export function LineupPage({ app }: { app: FantasyApp }) {
                     <>
                       <PosBadge pos={p.pos} className="shrink-0" />
                       <div className="min-w-0">
-                        <div className="text-sm truncate">{p.name}</div>
+                        <PlayerNameLink
+                          name={p.name}
+                          hasNews={playerHasNews(p.id)}
+                          onOpen={() => openPlayerNews(p.id)}
+                          className="text-sm truncate"
+                        />
                         {p.status !== "Healthy" && (
-                          <div className={`text-[11px] flex items-center gap-1 ${statusColor(p.status)}`}>
-                            <AlertTriangle size={10} /> {p.status}
-                          </div>
+                          playerHasNews(p.id) ? (
+                            <button
+                              type="button"
+                              onClick={() => openPlayerNews(p.id)}
+                              title="View related news"
+                              className={`text-[11px] flex items-center gap-1 hover:underline decoration-dotted underline-offset-2 ${statusColor(p.status)}`}
+                            >
+                              <AlertTriangle size={10} /> {p.status}
+                            </button>
+                          ) : (
+                            <div className={`text-[11px] flex items-center gap-1 ${statusColor(p.status)}`}>
+                              <AlertTriangle size={10} /> {p.status}
+                            </div>
+                          )
                         )}
                       </div>
                     </>

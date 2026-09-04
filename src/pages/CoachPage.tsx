@@ -2,6 +2,7 @@ import { AlertTriangle, Repeat, Sparkles, TrendingUp } from "lucide-react";
 import { POSITIONS } from "../config/league";
 import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX, FAIR_RATIO_MIN, FAIR_RATIO_MAX } from "../config/trade";
 import { PosBadge } from "../components/PosBadge";
+import { PlayerNameLink } from "../components/PlayerNameLink";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 
 /** Turn a get/give value ratio into a short verdict + a tailwind text color. */
@@ -15,7 +16,7 @@ function ratioVerdict(ratio: number): { label: string; className: string } {
 }
 
 export function CoachPage({ app }: { app: FantasyApp }) {
-  const { myNeeds, needyPositions, strengthPositions, leagueBaseline, coachSuggestions, proposeCoachTrade } = app;
+  const { myNeeds, needyPositions, strengthPositions, leagueBaseline, coachSuggestions, proposeCoachTrade, playerHasNews, openPlayerNews } = app;
 
   return (
     <div className="space-y-5">
@@ -35,8 +36,8 @@ export function CoachPage({ app }: { app: FantasyApp }) {
       <div>
         <h3 className="text-sm font-medium text-[#98989D] mb-2">Position-by-position outlook</h3>
         <p className="text-xs text-[#636366] mb-3 max-w-2xl">
-          Score = summed curved value-over-replacement of your starters there, discounted for current injury status. Compared against the league-average
-          starter at each position.
+          Score = summed curved value-over-replacement of your starters there, adjusted for their rest-of-season outlook -- a "Questionable"/"Out" tag this
+          week barely dents it, but real season-long injury risk and tier trajectory do. Compared against the league-average starter at each position.
         </p>
         <div className="grid sm:grid-cols-3 lg:grid-cols-6 gap-2">
           {POSITIONS.map((pos) => {
@@ -104,7 +105,12 @@ export function CoachPage({ app }: { app: FantasyApp }) {
                       <div className="text-[10px] text-[#98989D] mb-1">You give</div>
                       {s.give.map((p) => (
                         <div key={p.id} className="mb-1 last:mb-0">
-                          <div className="text-sm font-medium">{p.name}</div>
+                          <PlayerNameLink
+                            name={p.name}
+                            hasNews={playerHasNews(p.id)}
+                            onOpen={() => openPlayerNews(p.id)}
+                            className="text-sm font-medium"
+                          />
                           <div className="text-[11px] text-[#98989D]">
                             {p.pos} · {p.team}
                           </div>
@@ -115,7 +121,12 @@ export function CoachPage({ app }: { app: FantasyApp }) {
                       <div className="text-[10px] text-[#98989D] mb-1">You get</div>
                       {s.get.map((p) => (
                         <div key={p.id} className="mb-1 last:mb-0">
-                          <div className="text-sm font-medium">{p.name}</div>
+                          <PlayerNameLink
+                            name={p.name}
+                            hasNews={playerHasNews(p.id)}
+                            onOpen={() => openPlayerNews(p.id)}
+                            className="text-sm font-medium"
+                          />
                           <div className="text-[11px] text-[#98989D]">
                             {p.pos} · {p.team}
                           </div>

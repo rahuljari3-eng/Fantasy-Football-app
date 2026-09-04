@@ -3,6 +3,7 @@ import { SLOTS, SLOT_ELIGIBILITY } from "../config/league";
 import { LEAGUE_CONFIG } from "../config/league";
 import { PosBadge } from "../components/PosBadge";
 import { StatusIndicator } from "../components/StatusIndicator";
+import { PlayerNameLink } from "../components/PlayerNameLink";
 import { AddPlayerActions } from "../components/AddPlayerActions";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 
@@ -28,6 +29,8 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
     addToBench,
     filledCount,
     selectedTeam,
+    playerHasNews,
+    openPlayerNews,
   } = app;
 
   return (
@@ -69,13 +72,18 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                 {p ? (
                   <div className="flex-1 flex items-center justify-between min-w-0 gap-2">
                     <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">{p.name}</div>
+                      <PlayerNameLink
+                        name={p.name}
+                        hasNews={playerHasNews(p.id)}
+                        onOpen={() => openPlayerNews(p.id)}
+                        className="text-sm font-medium truncate"
+                      />
                       <div className="text-[11px] text-[#98989D] flex items-center gap-1.5">
                         <PosBadge pos={p.pos} className="rounded" />
                         <span>
                           {p.team} · bye {p.bye}
                         </span>
-                        <StatusIndicator status={p.status} />
+                        <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                       </div>
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0">
@@ -113,8 +121,9 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                   onPointerDown={(e) => handleDragStart(e, p)}
                   className="flex items-center justify-between bg-[#1C1C1E]/60 border border-[#38383A]/60 rounded-lg px-3 py-1.5 cursor-grab active:cursor-grabbing touch-none"
                 >
-                  <div className="text-sm pointer-events-none">
-                    {p.name} <PosBadge pos={p.pos} className="ml-1 rounded" />
+                  <div className="text-sm flex items-center gap-1">
+                    <PlayerNameLink name={p.name} hasNews={playerHasNews(p.id)} onOpen={() => openPlayerNews(p.id)} />
+                    <PosBadge pos={p.pos} className="rounded" />
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button onClick={() => quickStart(p)} aria-label={`Move ${p.name} to starting lineup`} title="Move to starting lineup" className="text-[#636366] hover:text-[#C9A227] hover:bg-[#C9A227]/10 rounded p-0.5">
@@ -166,15 +175,20 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
               onPointerDown={(e) => handleDragStart(e, p)}
               className="flex items-center justify-between px-3 py-2 border-b border-[#38383A]/60 last:border-0 hover:bg-[#1C1C1E] cursor-grab active:cursor-grabbing touch-none"
             >
-              <div className="flex items-center gap-3 min-w-0 pointer-events-none">
-                <PosBadge pos={p.pos} className="w-10 text-center shrink-0" />
+              <div className="flex items-center gap-3 min-w-0">
+                <PosBadge pos={p.pos} className="w-10 text-center shrink-0 pointer-events-none" />
                 <div className="min-w-0">
-                  <div className="text-sm font-medium truncate">{p.name}</div>
+                  <PlayerNameLink
+                    name={p.name}
+                    hasNews={playerHasNews(p.id)}
+                    onOpen={() => openPlayerNews(p.id)}
+                    className="text-sm font-medium truncate"
+                  />
                   <div className="text-[11px] text-[#98989D] flex items-center gap-1.5">
                     <span>
                       {p.team} · bye {p.bye}
                     </span>
-                    <StatusIndicator status={p.status} />
+                    <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                   </div>
                 </div>
               </div>

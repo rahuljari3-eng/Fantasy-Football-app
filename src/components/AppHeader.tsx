@@ -59,7 +59,7 @@ export function AppHeader({
           <button
             onClick={onRefresh}
             disabled={refreshing}
-            title="Fetch current projections and injury status directly from ESPN"
+            title="Fetch current projections, lineup, and news/injury feed directly from ESPN"
             className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-[#38383A] text-[#98989D] hover:text-[#C9A227] hover:border-[#C9A227]/50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />

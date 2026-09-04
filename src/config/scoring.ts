@@ -64,15 +64,6 @@ export const RANK_DECAY_K: Record<Position, number> = {
 export const RANK_WEIGHT = 0.55;
 export const POINTS_WEIGHT = 0.45;
 
-/** Discount applied on top of playerValue so a banged-up "elite" player isn't
- * counted at full strength when judging how good a position group is. */
-export const INJURY_DISCOUNT: Record<string, number> = {
-  Out: 0.4,
-  Doubtful: 0.65,
-  Questionable: 0.9,
-};
-export const INJURY_DISCOUNT_DEFAULT = 1;
-
 /** Rest-of-season projection: a 16-game season total (17 weeks minus one bye)
  * built from the same weekly value. */
 export const ROS_WEEKS = 16;

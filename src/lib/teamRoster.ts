@@ -18,12 +18,16 @@ const ESPN_SLOT_TARGETS: Record<string, RosterSlotId[]> = {
   K: ["K"],
 };
 
-export function deriveAssignments(team: LeagueTeam): { roster: RosterAssignments; bench: number[] } {
+function assignFromSlots(
+  team: LeagueTeam,
+  slotOf: (playerId: number) => string | undefined
+): { roster: RosterAssignments; bench: number[] } {
   const roster: RosterAssignments = {};
   const bench: number[] = [];
 
   team.roster.forEach((p) => {
-    const onBench = !p.starter || !p.slot || p.slot === "BE" || p.slot === "IR";
+    const slot = slotOf(p.id);
+    const onBench = !slot || slot === "BE" || slot === "IR";
     if (onBench) {
       bench.push(p.id);
       return;
@@ -31,7 +35,7 @@ export function deriveAssignments(team: LeagueTeam): { roster: RosterAssignments
 
     // Prefer the slot ESPN actually had them in; fall back to any open,
     // position-eligible slot so a starter is never silently dropped.
-    const preferred = ESPN_SLOT_TARGETS[p.slot] ?? [];
+    const preferred = ESPN_SLOT_TARGETS[slot] ?? [];
     let target = preferred.find((s) => roster[s] == null && SLOT_ELIGIBILITY[s].includes(p.pos));
     if (!target) target = SLOTS.find((s) => roster[s] == null && SLOT_ELIGIBILITY[s].includes(p.pos));
 
@@ -40,4 +44,22 @@ export function deriveAssignments(team: LeagueTeam): { roster: RosterAssignments
   });
 
   return { roster, bench };
+}
+
+export function deriveAssignments(team: LeagueTeam): { roster: RosterAssignments; bench: number[] } {
+  return assignFromSlots(team, (id) => {
+    const p = team.roster.find((r) => r.id === id);
+    return p && p.starter ? p.slot : undefined;
+  });
+}
+
+/** Same slot-assignment logic as deriveAssignments, but driven by a live
+ * espnTeamId -> playerId -> slot-label map (from lib/espn.ts) instead of the
+ * bundled static roster snapshot -- used to pick up lineup changes made
+ * directly in the ESPN app. */
+export function deriveAssignmentsFromEspnSlots(
+  team: LeagueTeam,
+  slots: Record<number, string>
+): { roster: RosterAssignments; bench: number[] } {
+  return assignFromSlots(team, (id) => slots[id]);
 }

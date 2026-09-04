@@ -3,7 +3,7 @@
 // trade suggestions) computed from them. App.tsx calls this once and hands
 // the result down to whichever page is active -- pages themselves hold no
 // state of their own beyond simple local UI toggles.
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FREE_AGENTS } from "../data/freeAgents";
 import { ALL_TEAMS, DEFAULT_TEAM_ID } from "../data/allTeams";
 import { POSITIONS, REQUIRED_STARTERS, SLOTS, SLOT_ELIGIBILITY } from "../config/league";
@@ -12,13 +12,16 @@ import { VOR_BASELINE, ROS_WEEKS } from "../config/scoring";
 import { DEFAULT_TAB } from "../config/pages";
 import { playerValue, qualityScore, rosValue } from "../lib/scoring";
 import { analyzeRosterNeeds } from "../lib/rosterNeeds";
-import { deriveAssignments } from "../lib/teamRoster";
+import { deriveAssignments, deriveAssignmentsFromEspnSlots } from "../lib/teamRoster";
+import { fetchEspnLineups } from "../lib/espn";
 import { balancePackage, balanceTwoForTwo, fairnessRatio, needAdjustedPackageValue, starGateOk } from "../lib/tradeEngine";
 import { useProjectionRefresh } from "./useProjectionRefresh";
+import { useNewsFeed } from "./useNewsFeed";
 import { useDragAndDrop } from "./useDragAndDrop";
 import type {
   LeaguePlayer,
   LeagueTeam,
+  NewsItem,
   Player,
   Position,
   RosterAssignments,
@@ -30,6 +33,15 @@ import type {
   TradeSuggestion,
   ViewedTeam,
 } from "../types";
+
+// Every player id in your league -- rostered on any team, or sitting in the
+// free-agent pool -- so the live news feed can be filtered down to only
+// what's actually relevant instead of the entire NFL. Computed once; these
+// lists are static bundled data, not derived from any hook state.
+const RELEVANT_PLAYER_IDS = new Set<number>([
+  ...ALL_TEAMS.flatMap((t) => t.roster.map((p) => p.id)),
+  ...FREE_AGENTS.map((p) => p.id),
+]);
 
 export function useFantasyApp() {
   const [tab, setTab] = useState<TabId>(DEFAULT_TAB);
@@ -43,11 +55,16 @@ export function useFantasyApp() {
     [selectedTeamId]
   );
 
-  // Roster-builder assignments, seeded from the selected team's real ESPN
-  // lineup. `selectTeam` re-seeds them when you switch teams.
+  // Roster-builder assignments. Seeded from whatever was last saved locally
+  // for this team (a prior edit made right here in the roster builder), or
+  // the bundled ESPN snapshot if nothing's been saved yet. `selectTeam`
+  // re-seeds them the same way when you switch teams, and every change here
+  // is written straight back to localStorage (see the persistence effect
+  // below) so closing the tab never loses an edit.
   const seed = useMemo(() => deriveAssignments(selectedTeam), [selectedTeam]);
-  const [roster, setRoster] = useState<RosterAssignments>(seed.roster);
-  const [bench, setBench] = useState<number[]>(seed.bench);
+  const storedSeed = useMemo(() => readStoredRoster(selectedTeamId), [selectedTeamId]);
+  const [roster, setRoster] = useState<RosterAssignments>(storedSeed?.roster ?? seed.roster);
+  const [bench, setBench] = useState<number[]>(storedSeed?.bench ?? seed.bench);
 
   const [posFilter, setPosFilter] = useState<Position | "ALL">("ALL");
   const [search, setSearch] = useState("");
@@ -69,7 +86,7 @@ export function useFantasyApp() {
     const team = ALL_TEAMS.find((t) => t.id === id) ?? ALL_TEAMS[0];
     setSelectedTeamId(team.id);
     writeStoredTeamId(team.id);
-    const next = deriveAssignments(team);
+    const next = readStoredRoster(team.id) ?? deriveAssignments(team);
     setRoster(next.roster);
     setBench(next.bench);
     setTradeGive([]);
@@ -78,8 +95,82 @@ export function useFantasyApp() {
     setSelectedLeagueTeam(null);
   }, []);
 
+  // Persist every roster-builder edit for the team you're managing, so
+  // closing the tab (or switching teams and back) never loses it. This is
+  // the local half of "last edit wins" -- the ESPN half is
+  // syncRosterFromEspn below.
+  useEffect(() => {
+    writeStoredRoster(selectedTeamId, roster, bench);
+  }, [selectedTeamId, roster, bench]);
+
+  // Reconcile against the live ESPN lineup: if the team's real ESPN lineup
+  // has changed since the last time we checked (i.e. a change was made in
+  // the ESPN app, not here), adopt it as the new roster -- overwriting
+  // whatever was locally saved. If ESPN hasn't changed, local edits made
+  // here since the last check stay authoritative. Runs once on load and
+  // again whenever "Refresh from ESPN" is pressed.
+  const selectedTeamIdRef = useRef(selectedTeamId);
+  selectedTeamIdRef.current = selectedTeamId;
+  const selectedTeamRef = useRef(selectedTeam);
+  selectedTeamRef.current = selectedTeam;
+
+  const syncRosterFromEspn = useCallback(async () => {
+    try {
+      const lineups = await fetchEspnLineups();
+      const teamId = selectedTeamIdRef.current;
+      const liveSlots = lineups[teamId];
+      if (!liveSlots) return;
+
+      const priorSlots = readStoredEspnSnapshot(teamId);
+      const changed = !priorSlots || !slotsEqual(priorSlots, liveSlots);
+      if (changed) {
+        const next = deriveAssignmentsFromEspnSlots(selectedTeamRef.current, liveSlots);
+        setRoster(next.roster);
+        setBench(next.bench);
+      }
+      writeStoredEspnSnapshot(teamId, liveSlots);
+    } catch {
+      // Best-effort -- lineup sync failing shouldn't disturb whatever's
+      // already saved locally.
+    }
+  }, []);
+
+  const newsFeedState = useNewsFeed(RELEVANT_PLAYER_IDS);
+  const { newsFeed, refreshNews } = newsFeedState;
+
+  useEffect(() => {
+    syncRosterFromEspn();
+    refreshNews();
+    // Only ever runs once, on load -- switching teams doesn't re-fetch;
+    // the "Refresh from ESPN" button covers checking again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const projectionRefresh = useProjectionRefresh();
   const { projectionOverrides } = projectionRefresh;
+
+  const refreshFromEspn = useCallback(async () => {
+    await Promise.all([projectionRefresh.refreshProjections(), syncRosterFromEspn(), refreshNews()]);
+  }, [projectionRefresh, syncRosterFromEspn, refreshNews]);
+
+  // ---------- Live news/injury feed: player linkage + the popover state
+  // that lets a click on a player's name or status surface their articles ----------
+  const newsByPlayer = useMemo(() => {
+    const map = new Map<number, NewsItem[]>();
+    newsFeed.forEach((n) => {
+      const list = map.get(n.playerId);
+      if (list) list.push(n);
+      else map.set(n.playerId, [n]);
+    });
+    return map;
+  }, [newsFeed]);
+
+  const playerHasNews = useCallback((id: number) => (newsByPlayer.get(id)?.length ?? 0) > 0, [newsByPlayer]);
+  const newsForPlayer = useCallback((id: number) => newsByPlayer.get(id) ?? [], [newsByPlayer]);
+
+  const [playerNewsOpenId, setPlayerNewsOpenId] = useState<number | null>(null);
+  const openPlayerNews = useCallback((id: number) => setPlayerNewsOpenId(id), []);
+  const closePlayerNews = useCallback(() => setPlayerNewsOpenId(null), []);
 
   // ---------- Effective data: base data with live overrides applied ----------
   // projectionOverrides maps a player's real ESPN id -> { proj, status }. Every
@@ -904,8 +995,18 @@ export function useFantasyApp() {
     selectedLeagueTeam,
     setSelectedLeagueTeam,
 
-    // live projection refresh
+    // live news/injury feed, and the click-a-player's-name-or-status popover
+    ...newsFeedState,
+    playerHasNews,
+    newsForPlayer,
+    playerNewsOpenId,
+    openPlayerNews,
+    closePlayerNews,
+
+    // live projection refresh (and lineup sync + news refresh --
+    // refreshFromEspn also reconciles the roster and news against ESPN)
     ...projectionRefresh,
+    refreshProjections: refreshFromEspn,
   };
 }
 
@@ -931,6 +1032,58 @@ function writeStoredTeamId(id: number): void {
   } catch {
     // Non-fatal: the selection just won't persist across reloads.
   }
+}
+
+const rosterKey = (teamId: number) => `gridiron.roster.${teamId}`;
+const espnSnapshotKey = (teamId: number) => `gridiron.espnLineupSnapshot.${teamId}`;
+
+/** A previously-saved roster-builder edit for this team, if any. */
+function readStoredRoster(teamId: number): { roster: RosterAssignments; bench: number[] } | null {
+  try {
+    const raw = window.localStorage.getItem(rosterKey(teamId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { roster?: RosterAssignments; bench?: number[] };
+    if (parsed && typeof parsed === "object" && parsed.roster && Array.isArray(parsed.bench)) {
+      return { roster: parsed.roster, bench: parsed.bench };
+    }
+  } catch {
+    // Corrupted/old-format value -- ignore and fall back to the ESPN seed.
+  }
+  return null;
+}
+
+function writeStoredRoster(teamId: number, roster: RosterAssignments, bench: number[]): void {
+  try {
+    window.localStorage.setItem(rosterKey(teamId), JSON.stringify({ roster, bench }));
+  } catch {
+    // Non-fatal: the edit just won't survive a reload.
+  }
+}
+
+/** The team's live ESPN lineup (playerId -> slot label) as of the last time
+ * we checked, so a later check can tell whether it changed in the ESPN app. */
+function readStoredEspnSnapshot(teamId: number): Record<number, string> | null {
+  try {
+    const raw = window.localStorage.getItem(espnSnapshotKey(teamId));
+    return raw ? (JSON.parse(raw) as Record<number, string>) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredEspnSnapshot(teamId: number, slots: Record<number, string>): void {
+  try {
+    window.localStorage.setItem(espnSnapshotKey(teamId), JSON.stringify(slots));
+  } catch {
+    // Non-fatal.
+  }
+}
+
+function slotsEqual(a: Record<number, string>, b: Record<number, string>): boolean {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every((k) => a[Number(k)] === b[Number(k)]);
 }
 
 function suggestionKey(s: TradeSuggestion): string {

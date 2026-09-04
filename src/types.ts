@@ -59,13 +59,22 @@ export type RosterAssignments = Partial<Record<RosterSlotId, number>>;
 
 export type NewsType = "Injury" | "Waiver" | "Trade" | "News";
 
+/** A single news/injury item pulled live from ESPN, tagged to the player it's
+ * about wherever ESPN tells us which player that is -- see lib/news.ts. */
 export interface NewsItem {
-  id: number;
+  id: string;
   type: NewsType;
+  /** The real ESPN player id this item is about, so it can be matched against
+   * Player.id anywhere in the app (roster, free agents, trade analyzer, ...). */
+  playerId: number;
   player: string;
-  team: string;
   headline: string;
+  /** Human-readable relative/absolute time for display (e.g. "2h ago", "Sep 2"). */
   time: string;
+  /** ISO timestamp, used for sorting newest-first. */
+  publishedAt: string;
+  /** Real ESPN article/player-news URL this item links to. */
+  link: string;
 }
 
 /** A live-refresh correction layered on top of a player's static base data,

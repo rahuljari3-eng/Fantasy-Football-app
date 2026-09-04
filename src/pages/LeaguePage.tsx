@@ -1,12 +1,23 @@
 import { AlertTriangle, ChevronRight, Repeat, Shield, Trophy, Users } from "lucide-react";
 import { LEAGUE_CONFIG } from "../config/league";
 import { PosBadge } from "../components/PosBadge";
+import { PlayerNameLink } from "../components/PlayerNameLink";
 import { statusDot } from "../lib/format";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 import type { RosterPlayer } from "../types";
 
 export function LeaguePage({ app }: { app: FantasyApp }) {
-  const { selectedLeagueTeam, setSelectedLeagueTeam, myTeamViewed, selectedTeam, effectiveLeagueTeams, setTradeOpponentId, setTab } = app;
+  const {
+    selectedLeagueTeam,
+    setSelectedLeagueTeam,
+    myTeamViewed,
+    selectedTeam,
+    effectiveLeagueTeams,
+    setTradeOpponentId,
+    setTab,
+    playerHasNews,
+    openPlayerNews,
+  } = app;
 
   if (!selectedLeagueTeam) {
     return (
@@ -64,7 +75,7 @@ export function LeaguePage({ app }: { app: FantasyApp }) {
       <div className="flex items-center gap-2 min-w-0">
         <PosBadge pos={p.pos} label={p.slot || p.pos} className="shrink-0 w-11 text-center" />
         <div className="min-w-0">
-          <div className="font-medium truncate">{p.name}</div>
+          <PlayerNameLink name={p.name} hasNews={playerHasNews(p.id)} onOpen={() => openPlayerNews(p.id)} className="font-medium truncate" />
           <div className="text-[#98989D] text-xs">
             {p.team}
             {p.pos !== p.slot && p.slot ? ` · ${p.pos}` : ""}
@@ -72,9 +83,20 @@ export function LeaguePage({ app }: { app: FantasyApp }) {
         </div>
       </div>
       {p.status !== "Healthy" && (
-        <span className="flex items-center gap-1 text-xs text-amber-400 shrink-0 ml-2">
-          <span className={`w-1.5 h-1.5 rounded-full ${statusDot(p.status)}`} /> {p.status}
-        </span>
+        playerHasNews(p.id) ? (
+          <button
+            type="button"
+            onClick={() => openPlayerNews(p.id)}
+            title="View related news"
+            className="flex items-center gap-1 text-xs text-amber-400 shrink-0 ml-2 hover:underline decoration-dotted underline-offset-2"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${statusDot(p.status)}`} /> {p.status}
+          </button>
+        ) : (
+          <span className="flex items-center gap-1 text-xs text-amber-400 shrink-0 ml-2">
+            <span className={`w-1.5 h-1.5 rounded-full ${statusDot(p.status)}`} /> {p.status}
+          </span>
+        )
       )}
     </div>
   );

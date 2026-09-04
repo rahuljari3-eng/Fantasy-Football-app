@@ -1,5 +1,6 @@
 import { AppHeader } from "./components/AppHeader";
 import { DragGhost } from "./components/DragGhost";
+import { PlayerNewsModal } from "./components/PlayerNewsModal";
 import { useFantasyApp } from "./hooks/useFantasyApp";
 import { RosterBuilderPage } from "./pages/RosterBuilderPage";
 import { FreeAgentsPage } from "./pages/FreeAgentsPage";
@@ -46,6 +47,12 @@ export default function App() {
       </div>
 
       <DragGhost player={app.dragPlayer} pos={app.dragPos} />
+
+      <PlayerNewsModal
+        playerName={app.playerNewsOpenId != null ? app.playerById(app.playerNewsOpenId)?.name ?? "" : null}
+        items={app.playerNewsOpenId != null ? app.newsForPlayer(app.playerNewsOpenId) : []}
+        onClose={app.closePlayerNews}
+      />
     </div>
   );
 }

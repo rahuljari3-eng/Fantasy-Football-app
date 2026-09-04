@@ -29,8 +29,10 @@ interface EspnPlayer {
 }
 interface EspnRosterEntry {
   playerPoolEntry?: { player?: EspnPlayer };
+  lineupSlotId?: number;
 }
 interface EspnTeam {
+  id: number;
   roster?: { entries?: EspnRosterEntry[] };
 }
 interface EspnLeagueResponse {
@@ -40,6 +42,21 @@ interface EspnLeagueResponse {
 interface EspnFreeAgentEntry {
   player?: EspnPlayer;
 }
+
+// ESPN's numeric lineupSlotId -> the same slot-label strings the rest of the
+// app already understands (see ESPN_SLOT_TARGETS in lib/teamRoster.ts).
+// Covers this league's standard 1QB/2RB/2WR/1TE/1FLEX/1DST/1K format.
+export const ESPN_LINEUP_SLOT_LABEL: Record<number, string> = {
+  0: "QB",
+  2: "RB",
+  4: "WR",
+  6: "TE",
+  23: "FLEX",
+  16: "DST",
+  17: "K",
+  20: "BE",
+  21: "IR",
+};
 
 export function extractEspnProjection(stats: EspnStatLine[] | undefined, scoringPeriodId: number): number | null {
   const match = (stats || []).find((s) => s.statSourceId === 1 && s.scoringPeriodId === scoringPeriodId);
@@ -78,6 +95,31 @@ export async function fetchEspnRosteredProjections(): Promise<{
   });
 
   return { fresh, period, count: Object.keys(fresh).length };
+}
+
+/** Every team's real, current ESPN lineup: espnTeamId -> playerId -> slot
+ * label ("QB", "RB", "FLEX", "BE", "IR", ...). Used to detect when a manager
+ * has changed their lineup in the ESPN app so the roster builder can adopt
+ * it -- see syncRosterFromEspn in useFantasyApp. */
+export async function fetchEspnLineups(): Promise<Record<number, Record<number, string>>> {
+  const res = await fetch(`${ESPN_LEAGUE_BASE_URL}?view=mRoster&view=mTeam`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`ESPN request failed (${res.status})`);
+  const data = (await res.json()) as EspnLeagueResponse;
+  const lineups: Record<number, Record<number, string>> = {};
+
+  (data.teams || []).forEach((t) => {
+    const slots: Record<number, string> = {};
+    (t.roster?.entries || []).forEach((e) => {
+      const player = e.playerPoolEntry?.player;
+      if (!player || e.lineupSlotId == null) return;
+      slots[player.id] = ESPN_LINEUP_SLOT_LABEL[e.lineupSlotId] ?? "BE";
+    });
+    lineups[t.id] = slots;
+  });
+
+  return lineups;
 }
 
 /** Same idea, but for the free-agent pool (the Free Agents tab) -- a separate

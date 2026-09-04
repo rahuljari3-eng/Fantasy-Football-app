@@ -1,6 +1,7 @@
 import { ChevronRight, Plus, TrendingDown, TrendingUp, X } from "lucide-react";
 import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX } from "../config/trade";
 import { PosBadge } from "../components/PosBadge";
+import { PlayerNameLink } from "../components/PlayerNameLink";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 import type { Player, TradeHorizon } from "../types";
 
@@ -30,6 +31,8 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
     toggleTradeList,
     effectivePlayers,
     effectiveAllLeaguePlayers,
+    playerHasNews,
+    openPlayerNews,
   } = app;
 
   const opponent = effectiveLeagueTeams.find((t) => t.id === tradeOpponentId);
@@ -106,8 +109,9 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
                 if (!p) return null;
                 return (
                   <div key={id} className="flex items-center justify-between bg-[#000000] rounded-lg px-2.5 py-1.5">
-                    <span className="text-sm">
-                      {p.name} <PosBadge pos={p.pos} className="ml-1 rounded" />
+                    <span className="text-sm flex items-center gap-1">
+                      <PlayerNameLink name={p.name} hasNews={playerHasNews(p.id)} onOpen={() => openPlayerNews(p.id)} />
+                      <PosBadge pos={p.pos} className="rounded" />
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="mono-font text-xs text-[#C9A227]">{tradeValueOf(p).toFixed(1)}</span>
