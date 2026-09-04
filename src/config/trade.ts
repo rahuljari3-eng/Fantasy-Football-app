@@ -5,7 +5,7 @@
  * side's favor is fine (down to MIN), and a little in your favor is fine (up
  * to MAX), but not absurdly lopsided either way. */
 export const TRADE_BAND_MIN = -1.5;
-export const TRADE_BAND_MAX = 3;
+export const TRADE_BAND_MAX = 4;
 
 /** Consolidating several players into one (or vice versa) isn't just "add up
  * the points" -- whichever side sends MORE pieces is trading quantity for a

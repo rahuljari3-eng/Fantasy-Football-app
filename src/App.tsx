@@ -31,6 +31,9 @@ export default function App() {
         tab={app.tab}
         onTabChange={app.setTab}
         rosterTotal={app.rosterTotal}
+        teams={app.allTeams}
+        selectedTeamId={app.selectedTeamId}
+        onSelectTeam={app.selectTeam}
         refreshing={app.refreshing}
         refreshProgress={app.refreshProgress}
         refreshError={app.refreshError}

@@ -6,7 +6,7 @@ import type { FantasyApp } from "../hooks/useFantasyApp";
 import type { RosterPlayer } from "../types";
 
 export function LeaguePage({ app }: { app: FantasyApp }) {
-  const { selectedLeagueTeam, setSelectedLeagueTeam, myTeamViewed, effectiveLeagueTeams, setTradeOpponentId, setTab } = app;
+  const { selectedLeagueTeam, setSelectedLeagueTeam, myTeamViewed, selectedTeam, effectiveLeagueTeams, setTradeOpponentId, setTab } = app;
 
   if (!selectedLeagueTeam) {
     return (
@@ -22,10 +22,10 @@ export function LeaguePage({ app }: { app: FantasyApp }) {
             className="text-left bg-[#2C2C2E] border border-[#C9A227]/50 rounded-xl p-4 hover:border-[#C9A227] hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.25)]"
           >
             <div className="flex items-center justify-between">
-              <div className="font-semibold text-[#C9A227]">{LEAGUE_CONFIG.myTeamName}</div>
+              <div className="font-semibold text-[#C9A227]">{selectedTeam.name}</div>
               <Trophy size={16} className="text-[#C9A227]" />
             </div>
-            <div className="text-xs text-[#98989D] mt-1">{LEAGUE_CONFIG.myOwnerName} (You)</div>
+            <div className="text-xs text-[#98989D] mt-1">{selectedTeam.owner} (You)</div>
             <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/10">
               <span className="text-xs text-[#98989D]">{myTeamViewed.roster.length} players</span>
               <ChevronRight size={14} className="text-[#C9A227]" />

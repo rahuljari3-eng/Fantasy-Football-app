@@ -1,4 +1,5 @@
-import type { Player } from "../types";
+import type { LeagueTeam, Player } from "../types";
+import { LEAGUE_CONFIG } from "../config/league";
 
 // Your real 2026 roster (Ten Idiots League, ESPN league 973201555).
 // Pulled live from the ESPN Fantasy API (Week 1 projections, actual PPR scoring rules).
@@ -22,3 +23,30 @@ export const MY_TEAM_PLAYERS: Player[] = [
   { id: 3929645, name: "Juwan Johnson", pos: "TE", team: "NO", bye: 8, proj: 8.8, tier: 2, status: "Healthy" },
   { id: 4429023, name: "MarShawn Lloyd", pos: "RB", team: "GB", bye: 11, proj: 12.9, tier: 2, status: "Healthy" },
 ];
+
+// Which ESPN lineup slot each of your players was starting in, so your team
+// can be treated as just another LeagueTeam (same shape as every opponent in
+// leagueTeams.ts). Anyone not listed here is on the bench.
+const MY_TEAM_LINEUP: Record<number, string> = {
+  12483: "QB", // Matthew Stafford
+  4427366: "RB", // Breece Hall
+  4241416: "RB", // Chuba Hubbard
+  4426515: "WR", // Puka Nacua
+  4372016: "WR", // Jaylen Waddle
+  3915416: "FLEX", // DJ Moore
+  4432665: "TE", // Brock Bowers
+  [-16007]: "DST", // Broncos D/ST
+  4686361: "K", // Cam Little
+};
+
+// Your team as a full LeagueTeam entry, so the app can select it or any
+// opponent interchangeably as "the team you're managing".
+export const MY_TEAM: LeagueTeam = {
+  id: 8,
+  name: LEAGUE_CONFIG.myTeamName,
+  owner: LEAGUE_CONFIG.myOwnerName,
+  roster: MY_TEAM_PLAYERS.map((p) => {
+    const slot = MY_TEAM_LINEUP[p.id] ?? "BE";
+    return { ...p, starter: slot !== "BE", slot };
+  }),
+};

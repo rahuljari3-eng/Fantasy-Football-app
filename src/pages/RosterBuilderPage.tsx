@@ -27,6 +27,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
     addToSlot,
     addToBench,
     filledCount,
+    selectedTeam,
   } = app;
 
   return (
@@ -34,7 +35,8 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
       <div className="lg:col-span-5 -mb-2 bg-[#C9A227]/10 border border-[#C9A227]/40 rounded-lg px-3 py-2.5 text-xs text-[#C9A227] flex items-start gap-2">
         <AlertTriangle size={14} className="shrink-0 mt-0.5" />
         <span>
-          Loaded from your real "{LEAGUE_CONFIG.myTeamName}" roster ({LEAGUE_CONFIG.leagueName}, ESPN #{LEAGUE_CONFIG.espnLeagueId}), pulled live from ESPN.
+          Managing <strong className="font-semibold">{selectedTeam.name}</strong> ({selectedTeam.owner}) — real roster from {LEAGUE_CONFIG.leagueName}, ESPN #
+          {LEAGUE_CONFIG.espnLeagueId}. Switch teams from the picker in the header.
         </span>
       </div>
 

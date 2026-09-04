@@ -4,14 +4,14 @@
 // the result down to whichever page is active -- pages themselves hold no
 // state of their own beyond simple local UI toggles.
 import { useCallback, useMemo, useState } from "react";
-import { MY_TEAM_PLAYERS } from "../data/myTeam";
-import { PLAYERS } from "../data/players";
-import { LEAGUE_TEAMS } from "../data/leagueTeams";
-import { LEAGUE_CONFIG, POSITIONS, REQUIRED_STARTERS, SLOTS, SLOT_ELIGIBILITY } from "../config/league";
+import { FREE_AGENTS } from "../data/freeAgents";
+import { ALL_TEAMS, DEFAULT_TEAM_ID } from "../data/allTeams";
+import { POSITIONS, REQUIRED_STARTERS, SLOTS, SLOT_ELIGIBILITY } from "../config/league";
 import { COACH_MAX_SUGGESTIONS, COACH_MIN_BEFORE_FALLBACK } from "../config/trade";
 import { DEFAULT_TAB } from "../config/pages";
 import { playerValue, qualityScore, isPlayerStarter, starterAdjustedValue, starterPremium, rosValue } from "../lib/scoring";
 import { analyzeRosterNeeds } from "../lib/rosterNeeds";
+import { deriveAssignments } from "../lib/teamRoster";
 import { balancePackage } from "../lib/tradeEngine";
 import { useProjectionRefresh } from "./useProjectionRefresh";
 import { useDragAndDrop } from "./useDragAndDrop";
@@ -33,20 +33,20 @@ import type {
 export function useFantasyApp() {
   const [tab, setTab] = useState<TabId>(DEFAULT_TAB);
 
-  // Preloaded with your real lineup, pulled live from ESPN.
-  const [roster, setRoster] = useState<RosterAssignments>({
-    QB: 12483, // Matthew Stafford
-    RB1: 4427366, // Breece Hall
-    RB2: 4241416, // Chuba Hubbard
-    WR1: 4426515, // Puka Nacua
-    WR2: 4372016, // Jaylen Waddle
-    FLEX: 3915416, // DJ Moore
-    TE: 4432665, // Brock Bowers
-    DST: -16007, // Broncos D/ST
-    K: 4686361, // Cam Little
-  });
-  // TreVeyon Henderson, Michael Wilson, Jordan Mason, Stefon Diggs, Braelon Allen, Juwan Johnson, MarShawn Lloyd
-  const [bench, setBench] = useState<number[]>([4432710, 4360761, 4360569, 2976212, 4685247, 3929645, 4429023]);
+  // Which team you're managing. Any team in the league can be selected; the
+  // roster builder, AI Coach, free agents, and trade analyzer all re-center on
+  // it. Persisted so a reload keeps you on the same team.
+  const [selectedTeamId, setSelectedTeamId] = useState<number>(readStoredTeamId);
+  const selectedTeam: LeagueTeam = useMemo(
+    () => ALL_TEAMS.find((t) => t.id === selectedTeamId) ?? ALL_TEAMS[0],
+    [selectedTeamId]
+  );
+
+  // Roster-builder assignments, seeded from the selected team's real ESPN
+  // lineup. `selectTeam` re-seeds them when you switch teams.
+  const seed = useMemo(() => deriveAssignments(selectedTeam), [selectedTeam]);
+  const [roster, setRoster] = useState<RosterAssignments>(seed.roster);
+  const [bench, setBench] = useState<number[]>(seed.bench);
 
   const [posFilter, setPosFilter] = useState<Position | "ALL">("ALL");
   const [search, setSearch] = useState("");
@@ -60,6 +60,22 @@ export function useFantasyApp() {
 
   const [faPosFilter, setFaPosFilter] = useState<Position | "ALL">("ALL");
   const [faSearch, setFaSearch] = useState("");
+
+  // Switch which team you're managing: re-seed the roster builder from that
+  // team's real lineup and clear any in-progress trade / league drill-down so
+  // nothing points at the team you just left.
+  const selectTeam = useCallback((id: number) => {
+    const team = ALL_TEAMS.find((t) => t.id === id) ?? ALL_TEAMS[0];
+    setSelectedTeamId(team.id);
+    writeStoredTeamId(team.id);
+    const next = deriveAssignments(team);
+    setRoster(next.roster);
+    setBench(next.bench);
+    setTradeGive([]);
+    setTradeGet([]);
+    setTradeOpponentId(null);
+    setSelectedLeagueTeam(null);
+  }, []);
 
   const projectionRefresh = useProjectionRefresh();
   const { projectionOverrides } = projectionRefresh;
@@ -81,16 +97,23 @@ export function useFantasyApp() {
     [projectionOverrides]
   );
 
-  const effectivePlayers = useMemo(() => PLAYERS.map(applyOverride), [applyOverride]);
+  // Your player pool = the team you're managing plus every free agent. Switch
+  // teams and this whole pipeline (needs, coach, trade values) re-centers.
+  const effectivePlayers: Player[] = useMemo(
+    () => [...selectedTeam.roster, ...FREE_AGENTS].map(applyOverride),
+    [applyOverride, selectedTeam]
+  );
+  // Every OTHER team is an opponent -- including your own default team when
+  // you're currently managing someone else's.
   const effectiveLeagueTeams: LeagueTeam[] = useMemo(
-    () => LEAGUE_TEAMS.map((t) => ({ ...t, roster: t.roster.map(applyOverride) })),
-    [applyOverride]
+    () => ALL_TEAMS.filter((t) => t.id !== selectedTeamId).map((t) => ({ ...t, roster: t.roster.map(applyOverride) })),
+    [applyOverride, selectedTeamId]
   );
   const effectiveAllLeaguePlayers: LeaguePlayer[] = useMemo(
     () => effectiveLeagueTeams.flatMap((t) => t.roster.map((p) => ({ ...p, fantasyTeamId: t.id, fantasyTeamName: t.name }))),
     [effectiveLeagueTeams]
   );
-  const effectiveMyTeamPlayers = useMemo(() => MY_TEAM_PLAYERS.map(applyOverride), [applyOverride]);
+  const effectiveMyTeamPlayers = useMemo(() => selectedTeam.roster.map(applyOverride), [applyOverride, selectedTeam]);
 
   const playerById = useCallback(
     (id: number): Player | undefined =>
@@ -641,8 +664,8 @@ export function useFantasyApp() {
   const myTeamViewed: ViewedTeam = useMemo(
     () => ({
       id: "mine",
-      name: `${LEAGUE_CONFIG.myTeamName} (You)`,
-      owner: LEAGUE_CONFIG.myOwnerName,
+      name: `${selectedTeam.name} (You)`,
+      owner: selectedTeam.owner,
       roster: effectiveMyTeamPlayers.map(
         (p): RosterPlayer => ({
           ...p,
@@ -651,12 +674,18 @@ export function useFantasyApp() {
         })
       ),
     }),
-    [effectiveMyTeamPlayers, roster]
+    [effectiveMyTeamPlayers, roster, selectedTeam]
   );
 
   return {
     tab,
     setTab,
+
+    // team selection
+    allTeams: ALL_TEAMS,
+    selectedTeamId,
+    selectedTeam,
+    selectTeam,
 
     // roster builder
     roster,
@@ -727,6 +756,30 @@ export function useFantasyApp() {
     // live projection refresh
     ...projectionRefresh,
   };
+}
+
+const SELECTED_TEAM_KEY = "gridiron.selectedTeamId";
+
+/** The team id persisted from a previous visit, or the default if none/invalid. */
+function readStoredTeamId(): number {
+  try {
+    const raw = window.localStorage.getItem(SELECTED_TEAM_KEY);
+    if (raw != null) {
+      const id = Number(raw);
+      if (Number.isFinite(id) && ALL_TEAMS.some((t) => t.id === id)) return id;
+    }
+  } catch {
+    // Storage unavailable (private mode, etc.) -- fall back to the default.
+  }
+  return DEFAULT_TEAM_ID;
+}
+
+function writeStoredTeamId(id: number): void {
+  try {
+    window.localStorage.setItem(SELECTED_TEAM_KEY, String(id));
+  } catch {
+    // Non-fatal: the selection just won't persist across reloads.
+  }
 }
 
 function suggestionKey(s: TradeSuggestion): string {

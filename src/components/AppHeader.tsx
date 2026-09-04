@@ -1,12 +1,15 @@
 import { AlertTriangle, RefreshCw, Trophy } from "lucide-react";
 import { LEAGUE_CONFIG } from "../config/league";
 import { NavTabs } from "./NavTabs";
-import type { RefreshProgress, TabId } from "../types";
+import type { LeagueTeam, RefreshProgress, TabId } from "../types";
 
 export function AppHeader({
   tab,
   onTabChange,
   rosterTotal,
+  teams,
+  selectedTeamId,
+  onSelectTeam,
   refreshing,
   refreshProgress,
   refreshError,
@@ -16,6 +19,9 @@ export function AppHeader({
   tab: TabId;
   onTabChange: (id: TabId) => void;
   rosterTotal: number;
+  teams: LeagueTeam[];
+  selectedTeamId: number;
+  onSelectTeam: (id: number) => void;
   refreshing: boolean;
   refreshProgress: RefreshProgress | null;
   refreshError: string | null;
@@ -35,6 +41,21 @@ export function AppHeader({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <label className="flex items-center gap-1.5 bg-[#000000] border border-[#38383A] rounded-full pl-3 pr-1 py-1 focus-within:border-[#C9A227]/60">
+            <span className="hidden md:inline text-[10px] text-[#98989D] mono-font tracking-wide">TEAM</span>
+            <select
+              value={selectedTeamId}
+              onChange={(e) => onSelectTeam(Number(e.target.value))}
+              title="Choose which team you're managing"
+              className="max-w-[42vw] sm:max-w-[200px] bg-transparent text-xs font-semibold text-[#C9A227] focus:outline-none cursor-pointer pr-1 py-0.5"
+            >
+              {teams.map((t) => (
+                <option key={t.id} value={t.id} className="bg-[#1C1C1E] text-[#FFFFFF]">
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             onClick={onRefresh}
             disabled={refreshing}
