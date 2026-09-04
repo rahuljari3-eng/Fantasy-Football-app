@@ -1,7 +1,18 @@
 import { AlertTriangle, Repeat, Sparkles, TrendingUp } from "lucide-react";
 import { POSITIONS } from "../config/league";
+import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX, FAIR_RATIO_MIN, FAIR_RATIO_MAX } from "../config/trade";
 import { PosBadge } from "../components/PosBadge";
 import type { FantasyApp } from "../hooks/useFantasyApp";
+
+/** Turn a get/give value ratio into a short verdict + a tailwind text color. */
+function ratioVerdict(ratio: number): { label: string; className: string } {
+  const pct = Math.round((ratio - 1) * 100);
+  const magnitude = `${Math.abs(pct)}%`;
+  if (ratio >= FAIR_RATIO_MIN && ratio <= FAIR_RATIO_MAX) return { label: "Fair both ways", className: "text-emerald-400" };
+  if (ratio < LOPSIDED_RATIO_MIN) return { label: `Favors them ${magnitude} — context matters`, className: "text-amber-400" };
+  if (ratio > LOPSIDED_RATIO_MAX) return { label: `Favors you ${magnitude} — context matters`, className: "text-amber-400" };
+  return { label: pct >= 0 ? `Leans your way ${magnitude}` : `Leans their way ${magnitude}`, className: "text-[#98989D]" };
+}
 
 export function CoachPage({ app }: { app: FantasyApp }) {
   const { myNeeds, needyPositions, strengthPositions, leagueBaseline, coachSuggestions, proposeCoachTrade } = app;
@@ -13,17 +24,19 @@ export function CoachPage({ app }: { app: FantasyApp }) {
           <Sparkles size={18} className="text-[#C9A227]" /> AI Coach
         </h2>
         <p className="text-sm text-[#98989D] max-w-2xl mt-1">
-          Scores each position by the quality of players there — projection, tier scarcity, and a discount for current injury status — compared against the
-          league-average starter, not just how many bodies you have. Then it scans every other team's roster for a trade where their real need overlaps with
-          your real surplus. Heuristic on your actual league data, not a live model call — a strong starting point, not gospel.
+          Prices every player by a blend of <span className="text-[#C9A227]">value over replacement</span> (points above a waiver-wire player at the
+          position, on a steep curve) and a <span className="text-[#C9A227]">rank chart</span> (KeepTradeCut-style exponential decay from the top of the
+          position) — so a genuine difference-maker outweighs a merely-good starter even when their weekly points look close. It scans every other team for
+          a swap where their need overlaps your surplus, discounts extra pieces in a package, and scales each side by team need. Only position players
+          (QB/RB/WR/TE) — never kickers or defenses — and QBs only when you're genuinely thin there. Heuristic on your league data, not a live model call.
         </p>
       </div>
 
       <div>
         <h3 className="text-sm font-medium text-[#98989D] mb-2">Position-by-position outlook</h3>
         <p className="text-xs text-[#636366] mb-3 max-w-2xl">
-          Quality score = projection + tier premium, discounted for current injury status — not just headcount. Compared against the league-average starter
-          at each position.
+          Score = summed curved value-over-replacement of your starters there, discounted for current injury status. Compared against the league-average
+          starter at each position.
         </p>
         <div className="grid sm:grid-cols-3 lg:grid-cols-6 gap-2">
           {POSITIONS.map((pos) => {
@@ -53,9 +66,10 @@ export function CoachPage({ app }: { app: FantasyApp }) {
       <div>
         <h3 className="text-sm font-medium text-[#98989D] mb-2">Suggested trades</h3>
         <p className="text-xs text-[#636366] mb-3 max-w-2xl">
-          Need-fill trades are prioritized when you have a real weakness; otherwise these are value trades worth considering even without one — you'll
-          always see some options here. The list deliberately mixes straight player-for-player swaps with 2-for-1 packages. Value accounts for whether a
-          player is a locked-in starter or a bench piece, not just projection, and every suggestion is kept within a fair net-value band.
+          The list always mixes shapes — at least two straight 1-for-1s and two 2-for-2s, never all of one kind. Each card shows a{" "}
+          <span className="text-[#C9A227]">value ratio</span> (what you get ÷ what you give, after the package discount and a team-need adjustment).
+          Anything from {FAIR_RATIO_MIN.toFixed(2)}–{FAIR_RATIO_MAX.toFixed(2)} is fair; edges are where your read on team need should decide. Extra
+          players only count if they genuinely close the gap, and any deal that moves a Tier-1 player must send a Tier-1 or Tier-2 player back.
         </p>
         {coachSuggestions.length === 0 ? (
           <div className="bg-[#1C1C1E] border border-[#38383A] rounded-xl p-6 text-center">
@@ -67,7 +81,7 @@ export function CoachPage({ app }: { app: FantasyApp }) {
         ) : (
           <div className="grid md:grid-cols-2 gap-3">
             {coachSuggestions.map((s) => {
-              const diff = s.getVal - s.giveVal;
+              const verdict = ratioVerdict(s.ratio);
               return (
                 <div key={s.id} className="bg-[#1C1C1E] border border-[#38383A] rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -112,24 +126,26 @@ export function CoachPage({ app }: { app: FantasyApp }) {
                   <div className="text-xs text-[#98989D] mb-3">
                     {s.reason === "need" ? (
                       <>
-                        Shores up your {s.needPos} (+{s.upgrade.toFixed(1)} quality-score upgrade — factoring proj, tier, and injury risk) by moving from
-                        your {s.overlapPos} depth, which {s.teamName} is genuinely light at.
+                        Shores up your {s.needPos} (+{s.upgrade.toFixed(1)} quality-score upgrade — factoring VOR, the elite-tier curve, and injury risk) by
+                        moving from your {s.overlapPos} depth, which {s.teamName} is genuinely light at.
                       </>
                     ) : s.reason === "value" ? (
                       <>
-                        A roughly even-to-favorable value swap: upgrades your {s.needPos} spot by {s.upgrade.toFixed(1)} in value while moving a{" "}
-                        {s.overlapPos} piece that isn't your top guy there.
+                        A roughly even value swap: nudges your {s.needPos} spot up while moving a {s.overlapPos} piece that isn't your top guy there.
                       </>
                     ) : (
                       <>A same-position, roughly even value swap with {s.teamName} — not necessarily an upgrade, but a fair baseline option worth having on the table.</>
                     )}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-xs mono-font ${diff >= 0 ? "text-emerald-400" : "text-amber-400"}`}>
-                      Net value {diff >= 0 ? "+" : ""}
-                      {diff.toFixed(1)}
-                    </span>
-                    <button onClick={() => proposeCoachTrade(s)} className="text-xs bg-[#C9A227] text-[#000000] font-semibold px-3 py-1.5 rounded-lg hover:bg-[#e0b82e] flex items-center gap-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-sm mono-font text-[#C9A227]">
+                        {s.ratio.toFixed(2)}
+                        <span className="text-[10px] text-[#636366] ml-1">get ÷ give</span>
+                      </div>
+                      <div className={`text-[11px] ${verdict.className}`}>{verdict.label}</div>
+                    </div>
+                    <button onClick={() => proposeCoachTrade(s)} className="shrink-0 text-xs bg-[#C9A227] text-[#000000] font-semibold px-3 py-1.5 rounded-lg hover:bg-[#e0b82e] flex items-center gap-1">
                       <Repeat size={12} /> Open in analyzer
                     </button>
                   </div>

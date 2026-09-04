@@ -23,6 +23,10 @@ export interface Player {
   proj: number;
   tier: Tier;
   status: PlayerStatus;
+  /** 1-based rank among all known players at this position (by projection),
+   * filled in at runtime. Drives the rank-chart component of trade value --
+   * see lib/scoring.ts. Absent on raw static data. */
+  posRank?: number;
 }
 
 /** A player entry inside a league team's roster (ESPN also tells us slot/starter). */
@@ -101,8 +105,11 @@ export interface TradeSuggestion {
   get: Player[];
   needPos: Position;
   overlapPos: Position;
+  /** Team-need-adjusted value of what you send / receive. */
   giveVal: number;
   getVal: number;
+  /** getVal / giveVal -- > 1 favors you, < 1 favors the other side. */
+  ratio: number;
   upgrade: number;
   reason: TradeReason;
 }

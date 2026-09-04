@@ -1,24 +1,68 @@
 // Every tunable number behind the player-valuation math in lib/scoring.ts.
 // Adjust these to change how the AI Coach, Trade Analyzer, and Free Agents tab
 // price players -- none of the math itself needs to change.
+import type { Position } from "../types";
 
-/** A true difference-maker isn't worth "the sum of two decent players who add
- * up to the same points" -- real managers won't give up a stud for role
- * players even at raw point parity, because that production can't be split
- * or replicated. tierBonus alone is flat and linear, so on its own it can't
- * capture this: two tier-2 players can numerically out-total one tier-1 star.
- * scarcityBonus (below) adds a premium that grows QUADRATICALLY once weekly
- * projection clears this "elite" threshold. */
-export const ELITE_PROJ_THRESHOLD = 18;
-export const SCARCITY_COEFFICIENT = 0.15;
+/** REPLACEMENT LEVEL: the per-game points at which a position stops mattering
+ * for trades -- roughly the last player you'd actually start plus a little
+ * bench depth in a 12-team league (~RB30 / WR30 / QB15 in a 1QB league / TE13,
+ * streamer-level for DST & K), NOT the bottom of the rosterable pool. Set too
+ * low, a merely-decent starter shows a big VOR and gets overvalued; this line
+ * is deliberately tight. Value is measured ABOVE it, not from zero. */
+export const REPLACEMENT_LEVEL: Record<Position, number> = {
+  QB: 15.5,
+  RB: 10.5,
+  WR: 10.0,
+  TE: 7.5,
+  DST: 6.0,
+  K: 8.0,
+};
 
-/** Flat per-tier value bonus added on top of raw projection. */
-export const TIER_BONUS: Record<1 | 2 | 3, number> = { 1: 6, 2: 2, 3: 0 };
+/** CONVEX CURVE exponent applied to value-over-replacement:
+ *   curvedVOR = VOR ** VOR_CURVE_ALPHA   (for VOR >= 0)
+ * Fantasy trade value is tiered/stepped, not smoothly linear in points: a
+ * difference-maker who can't be replaced is worth far more than the points gap
+ * to a flex-level starter suggests. A steep exponent (~1.8-2.2) reproduces
+ * that -- two flex guys projecting 11 each do NOT out-value one stud
+ * projecting 18. Same idea as KeepTradeCut / FantasyCalc rank-value charts. */
+export const VOR_CURVE_ALPHA = 2.0;
 
-/** A locked-in starter is worth more than a bench player with similar raw
- * projection -- it occupies a scarce lineup slot and represents guaranteed
- * weekly production, not a speculative flex piece. */
-export const STARTER_PREMIUM: Record<1 | 2 | 3, number> = { 1: 8, 2: 4, 3: 2 };
+/** Floor value every player (and the roster spot he occupies) carries, added
+ * under the curved score. A rosterable player is never worth ~zero in a
+ * redraft trade, and without a large-enough floor the value RATIO between two
+ * near-replacement players blows up on tiny projection gaps (made worse by the
+ * steep exponent above). High enough that ordinary starter-for-starter swaps
+ * read as fair; the curve still drives the gap between tiers. */
+export const VOR_BASELINE = 40;
+
+/** Below-replacement players lose value linearly (no convex curve on the
+ * downside), this many value points per projected point short of replacement. */
+export const BELOW_REPLACEMENT_SLOPE = 0.8;
+
+/** RANK-CHART COMPONENT. Weekly projections compress badly at the top of a
+ * position (in a 1QB league every QB1 lands in a narrow points band), so
+ * projection alone can't tell a genuine difference-maker from a merely-good
+ * starter. Blend in a KeepTradeCut / FantasyCalc-style rank chart:
+ *   rankValue = RANK_VALUE_BASE * exp(-RANK_DECAY_K[pos] * (rank - 1))
+ * where rank is the player's 1-based projection rank at his position. The
+ * exponential makes the top of each position steeply more valuable, and
+ * per-position decay reflects how fast each position gets replaceable. */
+export const RANK_VALUE_BASE = 100;
+
+export const RANK_DECAY_K: Record<Position, number> = {
+  QB: 0.16, // steep: QB1 >> QB6 even when weekly points are close
+  RB: 0.085,
+  WR: 0.075,
+  TE: 0.15, // steep: elite TE is scarce
+  DST: 0.28, // collapses almost immediately -- everyone streams
+  K: 0.35,
+};
+
+/** How the final value splits between the rank chart and the points-VOR curve.
+ * Must sum to 1. Rank-weighted because scarcity/tiering is the thing raw
+ * projections keep missing. */
+export const RANK_WEIGHT = 0.55;
+export const POINTS_WEIGHT = 0.45;
 
 /** Discount applied on top of playerValue so a banged-up "elite" player isn't
  * counted at full strength when judging how good a position group is. */
@@ -30,7 +74,7 @@ export const INJURY_DISCOUNT: Record<string, number> = {
 export const INJURY_DISCOUNT_DEFAULT = 1;
 
 /** Rest-of-season projection: a 16-game season total (17 weeks minus one bye)
- * built from the same weekly projection. */
+ * built from the same weekly value. */
 export const ROS_WEEKS = 16;
 
 /** Season-outlook multiplier for current injury status -- a "Questionable" tag

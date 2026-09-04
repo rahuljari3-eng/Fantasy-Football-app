@@ -1,4 +1,5 @@
 import { ChevronRight, Plus, TrendingDown, TrendingUp, X } from "lucide-react";
+import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX } from "../config/trade";
 import { PosBadge } from "../components/PosBadge";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 import type { Player, TradeHorizon } from "../types";
@@ -22,7 +23,8 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
     giveVal,
     getVal,
     diff,
-    diffPct,
+    tradeRatio,
+    tradeStarGateViolation,
     playerById,
     tradeValueOf,
     toggleTradeList,
@@ -47,10 +49,11 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
     <div className="space-y-4">
       <h2 className="display-font text-xl">Trade analyzer</h2>
       <p className="text-sm text-[#98989D] max-w-2xl">
-        Pick the players you'd send and receive.{" "}
+        Pick the players you'd send and receive. Value is <span className="text-[#C9A227]">points over replacement</span>, run through a convex curve so
+        elite tiers outweigh their raw points, and each extra player in a package is discounted.{" "}
         {tradeHorizon === "season"
-          ? "Value estimates a 16-game rest-of-season total, adjusted for tier trajectory and current injury risk."
-          : "Value blends this week's projection with tier (elite players carry a scarcity premium beyond raw points)."}
+          ? "Season mode projects it across the remaining 16 games, adjusted for tier trajectory and injury risk."
+          : "Week mode prices a single week."}
       </p>
 
       <div className="inline-flex bg-[#1C1C1E] border border-[#38383A] rounded-lg p-1">
@@ -146,15 +149,33 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
         ))}
       </div>
 
-      {(tradeGive.length > 0 || tradeGet.length > 0) && (
-        <div className={`rounded-xl p-4 border ${diffPct > 8 ? "bg-emerald-500/10 border-emerald-500/30" : diffPct < -8 ? "bg-red-500/10 border-red-500/30" : "bg-[#1C1C1E] border-[#38383A]"}`}>
+      {(tradeGive.length > 0 || tradeGet.length > 0) && (() => {
+        const favorsYou = !tradeStarGateViolation && tradeRatio != null && tradeRatio > LOPSIDED_RATIO_MAX;
+        const favorsThem = tradeStarGateViolation || (tradeRatio != null && tradeRatio < LOPSIDED_RATIO_MIN);
+        return (
+        <div className={`rounded-xl p-4 border ${favorsYou ? "bg-emerald-500/10 border-emerald-500/30" : favorsThem ? "bg-red-500/10 border-red-500/30" : "bg-[#1C1C1E] border-[#38383A]"}`}>
           <div className="flex items-center gap-3">
-            {diffPct > 8 ? <TrendingUp className="text-emerald-400 shrink-0" size={20} /> : diffPct < -8 ? <TrendingDown className="text-red-400 shrink-0" size={20} /> : <ChevronRight className="text-[#C9A227] shrink-0" size={20} />}
+            {favorsYou ? <TrendingUp className="text-emerald-400 shrink-0" size={20} /> : favorsThem ? <TrendingDown className="text-red-400 shrink-0" size={20} /> : <ChevronRight className="text-[#C9A227] shrink-0" size={20} />}
             <div>
-              <div className="font-medium">{diffPct > 8 ? "This trade favors you" : diffPct < -8 ? "This trade favors the other side" : "This trade is roughly even"}</div>
+              <div className="font-medium">
+                {tradeStarGateViolation
+                  ? "Likely unfair — no star coming back"
+                  : favorsYou
+                  ? "This trade favors you"
+                  : favorsThem
+                  ? "This trade favors the other side"
+                  : "This trade is roughly even"}
+                {tradeRatio != null && <span className="mono-font text-[#C9A227] ml-2">ratio {tradeRatio.toFixed(2)}</span>}
+              </div>
               <div className="text-sm text-[#98989D]">
+                {tradeStarGateViolation && (
+                  <span className="text-amber-400">
+                    You're moving a Tier-1 player without getting a Tier-1 or Tier-2 player back — scarcity at the top rarely trades even for role players.{" "}
+                  </span>
+                )}
                 Net value {diff > 0 ? "+" : ""}
-                {diff.toFixed(1)} {tradeHorizon === "season" ? "rest-of-season pts" : "this week"} in your favor.{" "}
+                {diff.toFixed(1)} {tradeHorizon === "season" ? "rest-of-season pts" : "this week"} in your favor
+                {tradeRatio != null && ` (${Math.abs(Math.round((tradeRatio - 1) * 100))}% ${tradeRatio >= 1 ? "your way" : "their way"})`}.{" "}
                 {tradeGet.some((id) => playerById(id)?.status !== "Healthy") && "Heads up: someone you'd receive has an injury flag — factor that into the ask."}
               </div>
             </div>
@@ -172,7 +193,8 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
