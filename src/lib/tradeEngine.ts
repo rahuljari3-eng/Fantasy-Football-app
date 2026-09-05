@@ -92,14 +92,26 @@ export function ratioIsFair(ratio: number): boolean {
   return ratio >= FAIR_RATIO_MIN && ratio <= FAIR_RATIO_MAX;
 }
 
-/** How much an incoming player's value should be scaled for a team, given that
- * team's depth at his position versus the league-average starter there:
- * up if it fills a hole, down if they're already stacked. */
-export function needFactor(needs: RosterNeeds, baseline: PositionBaseline, pos: Position): number {
-  const n = needs[pos];
+/** How much an incoming player's value should be scaled for a team, given
+ * that team's depth at his position versus the league-average starter there:
+ * up if he genuinely fills a hole, down if they're already stacked.
+ *
+ * The FILL bonus only applies if this specific player would actually upgrade
+ * the team's current weakest starter there -- not just because the position
+ * happens to be a declared need. Without that check, a bench-caliber player
+ * (a backup who wouldn't start for anyone) got the same +15% "fills a need"
+ * bonus as a genuine starter-quality upgrade, purely because his position
+ * was thin -- inflating scrubs enough that trading away a real starter for
+ * two of them could read as "fair". A team missing enough bodies to fill the
+ * position at all (hasEnoughBodies false) is the one case where literally
+ * anyone helps, so that still bypasses the upgrade check. */
+export function needFactor(needs: RosterNeeds, baseline: PositionBaseline, player: Player): number {
+  const n = needs[player.pos];
   if (!n) return NEED_MULTIPLIER_NEUTRAL;
-  const base = baseline[pos] || 0;
-  if (!n.hasEnoughBodies || (base && n.starterScore < base * 0.85)) return NEED_MULTIPLIER_FILL;
+  const base = baseline[player.pos] || 0;
+  if (!n.hasEnoughBodies) return NEED_MULTIPLIER_FILL;
+  const isRealUpgrade = !n.weakestStarter || playerValue(player) > playerValue(n.weakestStarter);
+  if (isRealUpgrade && base && n.starterScore < base * 0.85) return NEED_MULTIPLIER_FILL;
   if (base && n.starterScore > base * 1.1 && n.tradeableDepth.length > 0) return NEED_MULTIPLIER_STACKED;
   return NEED_MULTIPLIER_NEUTRAL;
 }
@@ -114,9 +126,9 @@ export function needAdjustedPackageValue(
 ): number {
   const sorted = [...players].sort((a, b) => playerValue(b) - playerValue(a));
   if (!sorted.length) return 0;
-  let total = playerValue(sorted[0]) * needFactor(needs, baseline, sorted[0].pos);
+  let total = playerValue(sorted[0]) * needFactor(needs, baseline, sorted[0]);
   for (let i = 1; i < sorted.length; i++) {
-    total += marginalValue(sorted[i]) * Math.pow(EXTRA_PIECE_DISCOUNT, i) * needFactor(needs, baseline, sorted[i].pos);
+    total += marginalValue(sorted[i]) * Math.pow(EXTRA_PIECE_DISCOUNT, i) * needFactor(needs, baseline, sorted[i]);
   }
   return total;
 }
