@@ -73,6 +73,7 @@ export function buildSystemPrompt(
     "For trade fairness without a stated horizon, discuss both this week and rest-of-season when you have enough data.",
     "Prefer the local builder lineup when the user is clearly editing in-app; prefer ESPN when they say ESPN / app lineup. If unclear, ASK.",
     "Keep answers actionable and manager-friendly. Prefer short paragraphs and clear recommendations.",
+    "Format replies in clean Markdown (the chat UI renders it): **bold** for emphasis, [link text](url) for links, and bullet/numbered lists when helpful. Do not use LaTeX, HTML, or raw asterisk/bracket dumps.",
   ]
     .filter(Boolean)
     .join("\n");

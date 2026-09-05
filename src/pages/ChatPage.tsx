@@ -6,6 +6,7 @@ import {
   SENSEI_MODELS,
   type SenseiModelId,
 } from "../config/senseiModels";
+import { SenseiMarkdown } from "../components/SenseiMarkdown";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 
 type ChatRole = "user" | "assistant";
@@ -310,7 +311,11 @@ export function ChatPage({ app }: { app: FantasyApp }) {
                     )}
                   </div>
                 )}
-                <div className="whitespace-pre-wrap">{m.content}</div>
+                {m.role === "assistant" ? (
+                  <SenseiMarkdown content={m.content} />
+                ) : (
+                  <div className="whitespace-pre-wrap">{m.content}</div>
+                )}
                 {m.role === "assistant" && m.toolsUsed && <ToolsUsedAccordion tools={m.toolsUsed} />}
               </div>
             </div>
