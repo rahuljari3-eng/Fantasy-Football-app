@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { resolveSenseiModel, type SenseiModelId } from "../../src/config/senseiModels.js";
 import { ALL_TEAMS } from "../../src/data/allTeams.js";
 import { FREE_AGENTS } from "../../src/data/freeAgents.js";
 import { ensureLiveRosters, getLiveLeagueCache } from "../../src/lib/espnLeague.js";
@@ -21,6 +22,7 @@ export interface ChatTurnMessage {
 export interface SenseiTurnResult {
   message: string;
   toolsUsed: string[];
+  model: SenseiModelId;
 }
 
 function snapshotKnownPlayers(): Player[] {
@@ -33,11 +35,12 @@ function snapshotKnownPlayers(): Player[] {
 export async function runSenseiTurn(input: {
   messages: ChatTurnMessage[];
   leagueContext: LeagueContext;
+  model?: string | null;
 }): Promise<SenseiTurnResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
 
-  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+  const model = resolveSenseiModel(input.model, process.env.OPENAI_MODEL);
   const client = new OpenAI({ apiKey });
 
   const toolsUsed: string[] = [];
@@ -95,7 +98,7 @@ export async function runSenseiTurn(input: {
     if (!toolCalls || toolCalls.length === 0) {
       const text = (msg.content || "").trim();
       if (!text) throw new Error("Model returned an empty final answer");
-      return { message: text, toolsUsed: dedupe(toolsUsed) };
+      return { message: text, toolsUsed: dedupe(toolsUsed), model };
     }
 
     for (const call of toolCalls) {
@@ -114,6 +117,7 @@ export async function runSenseiTurn(input: {
     message:
       "I hit my tool-call limit before finishing. Try asking a narrower question, or ask again in a moment.",
     toolsUsed: dedupe(toolsUsed),
+    model,
   };
 }
 

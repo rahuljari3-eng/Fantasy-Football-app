@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ArrowUp, ChevronDown, Loader2, MessageCircle } from "lucide-react";
+import { ArrowUp, ChevronDown, Loader2, MessageCircle, Sparkles } from "lucide-react";
+import {
+  DEFAULT_SENSEI_MODEL,
+  isSenseiModelId,
+  SENSEI_MODELS,
+  type SenseiModelId,
+} from "../config/senseiModels";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 
 type ChatRole = "user" | "assistant";
@@ -9,6 +15,7 @@ interface ChatMessage {
   role: ChatRole;
   content: string;
   toolsUsed?: string[];
+  model?: SenseiModelId;
 }
 
 const EXAMPLE_PROMPTS = [
@@ -19,9 +26,20 @@ const EXAMPLE_PROMPTS = [
 ];
 
 const HISTORY_CAP = 20;
+const MODEL_STORAGE_KEY = "gridiron.senseiModel";
 
 function newId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function readStoredModel(): SenseiModelId {
+  try {
+    const raw = localStorage.getItem(MODEL_STORAGE_KEY);
+    if (isSenseiModelId(raw)) return raw;
+  } catch {
+    // ignore
+  }
+  return DEFAULT_SENSEI_MODEL;
 }
 
 function ToolsUsedAccordion({ tools }: { tools: string[] }) {
@@ -43,6 +61,74 @@ function ToolsUsedAccordion({ tools }: { tools: string[] }) {
   );
 }
 
+function ModelPicker({
+  model,
+  onChange,
+  disabled,
+}: {
+  model: SenseiModelId;
+  onChange: (id: SenseiModelId) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = SENSEI_MODELS.find((m) => m.id === model) ?? SENSEI_MODELS[0];
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        title={`Model: ${current.id}`}
+        className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border border-[#38383A] bg-[#1C1C1E]/95 text-[#E5E5EA] hover:border-[#C9A227]/50 hover:text-[#FFFFFF] disabled:opacity-50 backdrop-blur-sm"
+      >
+        <Sparkles size={12} className="text-[#C9A227] shrink-0" />
+        <span className="font-medium">{current.label}</span>
+        <ChevronDown size={12} className={`text-[#636366] transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-label="Close model menu"
+            className="fixed inset-0 z-10 cursor-default"
+            onClick={() => setOpen(false)}
+          />
+          <ul
+            role="listbox"
+            className="absolute right-0 top-full mt-1 z-20 min-w-[11rem] rounded-xl border border-[#38383A] bg-[#1C1C1E] shadow-xl py-1 overflow-hidden"
+          >
+            {SENSEI_MODELS.map((m) => {
+              const selected = m.id === model;
+              return (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => {
+                      onChange(m.id);
+                      setOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-[12px] hover:bg-[#2C2C2E] ${
+                      selected ? "text-[#C9A227]" : "text-[#E5E5EA]"
+                    }`}
+                  >
+                    <div className="font-medium">{m.label}</div>
+                    <div className="text-[10px] text-[#636366] mt-0.5">{m.description}</div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
 /** Roster Sensei chat — talks to POST /api/chat (server-side OpenAI + tools). */
 export function ChatPage({ app }: { app: FantasyApp }) {
   const { selectedTeamId, selectedTeam, roster, bench } = app;
@@ -50,10 +136,23 @@ export function ChatPage({ app }: { app: FantasyApp }) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [model, setModel] = useState<SenseiModelId>(DEFAULT_SENSEI_MODEL);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const chatStarted = messages.length > 0;
+
+  useEffect(() => {
+    setModel(readStoredModel());
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(MODEL_STORAGE_KEY, model);
+    } catch {
+      // ignore
+    }
+  }, [model]);
 
   useEffect(() => {
     if (!chatStarted) return;
@@ -81,6 +180,7 @@ export function ChatPage({ app }: { app: FantasyApp }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: historyForApi,
+          model,
           leagueContext: {
             managedTeamId: selectedTeamId,
             localLineup: {
@@ -92,7 +192,7 @@ export function ChatPage({ app }: { app: FantasyApp }) {
       });
 
       const rawBody = await res.text();
-      let data: { message?: string; toolsUsed?: string[]; error?: string } = {};
+      let data: { message?: string; toolsUsed?: string[]; error?: string; model?: string } = {};
       try {
         data = rawBody ? (JSON.parse(rawBody) as typeof data) : {};
       } catch {
@@ -114,6 +214,7 @@ export function ChatPage({ app }: { app: FantasyApp }) {
           role: "assistant",
           content: data.message!,
           toolsUsed: data.toolsUsed ?? [],
+          model: isSenseiModelId(data.model) ? data.model : model,
         },
       ]);
     } catch (err) {
@@ -147,9 +248,13 @@ export function ChatPage({ app }: { app: FantasyApp }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-9.5rem)] max-w-2xl mx-auto">
+    <div className="relative flex flex-col h-[calc(100vh-9.5rem)] max-w-2xl mx-auto">
+      <div className="absolute top-0 right-0 z-30">
+        <ModelPicker model={model} onChange={setModel} disabled={sending} />
+      </div>
+
       {!chatStarted ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center px-2 pb-6">
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-2 pb-6 pt-8">
           <div className="w-12 h-12 rounded-xl bg-[#C9A227]/15 border border-[#C9A227]/40 flex items-center justify-center mb-4">
             <MessageCircle size={22} className="text-[#C9A227]" />
           </div>
@@ -158,7 +263,9 @@ export function ChatPage({ app }: { app: FantasyApp }) {
             Ask about start/sit, waivers, trades, or your roster. Advising for{" "}
             <span className="text-[#C9A227]">{selectedTeam.name}</span>.
           </p>
-          <p className="text-[11px] text-[#636366] mb-8">Switch teams in the header to change Sensei's default context.</p>
+          <p className="text-[11px] text-[#636366] mb-8">
+            Switch teams in the header · model picker (top right) defaults to Mini
+          </p>
           <div className="flex flex-wrap justify-center gap-2 max-w-lg">
             {EXAMPLE_PROMPTS.map((prompt) => (
               <button
@@ -174,7 +281,7 @@ export function ChatPage({ app }: { app: FantasyApp }) {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto px-1 pb-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-1 pb-4 pt-10 space-y-4">
           {messages.map((m) => (
             <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
@@ -185,7 +292,10 @@ export function ChatPage({ app }: { app: FantasyApp }) {
                 }`}
               >
                 {m.role === "assistant" && (
-                  <div className="text-[10px] uppercase tracking-wide text-[#C9A227] mb-1 font-medium">Sensei</div>
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-[#C9A227] mb-1 font-medium">
+                    <span>Sensei</span>
+                    {m.model && <span className="text-[#636366] normal-case tracking-normal font-normal">{m.model}</span>}
+                  </div>
                 )}
                 <div className="whitespace-pre-wrap">{m.content}</div>
                 {m.role === "assistant" && m.toolsUsed && <ToolsUsedAccordion tools={m.toolsUsed} />}

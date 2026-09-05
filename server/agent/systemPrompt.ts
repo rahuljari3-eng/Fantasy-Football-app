@@ -51,7 +51,7 @@ export function buildSystemPrompt(leagueContext: LeagueContext): string {
     "For standings / playoff race use get_standings. For this week's fantasy opponent / scoreboard use get_matchup.",
     "ESPN fantasy team ids can differ from the app snapshot — prefer team names when clarifying; list_teams after sync shows live ids.",
     "For trade fairness, call evaluate_trade (it returns BOTH week and rest-of-season). For start/sit use optimize_lineup and/or compare_players (prefer weekValue) and check byes/schedule.",
-    "For trade ideas (who to target / what to offer) call suggest_trades; then evaluate_trade on a specific package if needed.",
+    "When the user asks to suggest trades, propose packages, or who to trade with/for — call suggest_trades (do not stop after get_my_roster).",
     "For waiver advice use analyze_roster_needs then recommend_pickups or search_free_agents.",
     "For schedule / bye / playoff-stash questions use get_player_schedule, get_schedule_outlook, or get_nfl_schedule — do not guess opponents.",
     `Available tools right now: ${listToolNames().join(", ")}.`,
