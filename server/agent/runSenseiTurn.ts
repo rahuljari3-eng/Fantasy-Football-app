@@ -6,6 +6,7 @@ import { FREE_AGENTS } from "../../src/data/freeAgents.js";
 import { ensureLiveRosters, getLiveLeagueCache } from "../../src/lib/espnLeague.js";
 import type { Player } from "../../src/types.js";
 import { classifySenseiIntents } from "./classifyIntent.js";
+import { evidenceNudgeMessage, looksLikeEvidenceAnswer } from "./evidence.js";
 import {
   checklistForIntents,
   heuristicIntents,
@@ -24,6 +25,7 @@ export type { LeagueContext, LocalLineupContext } from "./tools/types.js";
 const MAX_HISTORY_MESSAGES = 20;
 const MAX_TOOL_ROUNDS = 8;
 const MAX_RESEARCH_NUDGES = 3;
+const MAX_EVIDENCE_NUDGES = 2;
 
 export interface ChatTurnMessage {
   role: "user" | "assistant";
@@ -43,6 +45,11 @@ function snapshotKnownPlayers(): Player[] {
   for (const t of ALL_TEAMS) for (const p of t.roster) map.set(p.id, p);
   for (const p of FREE_AGENTS) if (!map.has(p.id)) map.set(p.id, p);
   return [...map.values()];
+}
+
+/** Tools that only refresh cache — alone they don't count as researched advice. */
+function substantiveToolsUsed(toolsUsed: string[]): string[] {
+  return toolsUsed.filter((t) => t !== "sync_rosters");
 }
 
 export async function runSenseiTurn(input: {
@@ -120,6 +127,7 @@ export async function runSenseiTurn(input: {
   };
 
   let nudges = 0;
+  let evidenceNudges = 0;
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const missing = missingChecklistItems(checklist, toolsUsed);
@@ -134,7 +142,7 @@ export async function runSenseiTurn(input: {
       messages,
       tools: openAiTools.length ? openAiTools : undefined,
       tool_choice: forceTools ? "required" : openAiTools.length ? "auto" : undefined,
-      temperature: 0.4,
+      temperature: 0.3,
     });
 
     const choice = completion.choices[0];
@@ -195,6 +203,24 @@ export async function runSenseiTurn(input: {
           `Call tools from this allowlist to gather it: ${allowlist.join(", ")}.`,
           "If you are blocked by ambiguity (e.g. local vs ESPN lineup), ask ONE short clarifying question instead.",
         ].join("\n"),
+      });
+      continue;
+    }
+
+    const substantive = substantiveToolsUsed(toolsUsed);
+    const needsEvidence =
+      substantive.length > 0 || checklist.length > 0 || intents.some((i) => i !== "general");
+
+    if (
+      needsEvidence &&
+      !looksLikeEvidenceAnswer(text) &&
+      evidenceNudges < MAX_EVIDENCE_NUDGES &&
+      round < MAX_TOOL_ROUNDS - 1
+    ) {
+      evidenceNudges++;
+      messages.push({
+        role: "user",
+        content: evidenceNudgeMessage(dedupe(toolsUsed)),
       });
       continue;
     }

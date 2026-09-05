@@ -3,7 +3,7 @@ import { ALL_TEAMS } from "../../../src/data/allTeams.js";
 import { FREE_AGENTS } from "../../../src/data/freeAgents.js";
 import { getLiveLeagueCache } from "../../../src/lib/espnLeague.js";
 import { analyzeRosterNeeds } from "../../../src/lib/rosterNeeds.js";
-import { qualityScore } from "../../../src/lib/scoring.js";
+import { playerValue, qualityScore, rosValue, vorPoints } from "../../../src/lib/scoring.js";
 import type { LeagueTeam, Player, Position, RosterNeeds } from "../../../src/types.js";
 import type { ToolContext } from "./types.js";
 
@@ -174,6 +174,13 @@ export function serializePlayer(p: Player) {
     tier: p.tier,
     status: p.status,
     posRank: p.posRank ?? null,
+    /** Weekly projected points above replacement (raw). */
+    vor: Math.round(vorPoints(p) * 10) / 10,
+    /** This-week trade/start metric (not raw proj). Prefer for start/sit. */
+    weekValue: Math.round(playerValue(p) * 10) / 10,
+    /** Rest-of-season trade metric. Prefer for holds/trades. */
+    rosValue: Math.round(rosValue(p) * 10) / 10,
+    /** Asset quality used by needs / FA / coach. */
     qualityScore: Math.round(qualityScore(p) * 10) / 10,
     ownedBy: owner,
     isFreeAgent: !owner,

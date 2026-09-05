@@ -1,6 +1,8 @@
 import { SLOTS } from "../../../src/config/league.js";
 import { suggestTrades } from "../../../src/lib/coachTrades.js";
+import { fetchWeeklyMatchups, gradeMatchup } from "../../../src/lib/matchup.js";
 import { optimizeLineup } from "../../../src/lib/optimizeLineup.js";
+import { playerValue, qualityScore } from "../../../src/lib/scoring.js";
 import type { Player } from "../../../src/types.js";
 import {
   activeTeams,
@@ -42,6 +44,8 @@ function serializeSuggestionPlayer(p: Player) {
     proj: p.proj,
     tier: p.tier,
     status: p.status,
+    weekValue: Math.round(playerValue(p) * 10) / 10,
+    qualityScore: Math.round(qualityScore(p) * 10) / 10,
   };
 }
 
@@ -105,19 +109,55 @@ export const optimizeLineupTool: ToolDefinition = {
     });
 
     const byId = new Map(players.map((p) => [p.id, p]));
+
+    let matchups = null as Awaited<ReturnType<typeof fetchWeeklyMatchups>> | null;
+    try {
+      matchups = await fetchWeeklyMatchups();
+    } catch {
+      matchups = null;
+    }
+
     const starters = SLOTS.map((slot) => {
       const id = result.roster[slot];
       const p = id != null ? byId.get(id) : undefined;
+      const m = p && matchups ? gradeMatchup(p, matchups) : null;
       return {
         slot,
         playerId: id ?? null,
         name: p?.name ?? null,
         pos: p?.pos ?? null,
         proj: p?.proj ?? null,
+        weekValue: p ? Math.round(playerValue(p) * 10) / 10 : null,
         bye: p?.bye ?? null,
         status: p?.status ?? null,
+        thisWeekMatchup: m
+          ? { opponent: m.opponent, homeAway: m.homeAway, isBye: m.isBye, grade: m.grade, label: m.label }
+          : null,
       };
     });
+
+    const flexSlot = starters.find((s) => s.slot === "FLEX");
+
+    const citeHints = [
+      `Projected starter total: ${result.projectedTotal} (pool=${pool}, source=${poolSource}, week=${ctx.scoringPeriodId ?? "?"}).`,
+      ...starters
+        .filter((s) => s.name)
+        .map((s) => {
+          const m = s.thisWeekMatchup?.label ? ` | ${s.thisWeekMatchup.label}` : "";
+          return `${s.slot}: ${s.name} proj ${s.proj} weekValue ${s.weekValue} status ${s.status}${m}`;
+        }),
+    ];
+    if (flexSlot?.name) {
+      citeHints.push(`FLEX locked as ${flexSlot.name} on projection; cite proj/weekValue vs any named bench challenger.`);
+    }
+    if (result.excluded.length) {
+      citeHints.push(
+        `Excluded from pool: ${result.excluded
+          .slice(0, 5)
+          .map((e) => `${e.name} (${e.reason})`)
+          .join("; ")}.`
+      );
+    }
 
     return {
       ok: true,
@@ -130,10 +170,11 @@ export const optimizeLineupTool: ToolDefinition = {
       starters,
       emptySlots: result.emptySlots,
       excluded: result.excluded.slice(0, 20),
+      citeHints,
       note:
         poolSource === "local_lineup"
-          ? "Optimized from the client's local builder lineup. If the user meant ESPN instead, ask and re-run with useLocalLineup=false."
-          : "Optimized from ESPN/live roster. If the user meant their local builder lineup, ask and re-run with useLocalLineup=true.",
+          ? "Optimized from the client's local builder lineup. Quote projectedTotal and per-slot proj. If the user meant ESPN instead, ask and re-run with useLocalLineup=false."
+          : "Optimized from ESPN/live roster. Quote projectedTotal and per-slot proj. If the user meant their local builder lineup, ask and re-run with useLocalLineup=true.",
     };
   },
 };
@@ -202,7 +243,15 @@ export const suggestTradesTool: ToolDefinition = {
         ratio: Math.round(s.ratio * 100) / 100,
         upgrade: Math.round(s.upgrade * 10) / 10,
       })),
-      note: "Values use the same coach/trade engine as the AI Coach tab (week VOR + need adjustment). For a specific package grade, call evaluate_trade.",
+      citeHints: [
+        `Needs: ${needyPositions.join(", ") || "none"}; strengths: ${strengthPositions.join(", ") || "none"}.`,
+        ...suggestions.slice(0, 3).map((s) => {
+          const give = s.give.map((p) => p.name).join(" + ");
+          const get = s.get.map((p) => p.name).join(" + ");
+          return `vs ${s.teamName}: give ${give} (${Math.round(s.giveVal * 10) / 10}) for ${get} (${Math.round(s.getVal * 10) / 10}), ratio ${Math.round(s.ratio * 100) / 100}, upgrade ${Math.round(s.upgrade * 10) / 10}. Reason: ${s.reason}`;
+        }),
+      ],
+      note: "Values use the same coach/trade engine as the AI Coach tab (week VOR + need adjustment). Quote giveVal/getVal/ratio. For a specific package grade, call evaluate_trade.",
     };
   },
 };

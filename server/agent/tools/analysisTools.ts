@@ -1,9 +1,10 @@
 import { REQUIRED_STARTERS } from "../../../src/config/league.js";
 import { EXTRA_PIECE_DISCOUNT, FAIR_RATIO_MAX, FAIR_RATIO_MIN, LOPSIDED_RATIO_MAX, LOPSIDED_RATIO_MIN } from "../../../src/config/trade.js";
 import { ROS_WEEKS, VOR_BASELINE } from "../../../src/config/scoring.js";
+import { fetchWeeklyMatchups, gradeMatchup } from "../../../src/lib/matchup.js";
 import { analyzeRosterNeeds } from "../../../src/lib/rosterNeeds.js";
 import { fetchLeagueNewsFeed } from "../../../src/lib/news.js";
-import { playerValue, qualityScore, rosValue, vorPoints } from "../../../src/lib/scoring.js";
+import { playerValue, qualityScore, rosValue } from "../../../src/lib/scoring.js";
 import { fairnessRatio, needAdjustedPackageValue, packageValue, ratioIsFair, starGateOk } from "../../../src/lib/tradeEngine.js";
 import type { Player, Position } from "../../../src/types.js";
 import {
@@ -158,22 +159,56 @@ export const comparePlayersTool: ToolDefinition = {
     if (!resolved.ok) return resolved;
     if (resolved.players.length < 2) return { ok: false, error: "need_at_least_two_players" };
 
-    const rows = resolved.players.map((p) => ({
-      ...serializePlayer(p),
-      vor: Math.round(vorPoints(p) * 10) / 10,
-      weekValue: Math.round(playerValue(p) * 10) / 10,
-      rosValue: Math.round(rosValue(p) * 10) / 10,
-    }));
+    let matchups = null as Awaited<ReturnType<typeof fetchWeeklyMatchups>> | null;
+    try {
+      matchups = await fetchWeeklyMatchups();
+    } catch {
+      matchups = null;
+    }
+
+    const rows = resolved.players.map((p) => {
+      const base = serializePlayer(p);
+      const m = matchups ? gradeMatchup(p, matchups) : null;
+      return {
+        ...base,
+        thisWeekMatchup: m
+          ? {
+              opponent: m.opponent,
+              homeAway: m.homeAway,
+              isBye: m.isBye,
+              grade: m.grade,
+              impliedTotal: m.impliedTotal,
+              label: m.label,
+            }
+          : null,
+      };
+    });
 
     const byWeek = [...rows].sort((a, b) => b.weekValue - a.weekValue);
     const byRos = [...rows].sort((a, b) => b.rosValue - a.rosValue);
+    const top = byWeek[0];
+    const second = byWeek[1];
+    const weekDelta =
+      top && second ? Math.round((top.weekValue - second.weekValue) * 10) / 10 : null;
+
+    const citeHints = rows.map((r) => {
+      const match = r.thisWeekMatchup?.label ? `; matchup ${r.thisWeekMatchup.label}` : "";
+      return `${r.name}: proj ${r.proj}, weekValue ${r.weekValue}, rosValue ${r.rosValue}, VOR ${r.vor}, bye ${r.bye}, status ${r.status}${match}`;
+    });
+    if (top && weekDelta != null) {
+      citeHints.push(
+        `Week leader: ${top.name} (weekValue edge +${weekDelta} vs next). Prefer weekValue for start/sit; rosValue for holds/trades.`
+      );
+    }
 
     return {
       ok: true,
       players: rows,
-      weekLeaderId: byWeek[0]?.id ?? null,
+      weekLeaderId: top?.id ?? null,
       rosLeaderId: byRos[0]?.id ?? null,
-      note: "Week value is this week's trade/start metric; rosValue is rest-of-season. Prefer week for start/sit, ROS for holds/trades.",
+      weekValueDeltaTopVsSecond: weekDelta,
+      citeHints,
+      note: "Cite weekValue/proj/matchup grade for start/sit; cite rosValue for ROS. Do not invent extras.",
     };
   },
 };
@@ -238,25 +273,35 @@ export const evaluateTradeTool: ToolDefinition = {
       };
     }
 
+    const weekBlock = {
+      giveValue: Math.round(weekGive * 10) / 10,
+      getValue: Math.round(weekGet * 10) / 10,
+      ratio: Math.round(weekRatio * 100) / 100,
+      verdict: verdictFromRatio(weekRatio, gateOk),
+    };
+    const seasonBlock = {
+      giveValue: Math.round(seasonGive * 10) / 10,
+      getValue: Math.round(seasonGet * 10) / 10,
+      ratio: Math.round(seasonRatio * 100) / 100,
+      verdict: verdictFromRatio(seasonRatio, gateOk),
+    };
+
     return {
       ok: true,
       give: give.map(serializePlayer),
       get: get.map(serializePlayer),
       starGateOk: gateOk,
-      week: {
-        giveValue: Math.round(weekGive * 10) / 10,
-        getValue: Math.round(weekGet * 10) / 10,
-        ratio: Math.round(weekRatio * 100) / 100,
-        verdict: verdictFromRatio(weekRatio, gateOk),
-      },
-      season: {
-        giveValue: Math.round(seasonGive * 10) / 10,
-        getValue: Math.round(seasonGet * 10) / 10,
-        ratio: Math.round(seasonRatio * 100) / 100,
-        verdict: verdictFromRatio(seasonRatio, gateOk),
-      },
+      week: weekBlock,
+      season: seasonBlock,
       needAdjusted,
       fairWindow: { min: FAIR_RATIO_MIN, max: FAIR_RATIO_MAX },
+      citeHints: [
+        `Week: give ${weekBlock.giveValue} vs get ${weekBlock.getValue} (ratio ${weekBlock.ratio}, verdict ${weekBlock.verdict}).`,
+        `ROS: give ${seasonBlock.giveValue} vs get ${seasonBlock.getValue} (ratio ${seasonBlock.ratio}, verdict ${seasonBlock.verdict}).`,
+        `Star gate OK: ${gateOk}. Fair ratio window ${FAIR_RATIO_MIN}–${FAIR_RATIO_MAX}.`,
+        `Give: ${give.map((p) => `${p.name} (proj ${p.proj}, weekValue ${Math.round(playerValue(p) * 10) / 10})`).join("; ")}.`,
+        `Get: ${get.map((p) => `${p.name} (proj ${p.proj}, weekValue ${Math.round(playerValue(p) * 10) / 10})`).join("; ")}.`,
+      ],
     };
   },
 };
@@ -311,6 +356,13 @@ export const recommendPickupsTool: ToolDefinition = {
             .slice(0, 6)
         : [];
 
+    const citeHints = recommendations.flatMap((g) =>
+      g.candidates.slice(0, 2).map(
+        (c) =>
+          `${c.name} (${g.pos}): qScore ${c.qScore}, proj ${c.proj}, weekValue ${c.weekValue} — need: ${g.reason}`
+      )
+    );
+
     return {
       ok: true,
       teamId: resolved.team.id,
@@ -318,6 +370,11 @@ export const recommendPickupsTool: ToolDefinition = {
       needyPositions: rankedNeeds,
       recommendations,
       bestOverallFallback: bestOverall,
+      citeHints:
+        citeHints.length > 0
+          ? citeHints
+          : bestOverall.slice(0, 3).map((c) => `${c.name}: qScore ${c.qScore}, proj ${c.proj} (no positional need — best overall FA)`),
+      note: "Quote qScore/proj and the need reason. Do not invent ADP or expert ranks.",
     };
   },
 };
@@ -384,6 +441,12 @@ export const getNewsFeedTool: ToolDefinition = {
         severity: n.severity ?? null,
         link: n.link,
       })),
+      citeHints:
+        items.length > 0
+          ? items
+              .slice(0, 5)
+              .map((n) => `[${n.type}${n.severity ? `/${n.severity}` : ""}] ${n.player}: ${n.headline} (${n.time})`)
+          : ["ESPN league/FA feed returned 0 items for this filter — say so; do not invent news."],
     };
   },
 };
@@ -431,6 +494,12 @@ export const getNewsForPlayerTool: ToolDefinition = {
         severity: n.severity ?? null,
         link: n.link,
       })),
+      citeHints:
+        items.length > 0
+          ? items.slice(0, 3).map((n) => `[${n.type}${n.severity ? `/${n.severity}` : ""}] ${n.headline} (${n.time})`)
+          : [
+              `ESPN league/FA feed has 0 tagged items for ${player.name}. Say that explicitly — do not invent injury status.`,
+            ],
     };
   },
 };

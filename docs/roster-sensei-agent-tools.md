@@ -105,7 +105,7 @@ Server merges this with `LEAGUE_CONFIG` and the live ownership cache (falling ba
 
 ### Agentic workflow (structured single agent)
 
-Sensei stays **one agent**, but each turn is structured so it researches until confident — including questions that span multiple categories.
+Sensei stays **one agent**, but each turn is structured so it researches until confident — including questions that span multiple categories — and **every conclusion must cite tool data**.
 
 ```text
 User message + leagueContext
@@ -114,8 +114,11 @@ User message + leagueContext
   → checklist = ∪ checklists(intents)
   → Research loop: call tools until checklist satisfied
        or ask ONE clarifying question if blocked
+  → Evidence gate: final answer must include Recommendation + Data & Reasoning
   → Final answer (no more tools)
 ```
+
+**Evidence contract:** suggestions / predictions / rankings always quote concrete tool fields (`proj`, `weekValue`, `rosValue`, ratios, bye, matchup grade, headlines, standings). Tool payloads include `citeHints` the model should lean on. Unsupported claims are nudged and rewritten.
 
 **Multi-intent:** e.g. “Start Puka or Diggs given the injury news?” → `["start_sit", "news"]`. Tool allowlists and checklists are **unioned**, not winner-take-all. Cap at **3** intents so the loop stays bounded.
 
@@ -351,10 +354,11 @@ Example trade tool result shape:
 8. ~~**Session context polish (partial)**~~ — Auto ownership sync per turn (TTL); client sends **local builder lineup**; server injects **scoring period** + ask-when-unsure for local vs ESPN.
 9. ~~**Coach action tools**~~ — `optimize_lineup` (`src/lib/optimizeLineup.ts`) and `suggest_trades` (`src/lib/coachTrades.ts`) registered for Sensei.
 10. ~~**Structured research loop**~~ — multi-intent classify → unioned tool allowlists + checklists → research until confident (or one clarifying question).
+11. ~~**Evidence-first answers**~~ — mandatory **Recommendation** + **Data & Reasoning**; richer tool payloads (`weekValue`/`rosValue`/`citeHints`/matchup grades); server evidence nudges.
 
 ### Still to do
 
-11. **More polish** — chat persistence / multi-chat; richer tool traces (args/results); optional streaming; multi-agent specialists only if needed.
+12. **More polish** — chat persistence / multi-chat; richer tool traces (args/results); optional streaming; multi-agent specialists only if needed.
 
 **Why tools were staged:** prove the agent loop first with a few reads, then expand the registry (this step) without redesigning the architecture.
 
@@ -374,6 +378,7 @@ Example trade tool result shape:
 9. **Conversations** — **v1 = single active thread** with full chat history sent each turn (capped). Multi-chat sidebar can come later without changing the API shape much.
 10. **Ownership freshness** — Sensei **auto-syncs** live rosters/FA pool on a short TTL each turn (not only when the model remembers to call `sync_rosters`).
 11. **Agent loop** — **Stronger single agent** with multi-intent classification (up to 3 tags), unioned tool allowlists + research checklists, and server-side nudges until evidence is gathered. Multi-agent specialists are deferred.
+12. **Evidence in answers** — Final answers must include **Recommendation** + **Data & Reasoning** citing tool numbers. Tool results carry decision metrics and `citeHints`; the server nudges rewrites that skip evidence.
 
 ---
 

@@ -100,6 +100,12 @@ export const getPlayerScheduleTool: ToolDefinition = {
       };
     }
     const remaining = teamScheduleRemaining(snap, abbrev, fromWeek);
+    const nextGame = remaining.find((s) => !("bye" in s && s.bye));
+    const nextHint = !nextGame
+      ? "No remaining games found in schedule cache."
+      : nextGame.bye
+        ? `Week ${nextGame.week}: BYE`
+        : `Week ${nextGame.week}: ${nextGame.home ? "vs" : "@"} ${nextGame.opponent}`;
     return {
       ok: true,
       player: serializePlayer(player),
@@ -107,6 +113,11 @@ export const getPlayerScheduleTool: ToolDefinition = {
       fromWeek,
       remaining,
       playoffWindow: remaining.filter((s) => DEFAULT_PLAYOFF_WEEKS.includes(s.week)),
+      citeHints: [
+        `${player.name} (${player.team}): bye week ${team.byeWeek}; from week ${fromWeek}.`,
+        `Next slate: ${nextHint}.`,
+        `Playoff weeks ${DEFAULT_PLAYOFF_WEEKS.join("/")}: ${remaining.filter((s) => DEFAULT_PLAYOFF_WEEKS.includes(s.week)).length} schedule entries.`,
+      ],
     };
   },
 };

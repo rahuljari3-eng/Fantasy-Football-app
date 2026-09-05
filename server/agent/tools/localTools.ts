@@ -1,4 +1,5 @@
 import { LEAGUE_CONFIG, REQUIRED_STARTERS, SLOTS } from "../../../src/config/league.js";
+import { playerValue } from "../../../src/lib/scoring.js";
 import { activeTeams, findPlayers, ownershipSource, resolveTeam } from "./leagueData.js";
 import type { ToolDefinition } from "./types.js";
 
@@ -116,6 +117,7 @@ export const getMyRosterTool: ToolDefinition = {
         nflTeam: p.team,
         bye: p.bye,
         proj: p.proj,
+        weekValue: Math.round(playerValue(p) * 10) / 10,
         tier: p.tier,
         status: p.status,
         starter: p.starter,
@@ -123,6 +125,13 @@ export const getMyRosterTool: ToolDefinition = {
       })),
       espnStarters,
       localLineup,
+      citeHints: [
+        `${team.name}: ${team.roster.length} players; ${espnStarters.length} ESPN starters; scoring period ${ctx.scoringPeriodId ?? "?"}.`,
+        ...team.roster
+          .filter((p) => p.starter)
+          .slice(0, 8)
+          .map((p) => `${p.slot}: ${p.name} proj ${p.proj} status ${p.status}`),
+      ],
       note: localLineup
         ? "Includes both ESPN roster slots and the client's local builder lineup. Ask which to use if they conflict."
         : undefined,
