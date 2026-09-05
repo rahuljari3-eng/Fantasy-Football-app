@@ -78,6 +78,16 @@ function needBasedSuggestions(
   leagueTeams: LeagueTeam[]
 ): TradeSuggestion[] {
   const found: TradeSuggestion[] = [];
+  // A rough ceiling on what's realistically affordable, from my single
+  // best available trade chip across every tradeable position. Without
+  // this, "top 10 by quality score" for a needy position is always
+  // dominated by the league's elite players regardless of what I could
+  // actually offer for them -- every one of them then fails the
+  // affordability check below, and this whole tier silently produces
+  // nothing even when a genuine, affordable upgrade exists further down
+  // the candidate list.
+  const myBestChipValue = Math.max(0, ...POSITIONS.flatMap((pos) => myNeeds[pos].tradeableDepth).map(playerValue));
+
   for (const needPos of needyPositions) {
     if (needPos === "K" || needPos === "DST") continue;
     const myWeak = myNeeds[needPos].weakestStarter;
@@ -86,6 +96,7 @@ function needBasedSuggestions(
       .filter((p) => p.pos === needPos && p.status !== "Out")
       .map((p) => ({ ...p, qScore: qualityScore(p) }))
       .filter((p) => p.qScore > myWeakQ * 1.1)
+      .filter((p) => myBestChipValue === 0 || fairnessRatio(myBestChipValue, playerValue(p)) <= 1.9)
       .sort((a, b) => b.qScore - a.qScore)
       .slice(0, 10);
 
@@ -202,6 +213,16 @@ function generalSuggestions(
         const myWorstQ = myWorstAtPos ? myWorstAtPos.qScore : -Infinity;
         return p.qScore > myWorstQ * 1.06;
       })
+      // Affordability check FIRST, then take the best of what's realistic --
+      // sorting by raw value before this would always hand every offer the
+      // league's top overall players (Gibbs, Chase, ...) as "candidates",
+      // who then always fail the sanity ratio below no matter what's
+      // offered. That starved this whole tier down to nothing for any
+      // roster whose best trade chip isn't itself elite-tier.
+      .filter((p) => {
+        const ratio = fairnessRatio(offerVal, playerValue(p));
+        return ratio <= 1.9 && ratio >= 0.5;
+      })
       .sort((a, b) => playerValue(b) - playerValue(a))
       .slice(0, 6);
 
@@ -209,9 +230,6 @@ function generalSuggestions(
       const theirTeam = leagueTeams.find((t) => t.id === cand.fantasyTeamId);
       if (!theirTeam) continue;
       const theirNeeds = analyzeRosterNeeds(theirTeam.roster);
-      const candVal = playerValue(cand);
-      const preRatio = fairnessRatio(offerVal, candVal);
-      if (preRatio > 1.9 || preRatio < 0.5) continue;
 
       const extraGiveOptions: ScoredPlayer[] = POSITIONS.flatMap((pos) => myNeeds[pos].tradeableDepth).filter(
         (p) => p.id !== offerPlayer.id

@@ -1,9 +1,10 @@
 import { SLOTS } from "../../../src/config/league.js";
+import { VOR_BASELINE } from "../../../src/config/scoring.js";
 import { suggestTrades } from "../../../src/lib/coachTrades.js";
 import { fetchWeeklyMatchups, gradeMatchup } from "../../../src/lib/matchup.js";
 import { optimizeLineup } from "../../../src/lib/optimizeLineup.js";
 import { playerValue, qualityScore } from "../../../src/lib/scoring.js";
-import type { Player, RosterPlayer } from "../../../src/types.js";
+import type { Player, RosterPlayer, TradeSuggestion } from "../../../src/types.js";
 import {
   activeTeams,
   allKnownPlayers,
@@ -50,6 +51,23 @@ function serializeSuggestionPlayer(p: Player) {
     weekValue: Math.round(playerValue(p) * 10) / 10,
     qualityScore: Math.round(qualityScore(p) * 10) / 10,
   };
+}
+
+// coachTrades.ts's "fallback" tier exists to guarantee the Coach TAB always
+// has *something* to display -- it's an intentional closest-value-match
+// lateral swap (ratio pinned near 1 by construction), not a real upgrade.
+// Surfacing that in a chat as if it were "a trade to make" reads as
+// nonsensical advice (e.g. two barely-rosterable bench players swapped for
+// literally no gain). A minimum real-value floor also weeds out suggestions
+// where even the "better" side is near-replacement-level -- fair or not, a
+// trade nobody would actually want to make isn't useful advice.
+const MIN_RELEVANT_PLAYER_VALUE = VOR_BASELINE * 1.15;
+const MIN_MEANINGFUL_UPGRADE = 3;
+
+function isMeaningfulSuggestion(s: TradeSuggestion): boolean {
+  if (s.reason === "fallback") return false;
+  if (Math.abs(s.upgrade) < MIN_MEANINGFUL_UPGRADE) return false;
+  return [...s.give, ...s.get].some((p) => playerValue(p) >= MIN_RELEVANT_PLAYER_VALUE);
 }
 
 export const optimizeLineupTool: ToolDefinition = {
@@ -187,7 +205,7 @@ export const optimizeLineupTool: ToolDefinition = {
 export const suggestTradesTool: ToolDefinition = {
   name: "suggest_trades",
   description:
-    "Propose fair coach-style trade packages for a team (need-based + value + fallback mix of 1-for-1 and 2-for-2). Use when the user asks what trades to make or who to target.",
+    "Propose fair, WORTHWHILE coach-style trade packages for a team (need-based + value-based, 1-for-1 and 2-for-2). Already filtered to a real upgrade -- never pads the list with lateral same-value swaps or scrub-for-scrub trades just to hit a count, so it can return fewer than requested (even zero) when nothing meaningful is available. Use when the user asks what trades to make or who to target.",
   parameters: {
     type: "object",
     properties: {
@@ -232,11 +250,18 @@ export const suggestTradesTool: ToolDefinition = {
       if (localPlayers?.length) myPlayers = localPlayers;
     }
 
-    const { suggestions, needyPositions, strengthPositions } = suggestTrades({
+    // Ask the engine for a wider pool than requested -- we're about to drop
+    // the trivial/fallback ones below, so we need headroom to still land on
+    // `max` genuinely worthwhile suggestions.
+    const { suggestions: rawSuggestions, needyPositions, strengthPositions } = suggestTrades({
       myPlayers,
       leagueTeams: opponents,
-      max,
+      max: Math.max(max * 3, 12),
     });
+
+    const meaningful = rawSuggestions.filter(isMeaningfulSuggestion);
+    const usedFallback = meaningful.length === 0 && rawSuggestions.length > 0;
+    const suggestions = (meaningful.length > 0 ? meaningful : rawSuggestions).slice(0, max);
 
     return {
       ok: true,
@@ -261,13 +286,21 @@ export const suggestTradesTool: ToolDefinition = {
       })),
       citeHints: [
         `Needs: ${needyPositions.join(", ") || "none"}; strengths: ${strengthPositions.join(", ") || "none"}.`,
+        ...(suggestions.length === 0
+          ? ["No trade package clears a meaningful upgrade bar right now -- say so plainly, do not invent one."]
+          : []),
+        ...(usedFallback
+          ? [
+              "Every option below is a lateral, closest-value-match swap (no real upgrade) -- there was nothing better available. Say so explicitly rather than presenting these as good trades.",
+            ]
+          : []),
         ...suggestions.slice(0, 3).map((s) => {
           const give = s.give.map((p) => p.name).join(" + ");
           const get = s.get.map((p) => p.name).join(" + ");
           return `vs ${s.teamName}: give ${give} (${Math.round(s.giveVal * 10) / 10}) for ${get} (${Math.round(s.getVal * 10) / 10}), ratio ${Math.round(s.ratio * 100) / 100}, upgrade ${Math.round(s.upgrade * 10) / 10}. Reason: ${s.reason}`;
         }),
       ],
-      note: "Values use the same coach/trade engine as the AI Coach tab (week VOR + need adjustment). Quote giveVal/getVal/ratio. For a specific package grade, call evaluate_trade.",
+      note: "Values use the same coach/trade engine as the AI Coach tab (week VOR + need adjustment) -- quote giveVal/getVal/ratio EXACTLY as given, do not recompute them from raw proj or per-player weekValue sums (package values are discounted/need-adjusted, not a plain sum). Already filtered to a meaningful upgrade bar and a minimum relevant-player-value floor -- do not add back lateral or scrub-for-scrub swaps yourself. For a specific package grade, call evaluate_trade.",
     };
   },
 };

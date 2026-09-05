@@ -19,6 +19,7 @@ import {
   FAIR_RATIO_MAX,
   REQUIRE_STAR_RETURN,
   STAR_RETURN_MIN_TOP_FRACTION,
+  STAR_RANK_THRESHOLD,
   NEED_MULTIPLIER_FILL,
   NEED_MULTIPLIER_STACKED,
   NEED_MULTIPLIER_NEUTRAL,
@@ -27,9 +28,19 @@ import { VOR_BASELINE } from "../config/scoring.js";
 import { playerValue } from "./scoring.js";
 import type { Player, Position, RosterNeeds } from "../types.js";
 
-/** A Tier-1 player is a genuine difference-maker (top ~5-8 at his position). */
+/** A genuine difference-maker: true league-wide positional rank inside
+ * STAR_RANK_THRESHOLD. NOT the same thing as Tier -- Tier is derived from
+ * ESPN ownership% (>=80% owned = Tier 1), which covers roughly two-thirds of
+ * every rostered player and would make almost any decent starter "a star".
+ * Falls back to Tier 1 only when posRank hasn't been stamped on this player
+ * (defensive -- every normal call path ranks players before pricing them). */
+function isStar(p: Player): boolean {
+  if (typeof p.posRank === "number") return p.posRank <= (STAR_RANK_THRESHOLD[p.pos] ?? 8);
+  return p.tier === 1;
+}
+
 export function hasStar(players: Player[]): boolean {
-  return players.some((p) => p.tier === 1);
+  return players.some(isStar);
 }
 
 /** The above-replacement portion of a player's value -- what he's really worth
@@ -39,15 +50,15 @@ function marginalValue(p: Player): number {
   return Math.max(0, playerValue(p) - VOR_BASELINE);
 }
 
-/** The star gate. If a side sends a Tier-1 player, the other side must return
- * (a) a Tier-1 or Tier-2 player, and (b) a single player worth at least
- * STAR_RETURN_MIN_TOP_FRACTION of that star's value. Blocks stud-for-depth
- * even when the padded package "adds up". */
+/** The star gate. If a side sends a genuine star (see isStar), the other side
+ * must return (a) a Tier-1 or Tier-2 player, and (b) a single player worth at
+ * least STAR_RETURN_MIN_TOP_FRACTION of that star's value. Blocks stud-for-
+ * depth even when the padded package "adds up". */
 export function starGateOk(give: Player[], get: Player[]): boolean {
   if (!REQUIRE_STAR_RETURN) return true;
   const topValue = (arr: Player[]) => arr.reduce((m, p) => Math.max(m, playerValue(p)), 0);
   const sideOk = (sending: Player[], receiving: Player[]): boolean => {
-    const stars = sending.filter((p) => p.tier === 1);
+    const stars = sending.filter(isStar);
     if (!stars.length) return true;
     const starVal = topValue(stars);
     if (!receiving.some((p) => p.tier <= 2)) return false;
