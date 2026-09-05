@@ -350,12 +350,17 @@ export const searchFreeAgentsTool: ToolDefinition = {
 
 export const getNewsFeedTool: ToolDefinition = {
   name: "get_news_feed",
-  description: "Live ESPN news/injury items filtered to league + FA players. Newest first.",
+  description:
+    "Live ESPN news and injury reports for players in this league or the FA pool (same source as the News tab). Use for 'any news?', injury sweeps, or before start/sit when status may have changed. Newest first.",
   parameters: {
     type: "object",
     properties: {
       limit: { type: "number", description: "Max items (default 15)" },
-      type: { type: "string", description: "Optional filter: Injury or News" },
+      type: {
+        type: "string",
+        enum: ["Injury", "News", "Waiver", "Trade"],
+        description: "Optional filter by item type (Injury is most useful for start/sit).",
+      },
     },
     additionalProperties: false,
   },
@@ -375,6 +380,8 @@ export const getNewsFeedTool: ToolDefinition = {
         player: n.player,
         headline: n.headline,
         time: n.time,
+        publishedAt: n.publishedAt,
+        severity: n.severity ?? null,
         link: n.link,
       })),
     };
@@ -383,7 +390,8 @@ export const getNewsFeedTool: ToolDefinition = {
 
 export const getNewsForPlayerTool: ToolDefinition = {
   name: "get_news_for_player",
-  description: "News/injury headlines for one player (name or ESPN id).",
+  description:
+    "News/injury headlines for one player (name or ESPN id), from the same ESPN feed as the News tab. Use when asking about a specific player's health, role, or recent headlines.",
   parameters: {
     type: "object",
     properties: {
@@ -401,7 +409,15 @@ export const getNewsForPlayerTool: ToolDefinition = {
     if (!hits.length) return { ok: false, error: "player_not_found", query: args.query };
     const player = hits[0];
     const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 20) : 8;
-    const items = (await getNewsCached()).filter((n) => n.playerId === player.id).slice(0, limit);
+    const qName = player.name.toLowerCase();
+    const items = (await getNewsCached())
+      .filter(
+        (n) =>
+          n.playerId === player.id ||
+          n.player.toLowerCase() === qName ||
+          n.headline.toLowerCase().includes(qName)
+      )
+      .slice(0, limit);
     return {
       ok: true,
       player: serializePlayer(player),
@@ -411,6 +427,8 @@ export const getNewsForPlayerTool: ToolDefinition = {
         type: n.type,
         headline: n.headline,
         time: n.time,
+        publishedAt: n.publishedAt,
+        severity: n.severity ?? null,
         link: n.link,
       })),
     };

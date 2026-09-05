@@ -1,6 +1,6 @@
 import { LEAGUE_CONFIG, SLOTS } from "../../src/config/league.js";
+import type { ChecklistItem, SenseiIntent } from "./intents.js";
 import { findPlayers, findTeamByIdOrName, ownershipSource } from "./tools/leagueData.js";
-import { listToolNames } from "./tools/registry.js";
 import type { LeagueContext } from "./tools/types.js";
 
 function playerLabel(id: number): string {
@@ -24,18 +24,39 @@ function describeLocalLineup(ctx: LeagueContext): string | null {
   ].join("\n");
 }
 
-export function buildSystemPrompt(leagueContext: LeagueContext): string {
+export function buildSystemPrompt(
+  leagueContext: LeagueContext,
+  research?: {
+    intents: SenseiIntent[];
+    checklist: ChecklistItem[];
+    allowedTools: string[];
+  }
+): string {
   const team = findTeamByIdOrName(leagueContext.managedTeamId);
   const teamLabel = team ? `${team.name} (id ${team.id}, owner ${team.owner})` : `team id ${leagueContext.managedTeamId}`;
   const week =
     leagueContext.scoringPeriodId != null
       ? `Current ESPN scoring period / week: ${leagueContext.scoringPeriodId}.`
-      : "Current scoring period is unknown — call get_league_context or sync before weekly advice.";
+      : "Current scoring period is unknown — call get_league_context before weekly advice if needed.";
   const ownership =
     ownershipSource() === "live_espn"
       ? "Ownership source: live ESPN sync (auto-refreshed for this process when stale)."
       : "Ownership source: bundled snapshot (live sync unavailable this turn — say so if ownership matters).";
   const localBlock = describeLocalLineup(leagueContext);
+
+  const researchBlock = research
+    ? [
+        `Classified intents for this turn (primary first): ${research.intents.join(", ")}.`,
+        `You may ONLY call these tools: ${research.allowedTools.join(", ")}.`,
+        research.checklist.length
+          ? `Research checklist — satisfy before a final recommendation:\n${research.checklist
+              .map((c) => `- ${c.id}: ${c.description} (via ${c.satisfiedBy.join(" | ")})`)
+              .join("\n")}`
+          : "No hard checklist for this intent — still use tools for facts; do not invent.",
+        "Workflow: gather checklist evidence with tools → then give one concise final answer.",
+        "If blocked by ambiguity, ask ONE clarifying question instead of guessing.",
+      ].join("\n")
+    : null;
 
   return [
     "You are Roster Sensei, a sharp, concise fantasy football advisor inside Gridiron HQ.",
@@ -44,17 +65,13 @@ export function buildSystemPrompt(leagueContext: LeagueContext): string {
     week,
     ownership,
     localBlock,
+    researchBlock,
     "If the user explicitly names another league team, advise for that team and say which team you are using.",
-    "Use tools for facts (rosters, byes, standings, matchups, schedule). Do not invent ownership, projections, byes, or opponents.",
-    "For trade fairness questions without a stated horizon, discuss both this week and rest-of-season when you have enough data.",
+    "Use tools for facts (rosters, byes, standings, matchups, schedule, news). Do not invent ownership, projections, byes, opponents, or injury news.",
+    "For news/injury questions: ALWAYS call get_news_for_player with the player's name (works for ANY league or FA player — they do NOT need to be on the managed roster). Quote returned headlines. Ownership is irrelevant for news. If count is 0, say the ESPN league feed has no tagged items — do not invent status or tell users to check other sites.",
+    "Do not call get_my_roster as a substitute for news. Roster membership does not gate news access.",
+    "For trade fairness without a stated horizon, discuss both this week and rest-of-season when you have enough data.",
     "Prefer the local builder lineup when the user is clearly editing in-app; prefer ESPN when they say ESPN / app lineup. If unclear, ASK.",
-    "For standings / playoff race use get_standings. For this week's fantasy opponent / scoreboard use get_matchup.",
-    "ESPN fantasy team ids can differ from the app snapshot — prefer team names when clarifying; list_teams after sync shows live ids.",
-    "For trade fairness, call evaluate_trade (it returns BOTH week and rest-of-season). For start/sit use optimize_lineup and/or compare_players (prefer weekValue) and check byes/schedule.",
-    "When the user asks to suggest trades, propose packages, or who to trade with/for — call suggest_trades (do not stop after get_my_roster).",
-    "For waiver advice use analyze_roster_needs then recommend_pickups or search_free_agents.",
-    "For schedule / bye / playoff-stash questions use get_player_schedule, get_schedule_outlook, or get_nfl_schedule — do not guess opponents.",
-    `Available tools right now: ${listToolNames().join(", ")}.`,
     "Keep answers actionable and manager-friendly. Prefer short paragraphs and clear recommendations.",
   ]
     .filter(Boolean)

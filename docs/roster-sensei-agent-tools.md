@@ -103,39 +103,42 @@ Node API (Hono or Express beside Vite; proxy /api → :8787)
 
 Server merges this with `LEAGUE_CONFIG` and the live ownership cache (falling back to the bundled snapshot if sync fails). If the user names another team in chat, the agent may override context for that turn and should state which team it’s using.
 
-### Agentic workflow (clean loop)
+### Agentic workflow (structured single agent)
 
-1. **Ingest** user message + `leagueContext`.
-2. **System rules (persona):**
-   - Use tools for facts; don’t invent ownership, projections, byes, or opponents.
-   - Always know the **current scoring period** (`get_league_context`) before giving weekly advice.
-   - When comparing players or advising holds/adds/trades, factor **bye weeks** and **upcoming NFL opponents** when tools can provide them — don’t answer “start A over B” without checking if A is on bye or facing a brutal matchup if that data is available.
-   - State the **horizon** in the answer (“this week only” vs “next 3 weeks” vs “ROS / playoffs”).
-   - Cite uncertainty; if schedule data is missing, say so instead of guessing.
-3. **Tool-calling loop** (max ~6–8 rounds):
-   - Model picks zero or more tools.
-   - Server validates args, runs tool, returns JSON (trimmed).
-   - Model assesses results; may call more tools (e.g. compare → then schedule for both players → then finalize).
-4. **Final answer** when the model stops calling tools — concise, actionable, fantasy-manager tone; weave schedule context into the recommendation, not as an afterthought dump. For trade fairness without a stated horizon, return **both week and ROS** grades.
-5. **UI:** deliver one final assistant message plus a collapsed `N tools used` accordion (names of tools that ran).
-6. **Optional (v1.5):** intent router that restricts the tool allowlist (e.g. start/sit → lineup + schedule tools) for speed/cost. Not required for first ship.
+Sensei stays **one agent**, but each turn is structured so it researches until confident — including questions that span multiple categories.
 
-### Implementation sketch (later)
+```text
+User message + leagueContext
+  → Intent classifier (returns 1–3 intents, primary first)
+  → tools = ∪ allowlists(intents)   (+ always-on core tools)
+  → checklist = ∪ checklists(intents)
+  → Research loop: call tools until checklist satisfied
+       or ask ONE clarifying question if blocked
+  → Final answer (no more tools)
+```
+
+**Multi-intent:** e.g. “Start Puka or Diggs given the injury news?” → `["start_sit", "news"]`. Tool allowlists and checklists are **unioned**, not winner-take-all. Cap at **3** intents so the loop stays bounded.
+
+**Intents:** `start_sit` · `trades` · `waivers` · `news` · `matchup` · `schedule` · `standings` · `general`
+
+**Checklist enforcement:** if the model tries to answer before required tools/evidence are gathered, the server nudges it to keep researching (unless the reply is a short clarifying question).
+
+**Not yet:** multi-agent specialists (Lineup/Trade/Waiver workers). Revisit only if this structured loop still under-calls on stronger models.
+
+### Implementation sketch
 
 ```
 server/
-  index.ts              # Hono app, /api/chat
+  index.ts
+  app.ts
   agent/
-    runSenseiTurn.ts    # OpenAI loop
+    runSenseiTurn.ts       # classify → research loop → answer
+    classifyIntent.ts      # cheap JSON intent classification
+    intents.ts             # allowlists + checklists + merge
     systemPrompt.ts
-    tools/
-      registry.ts       # name → { schema, handler }
-      local/*.ts        # wrap src/lib
-      espn/*.ts         # new views
-vite.config.ts          # proxy /api → localhost:8787
+    tools/registry.ts      # optional allowlist filter
 ```
 
-Share pure modules by importing from `../src/lib/...` on the server, or move shared math to a `shared/` folder if import paths get awkward. **Do not** import React hooks (`useFantasyApp`) into Node — extract pure helpers first.
 
 ### Safety
 
@@ -347,10 +350,11 @@ Example trade tool result shape:
 7. ~~**Production deploy path**~~ — Vercel serverless `api/[[...route]].ts` wraps the same Hono app (`server/app.ts`). Set `OPENAI_API_KEY` in Vercel env and redeploy (see `docs/vercel-redeploy-sensei.md`).
 8. ~~**Session context polish (partial)**~~ — Auto ownership sync per turn (TTL); client sends **local builder lineup**; server injects **scoring period** + ask-when-unsure for local vs ESPN.
 9. ~~**Coach action tools**~~ — `optimize_lineup` (`src/lib/optimizeLineup.ts`) and `suggest_trades` (`src/lib/coachTrades.ts`) registered for Sensei.
+10. ~~**Structured research loop**~~ — multi-intent classify → unioned tool allowlists + checklists → research until confident (or one clarifying question).
 
 ### Still to do
 
-10. **More polish** — chat persistence / multi-chat; richer tool traces (args/results); optional streaming / model bump later.
+11. **More polish** — chat persistence / multi-chat; richer tool traces (args/results); optional streaming; multi-agent specialists only if needed.
 
 **Why tools were staged:** prove the agent loop first with a few reads, then expand the registry (this step) without redesigning the architecture.
 
@@ -369,6 +373,7 @@ Example trade tool result shape:
 8. **Model** — Default **`gpt-4o-mini`** (env-overridable via `OPENAI_MODEL`). Good enough for tool calling + fantasy Q&A at low cost/latency; bump to a larger model later if reasoning quality dips.
 9. **Conversations** — **v1 = single active thread** with full chat history sent each turn (capped). Multi-chat sidebar can come later without changing the API shape much.
 10. **Ownership freshness** — Sensei **auto-syncs** live rosters/FA pool on a short TTL each turn (not only when the model remembers to call `sync_rosters`).
+11. **Agent loop** — **Stronger single agent** with multi-intent classification (up to 3 tags), unioned tool allowlists + research checklists, and server-side nudges until evidence is gathered. Multi-agent specialists are deferred.
 
 ---
 

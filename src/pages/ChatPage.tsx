@@ -16,13 +16,14 @@ interface ChatMessage {
   content: string;
   toolsUsed?: string[];
   model?: SenseiModelId;
+  intents?: string[];
 }
 
 const EXAMPLE_PROMPTS = [
   "Who should I start at flex this week?",
   "Is my RB room a need right now?",
+  "Any injury news I should know about?",
   "What's a fair ask for my best WR?",
-  "Any must-adds on the waiver wire?",
 ];
 
 const HISTORY_CAP = 20;
@@ -192,7 +193,13 @@ export function ChatPage({ app }: { app: FantasyApp }) {
       });
 
       const rawBody = await res.text();
-      let data: { message?: string; toolsUsed?: string[]; error?: string; model?: string } = {};
+      let data: {
+        message?: string;
+        toolsUsed?: string[];
+        error?: string;
+        model?: string;
+        intents?: string[];
+      } = {};
       try {
         data = rawBody ? (JSON.parse(rawBody) as typeof data) : {};
       } catch {
@@ -215,6 +222,7 @@ export function ChatPage({ app }: { app: FantasyApp }) {
           content: data.message!,
           toolsUsed: data.toolsUsed ?? [],
           model: isSenseiModelId(data.model) ? data.model : model,
+          intents: Array.isArray(data.intents) ? data.intents.filter((x) => typeof x === "string") : [],
         },
       ]);
     } catch (err) {
@@ -292,9 +300,14 @@ export function ChatPage({ app }: { app: FantasyApp }) {
                 }`}
               >
                 {m.role === "assistant" && (
-                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-[#C9A227] mb-1 font-medium">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] uppercase tracking-wide text-[#C9A227] mb-1 font-medium">
                     <span>Sensei</span>
                     {m.model && <span className="text-[#636366] normal-case tracking-normal font-normal">{m.model}</span>}
+                    {m.intents && m.intents.length > 0 && (
+                      <span className="text-[#636366] normal-case tracking-normal font-normal">
+                        · {m.intents.join(" + ")}
+                      </span>
+                    )}
                   </div>
                 )}
                 <div className="whitespace-pre-wrap">{m.content}</div>
@@ -306,7 +319,7 @@ export function ChatPage({ app }: { app: FantasyApp }) {
             <div className="flex justify-start">
               <div className="bg-[#1C1C1E] border border-[#38383A] rounded-2xl rounded-bl-md px-3.5 py-2.5 text-sm text-[#98989D] flex items-center gap-2">
                 <Loader2 size={14} className="animate-spin text-[#C9A227]" />
-                Sensei is thinking…
+                Sensei is researching…
               </div>
             </div>
           )}

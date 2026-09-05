@@ -46,8 +46,9 @@ const TOOLS: ToolDefinition[] = [
 
 const byName = new Map(TOOLS.map((t) => [t.name, t]));
 
-export function getOpenAiTools(): ChatCompletionTool[] {
-  return TOOLS.map((t) => ({
+export function getOpenAiTools(allowlist?: string[]): ChatCompletionTool[] {
+  const allowed = allowlist?.length ? new Set(allowlist) : null;
+  return TOOLS.filter((t) => !allowed || allowed.has(t.name)).map((t) => ({
     type: "function" as const,
     function: {
       name: t.name,
