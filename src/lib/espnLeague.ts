@@ -393,3 +393,17 @@ export function getFreshLiveLeague(maxAgeMs = CACHE_TTL_MS): LiveLeagueSnapshot 
   if (Date.now() - liveCache.fetchedAt > maxAgeMs) return null;
   return liveCache;
 }
+
+/**
+ * Prefer a fresh live ownership cache for Sensei turns.
+ * Reuses cache within TTL; otherwise runs syncLiveRosters.
+ */
+export async function ensureLiveRosters(
+  knownPlayers: Player[],
+  maxAgeMs = CACHE_TTL_MS
+): Promise<{ snapshot: LiveLeagueSnapshot; didSync: boolean }> {
+  const fresh = getFreshLiveLeague(maxAgeMs);
+  if (fresh) return { snapshot: fresh, didSync: false };
+  const snapshot = await syncLiveRosters(knownPlayers);
+  return { snapshot, didSync: true };
+}

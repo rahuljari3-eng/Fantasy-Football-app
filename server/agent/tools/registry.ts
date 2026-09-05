@@ -9,6 +9,7 @@ import {
   recommendPickupsTool,
   searchFreeAgentsTool,
 } from "./analysisTools.js";
+import { optimizeLineupTool, suggestTradesTool } from "./coachTools.js";
 import { getMatchupTool, getStandingsTool, syncRostersTool } from "./espnLeagueTools.js";
 import { getByeCalendarTool, getLeagueContextTool, getMyRosterTool, listTeamsTool } from "./localTools.js";
 import {
@@ -39,12 +40,15 @@ const TOOLS: ToolDefinition[] = [
   getStandingsTool,
   getMatchupTool,
   syncRostersTool,
+  optimizeLineupTool,
+  suggestTradesTool,
 ];
 
 const byName = new Map(TOOLS.map((t) => [t.name, t]));
 
-export function getOpenAiTools(): ChatCompletionTool[] {
-  return TOOLS.map((t) => ({
+export function getOpenAiTools(allowlist?: string[]): ChatCompletionTool[] {
+  const allowed = allowlist?.length ? new Set(allowlist) : null;
+  return TOOLS.filter((t) => !allowed || allowed.has(t.name)).map((t) => ({
     type: "function" as const,
     function: {
       name: t.name,

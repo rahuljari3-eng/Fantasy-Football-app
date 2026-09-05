@@ -28,6 +28,7 @@ export function createApp() {
     let body: {
       messages?: ChatTurnMessage[];
       leagueContext?: LeagueContext;
+      model?: string;
     };
     try {
       body = await c.req.json();
@@ -45,7 +46,11 @@ export function createApp() {
     }
 
     try {
-      const result = await runSenseiTurn({ messages, leagueContext });
+      const result = await runSenseiTurn({
+        messages,
+        leagueContext,
+        model: body.model,
+      });
       return c.json(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Chat request failed";

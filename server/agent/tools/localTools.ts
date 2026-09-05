@@ -1,11 +1,33 @@
 import { LEAGUE_CONFIG, REQUIRED_STARTERS, SLOTS } from "../../../src/config/league.js";
-import { activeTeams, ownershipSource, resolveTeam } from "./leagueData.js";
+import { activeTeams, findPlayers, ownershipSource, resolveTeam } from "./leagueData.js";
 import type { ToolDefinition } from "./types.js";
+
+function summarizeLocalLineup(ctx: { localLineup?: { roster: Record<string, number | undefined>; bench: number[] } }) {
+  const local = ctx.localLineup;
+  if (!local) return null;
+  const starters = SLOTS.map((slot) => {
+    const id = local.roster[slot];
+    if (id == null) return { slot, playerId: null, name: null };
+    const p = findPlayers(id, 1)[0];
+    return { slot, playerId: id, name: p?.name ?? null, pos: p?.pos ?? null };
+  });
+  const bench = (local.bench || []).map((id) => {
+    const p = findPlayers(id, 1)[0];
+    return { playerId: id, name: p?.name ?? null, pos: p?.pos ?? null };
+  });
+  return { starters, bench };
+}
+
+function espnStarterSlots(teamRoster: { id: number; name: string; slot: string; starter: boolean }[]) {
+  return teamRoster
+    .filter((p) => p.starter)
+    .map((p) => ({ playerId: p.id, name: p.name, slot: p.slot }));
+}
 
 export const getLeagueContextTool: ToolDefinition = {
   name: "get_league_context",
   description:
-    "Return league identity, scoring format, roster slots, the currently managed team (from the app header unless overridden), and known scoring period if provided.",
+    "Return league identity, scoring format, roster slots, managed team, current scoring period/week, ownership source, and local builder lineup if the client sent one.",
   parameters: {
     type: "object",
     properties: {},
@@ -15,6 +37,7 @@ export const getLeagueContextTool: ToolDefinition = {
     const resolved = resolveTeam(ctx);
     const team = resolved.ok ? resolved.team : undefined;
     const source = ownershipSource();
+    const localLineup = summarizeLocalLineup(ctx);
     return {
       ok: true,
       appName: LEAGUE_CONFIG.appName,
@@ -29,10 +52,14 @@ export const getLeagueContextTool: ToolDefinition = {
       managedTeamOwner: team?.owner ?? null,
       scoringPeriodId: ctx.scoringPeriodId ?? null,
       ownershipSource: source,
+      localLineup,
       note:
         source === "bundled_snapshot"
-          ? "Roster ownership is from a bundled snapshot until sync_rosters runs. Call sync_rosters when adds/drops/trades may have happened."
-          : "Roster ownership is from a live ESPN sync in this server process.",
+          ? "Roster ownership is from a bundled snapshot (auto-sync may have failed). Say so if ownership matters."
+          : "Roster ownership is from a live ESPN sync in this server process (auto-refreshed when stale).",
+      lineupNote: localLineup
+        ? "Client sent a local roster-builder lineup. For start/sit, ask which to use if it may differ from ESPN."
+        : "No local lineup was sent — use ESPN/live roster slots.",
     };
   },
 };
@@ -71,11 +98,17 @@ export const getMyRosterTool: ToolDefinition = {
     const resolved = resolveTeam(ctx, teamId);
     if (!resolved.ok) return resolved;
     const { team } = resolved;
+    const managed = resolveTeam(ctx);
+    const advisingManaged = managed.ok && managed.team.id === team.id;
+    const localLineup = advisingManaged ? summarizeLocalLineup(ctx) : null;
+    const espnStarters = espnStarterSlots(team.roster);
+
     return {
       ok: true,
       teamId: team.id,
       name: team.name,
       owner: team.owner,
+      scoringPeriodId: ctx.scoringPeriodId ?? null,
       players: team.roster.map((p) => ({
         id: p.id,
         name: p.name,
@@ -88,6 +121,11 @@ export const getMyRosterTool: ToolDefinition = {
         starter: p.starter,
         slot: p.slot,
       })),
+      espnStarters,
+      localLineup,
+      note: localLineup
+        ? "Includes both ESPN roster slots and the client's local builder lineup. Ask which to use if they conflict."
+        : undefined,
     };
   },
 };

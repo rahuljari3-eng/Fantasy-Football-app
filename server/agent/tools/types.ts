@@ -1,6 +1,20 @@
+export interface LocalLineupContext {
+  /** Builder slot → player id (Gridiron HQ roster builder / localStorage). */
+  roster: Record<string, number | undefined>;
+  bench: number[];
+}
+
+export interface LeagueContext {
+  managedTeamId: number;
+  scoringPeriodId?: number;
+  localLineup?: LocalLineupContext;
+}
+
 export interface ToolContext {
   managedTeamId: number;
   scoringPeriodId?: number;
+  /** Present when the client sent the user's local builder lineup. */
+  localLineup?: LocalLineupContext;
 }
 
 export interface JsonSchema {
