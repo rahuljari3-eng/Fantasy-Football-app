@@ -1,6 +1,5 @@
 import { LEAGUE_CONFIG, REQUIRED_STARTERS, SLOTS } from "../../../src/config/league.ts";
-import { ALL_TEAMS } from "../../../src/data/allTeams.ts";
-import { resolveTeam } from "./leagueData.ts";
+import { activeTeams, ownershipSource, resolveTeam } from "./leagueData.ts";
 import type { ToolDefinition } from "./types.ts";
 
 export const getLeagueContextTool: ToolDefinition = {
@@ -13,7 +12,9 @@ export const getLeagueContextTool: ToolDefinition = {
     additionalProperties: false,
   },
   handler: async (ctx) => {
-    const team = ALL_TEAMS.find((t) => t.id === ctx.managedTeamId);
+    const resolved = resolveTeam(ctx);
+    const team = resolved.ok ? resolved.team : undefined;
+    const source = ownershipSource();
     return {
       ok: true,
       appName: LEAGUE_CONFIG.appName,
@@ -27,7 +28,11 @@ export const getLeagueContextTool: ToolDefinition = {
       managedTeamName: team?.name ?? null,
       managedTeamOwner: team?.owner ?? null,
       scoringPeriodId: ctx.scoringPeriodId ?? null,
-      note: "Roster ownership may be from a bundled snapshot; say so if advising on recent adds/drops/trades.",
+      ownershipSource: source,
+      note:
+        source === "bundled_snapshot"
+          ? "Roster ownership is from a bundled snapshot until sync_rosters runs. Call sync_rosters when adds/drops/trades may have happened."
+          : "Roster ownership is from a live ESPN sync in this server process.",
     };
   },
 };
@@ -42,7 +47,8 @@ export const listTeamsTool: ToolDefinition = {
   },
   handler: async () => ({
     ok: true,
-    teams: ALL_TEAMS.map((t) => ({ id: t.id, name: t.name, owner: t.owner, rosterSize: t.roster.length })),
+    ownershipSource: ownershipSource(),
+    teams: activeTeams().map((t) => ({ id: t.id, name: t.name, owner: t.owner, rosterSize: t.roster.length })),
   }),
 };
 

@@ -48,7 +48,7 @@ Sensei must be able to zoom between horizons without the user spelling out “th
 
 1. **`OPENAI_API_KEY` never ships to the browser.** Vite client bundles are public. The key stays server-side (Node process / serverless), loaded from `.env` (gitignored).
 2. **Prefer wrapping existing `src/lib` pure functions** before inventing new scoring.
-3. **ESPN ownership can be stale.** Projections / status / lineup slots refresh live; *who owns whom* still comes from `src/data/` until we add membership sync. The agent should say so when relevant.
+3. **ESPN ownership can be stale until sync.** Bundled `src/data/` is the default; `sync_rosters` refreshes who-owns-whom + FA pool into a server-side cache that other Sensei tools prefer. The agent should call sync when ownership may have moved.
 4. **Cap the tool loop** (rounds + ESPN calls) so one chat turn can’t hammer APIs.
 
 ---
@@ -337,10 +337,10 @@ Example trade tool result shape:
 3. ~~**Starter P0 tools (partial)**~~ — `get_league_context`, `list_teams`, `get_my_roster`, `get_bye_calendar` (enough to prove the loop).
 4. ~~**Remaining P0 tools**~~ — `get_player`, `analyze_roster_needs`, `compare_players`, `evaluate_trade` (week + ROS), `recommend_pickups`, `search_free_agents`, `get_news_feed`, `get_news_for_player`.
 5. ~~**Schedule IQ**~~ — ESPN `proTeamSchedules_wl` cache in `src/lib/nflSchedule.ts`; tools `get_nfl_schedule`, `get_player_schedule`, `get_schedule_outlook`, `get_playoff_weeks` (remaining weeks through season end).
+6. ~~**League ESPN**~~ — `get_standings`, `get_matchup`, `sync_rosters` via `src/lib/espnLeague.ts` + live ownership cache.
 
 ### Still to do
 
-6. **League ESPN** — standings, fantasy matchup, `sync_rosters`.
 7. ~~**Production deploy path**~~ — Vercel serverless `api/[[...route]].ts` wraps the same Hono app (`server/app.ts`). Set `OPENAI_API_KEY` in Vercel env and redeploy (see `docs/vercel-redeploy-sensei.md`).
 8. **Polish** — ask-when-unsure for lineup conflicts; chat persistence / multi-chat; richer traces; optional streaming later.
 

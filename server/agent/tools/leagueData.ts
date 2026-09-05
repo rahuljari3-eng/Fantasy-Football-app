@@ -1,9 +1,10 @@
 import { POSITIONS, REQUIRED_STARTERS } from "../../../src/config/league.ts";
 import { ALL_TEAMS } from "../../../src/data/allTeams.ts";
 import { FREE_AGENTS } from "../../../src/data/freeAgents.ts";
+import { getLiveLeagueCache } from "../../../src/lib/espnLeague.ts";
 import { analyzeRosterNeeds } from "../../../src/lib/rosterNeeds.ts";
 import { qualityScore } from "../../../src/lib/scoring.ts";
-import type { Player, Position, RosterNeeds } from "../../../src/types.ts";
+import type { LeagueTeam, Player, Position, RosterNeeds } from "../../../src/types.ts";
 import type { ToolContext } from "./types.ts";
 
 /** Stamp 1-based projection ranks within each position (needed for playerValue). */
@@ -25,42 +26,72 @@ export function withPosRanks(players: Player[]): Player[] {
   return players.map((p) => ({ ...p, posRank: ranks.get(p.id) }));
 }
 
-/** Every known player in the snapshot (all rosters + FAs), with pos ranks. */
+/** Prefer live ESPN ownership after sync_rosters; else bundled snapshot. */
+export function activeTeams(): LeagueTeam[] {
+  return getLiveLeagueCache()?.teams ?? ALL_TEAMS;
+}
+
+export function activeFreeAgents(): Player[] {
+  return getLiveLeagueCache()?.freeAgents ?? FREE_AGENTS;
+}
+
+export function ownershipSource(): "live_espn" | "bundled_snapshot" {
+  return getLiveLeagueCache() ? "live_espn" : "bundled_snapshot";
+}
+
+/** Find a team by ESPN/snapshot id, falling back to name match (ids can drift). */
+export function findTeamByIdOrName(teamId: number): LeagueTeam | undefined {
+  const teams = activeTeams();
+  const direct = teams.find((t) => t.id === teamId);
+  if (direct) return direct;
+  const snap = ALL_TEAMS.find((t) => t.id === teamId);
+  if (!snap) return undefined;
+  return teams.find((t) => t.name === snap.name);
+}
+
+/** Every known player (all rosters + FAs), with pos ranks. */
 export function allKnownPlayers(): Player[] {
   const map = new Map<number, Player>();
-  for (const t of ALL_TEAMS) {
+  for (const t of activeTeams()) {
     for (const p of t.roster) map.set(p.id, p);
   }
-  for (const p of FREE_AGENTS) {
+  for (const p of activeFreeAgents()) {
     if (!map.has(p.id)) map.set(p.id, p);
+  }
+  // Keep snapshot-only players available for name lookup even after sync.
+  if (getLiveLeagueCache()) {
+    for (const t of ALL_TEAMS) {
+      for (const p of t.roster) if (!map.has(p.id)) map.set(p.id, p);
+    }
+    for (const p of FREE_AGENTS) if (!map.has(p.id)) map.set(p.id, p);
   }
   return withPosRanks([...map.values()]);
 }
 
 export function freeAgentPool(): Player[] {
   const rostered = new Set<number>();
-  for (const t of ALL_TEAMS) {
+  for (const t of activeTeams()) {
     for (const p of t.roster) rostered.add(p.id);
   }
-  return withPosRanks(FREE_AGENTS.filter((p) => !rostered.has(p.id)));
+  return withPosRanks(activeFreeAgents().filter((p) => !rostered.has(p.id)));
 }
 
 export function resolveTeam(ctx: ToolContext, teamId?: number) {
   const id = teamId ?? ctx.managedTeamId;
-  const team = ALL_TEAMS.find((t) => t.id === id);
+  const team = findTeamByIdOrName(id);
   if (!team) return { ok: false as const, error: "team_not_found" as const, teamId: id };
   return { ok: true as const, team };
 }
 
 export function teamPlayersRanked(teamId: number): Player[] {
-  const team = ALL_TEAMS.find((t) => t.id === teamId);
+  const team = findTeamByIdOrName(teamId);
   if (!team) return [];
   return withPosRanks(team.roster.map((p) => ({ ...p })));
 }
 
 export function leagueBaseline(): Record<Position, number> {
   const baseline = {} as Record<Position, number>;
-  const rosters = ALL_TEAMS.map((t) => withPosRanks(t.roster.map((p) => ({ ...p }))));
+  const rosters = activeTeams().map((t) => withPosRanks(t.roster.map((p) => ({ ...p }))));
   for (const pos of POSITIONS) {
     const scores = rosters.map((r) => analyzeRosterNeeds(r)[pos].starterScore).filter((s) => s > 0);
     baseline[pos] = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
@@ -123,7 +154,7 @@ export function findPlayers(query: string | number, limit = 5): Player[] {
 }
 
 export function findPlayerOwner(playerId: number): { teamId: number; teamName: string; owner: string } | null {
-  for (const t of ALL_TEAMS) {
+  for (const t of activeTeams()) {
     if (t.roster.some((p) => p.id === playerId)) {
       return { teamId: t.id, teamName: t.name, owner: t.owner };
     }
@@ -151,9 +182,9 @@ export function serializePlayer(p: Player) {
 
 export function relevantPlayerIds(): Set<number> {
   const ids = new Set<number>();
-  for (const t of ALL_TEAMS) {
+  for (const t of activeTeams()) {
     for (const p of t.roster) ids.add(p.id);
   }
-  for (const p of FREE_AGENTS) ids.add(p.id);
+  for (const p of activeFreeAgents()) ids.add(p.id);
   return ids;
 }
