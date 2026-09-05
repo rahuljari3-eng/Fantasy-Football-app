@@ -330,12 +330,22 @@ Example trade tool result shape:
 
 ## Suggested build order
 
-1. **Server skeleton** — Hono + Vite proxy + `POST /api/chat` (OpenAI key server-side only).
-2. **ChatPage wiring** — final answer + collapsed `N tools used` accordion; pass `managedTeamId` from header.
-3. **Core P0 tools** — context, roster (with bye), `get_bye_calendar`, needs, compare, evaluate_trade (**both horizons**), recommend_pickups, news.
-4. **Schedule IQ** — season schedule fetch + cache; `get_nfl_schedule` / `get_player_schedule` / `get_schedule_outlook` returning **remaining weeks**.
-5. **League ESPN** — standings, fantasy matchup, `sync_rosters`.
-6. **Polish** — ask-when-unsure prompts for lineup conflicts; richer traces; optional streaming later.
+### Done
+
+1. ~~**Server skeleton**~~ — Hono API on `:8787`, Vite `/api` proxy, `POST /api/chat`, `OPENAI_API_KEY` server-only (`server/`).
+2. ~~**ChatPage wiring**~~ — real OpenAI turn, loading state, collapsed **“N tools used”** accordion, `managedTeamId` from header.
+3. ~~**Starter P0 tools (partial)**~~ — `get_league_context`, `list_teams`, `get_my_roster`, `get_bye_calendar` (enough to prove the loop).
+
+### Still to do
+
+4. **Remaining P0 tools** — needs analysis, compare players, evaluate_trade (**both horizons**), recommend_pickups, search FAs, news.
+5. **Schedule IQ** — season schedule fetch + cache; `get_nfl_schedule` / `get_player_schedule` / `get_schedule_outlook` (**remaining weeks**).
+6. **League ESPN** — standings, fantasy matchup, `sync_rosters`.
+7. **Production deploy path** — Vercel (or similar) needs a **serverless `/api/chat`** (or separate API host). Local `node` + Vite proxy is not what Vercel runs by default.
+8. **Polish** — ask-when-unsure for lineup conflicts; chat persistence / multi-chat; richer traces; optional streaming later.
+
+**Why only some tools so far:** intentional — ship the agent loop + a few high-value read tools first, confirm tool-calling + UI, then expand the registry without redesigning the architecture.
+
 
 ---
 

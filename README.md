@@ -6,11 +6,24 @@ Default setup: **Ten Idiots League** (ESPN `#973201555`, 2026), managing **Tush 
 
 ## Running it
 
-Requires **Node.js 18+**.
+Requires **Node.js 18+** and an OpenAI key in a local `.env` (see `.env.example`).
 
 ```bash
+cp .env.example .env   # then set OPENAI_API_KEY
 npm install
-npm run dev       # http://localhost:5173
+npm run dev            # Vite (:5173) + Roster Sensei API (:8787)
+```
+
+`npm run dev` starts both:
+
+- **Web** — `http://localhost:5173` (proxies `/api` → the API)
+- **API** — `http://localhost:8787` (OpenAI tool loop; key stays server-side)
+
+Useful scripts:
+
+```bash
+npm run dev:web   # Vite only
+npm run dev:api   # API only
 npm run build     # type-check + production bundle → dist/
 npm run preview   # serve the production build
 ```
@@ -25,7 +38,7 @@ npm run preview   # serve the production build
 | **Trade analyzer** | Build give/get packages; week vs rest-of-season fairness (VOR / rank-based) |
 | **AI Coach** | Position outlook vs league average + suggested trades (heuristic math, not an LLM) |
 | **League** | Scout all 12 teams; jump into the trade analyzer |
-| **News & injuries** | Live ESPN news/injury feed filtered to league + free-agent players |
+| **Chat with Roster Sensei** | Agentic fantasy Q&A (OpenAI + tools); uses the header's selected team by default |
 
 Use the header **team picker** to manage or scout any squad in the league.
 
@@ -67,6 +80,8 @@ src/
 
 ## Notes
 
-- The AI Coach is a **heuristic** engine (VOR, scarcity, injury discounts, need matching) — not a live language model.
+- The AI Coach tab is a **heuristic** engine (VOR, scarcity, injury discounts, need matching) — not an LLM. Roster Sensei is the LLM agent.
 - Local roster edits are stored per team in localStorage; if ESPN’s lineup snapshot changes on refresh, ESPN wins for slot sync.
+- The "Refresh from ESPN" button calls ESPN from the browser; Roster Sensei keeps **`OPENAI_API_KEY` on the server only**. See `docs/roster-sensei-agent-tools.md`.
 - Ownership tiers in the snapshot are derived from ESPN ownership % at export time and are not refreshed live.
+- Sensei starter tools today: league context, list teams, roster, bye calendar. Trades, schedules, and live sync come next.
