@@ -15,6 +15,7 @@ import { analyzeRosterNeeds } from "../lib/rosterNeeds";
 import { deriveAssignments, deriveAssignmentsFromEspnSlots } from "../lib/teamRoster";
 import { fetchEspnLineups } from "../lib/espn";
 import { balancePackage, balanceTwoForTwo, fairnessRatio, needAdjustedPackageValue, starGateOk } from "../lib/tradeEngine";
+import { optimizeLineup } from "../lib/optimizeLineup";
 import { useProjectionRefresh } from "./useProjectionRefresh";
 import { useNewsFeed } from "./useNewsFeed";
 import { useMatchups } from "./useMatchups";
@@ -452,62 +453,9 @@ export function useFantasyApp() {
   });
 
   function autoOptimize() {
-    const chosen = new Set<number>();
-    const newRoster: RosterAssignments = {};
-    const byProj = (pos: Position) => effectivePlayers.filter((p) => p.pos === pos && p.status !== "Out").sort((a, b) => b.proj - a.proj);
-
-    const qb = byProj("QB").find((p) => !chosen.has(p.id));
-    if (qb) {
-      newRoster.QB = qb.id;
-      chosen.add(qb.id);
-    }
-
-    const rbs = byProj("RB").filter((p) => !chosen.has(p.id));
-    if (rbs[0]) {
-      newRoster.RB1 = rbs[0].id;
-      chosen.add(rbs[0].id);
-    }
-    if (rbs[1]) {
-      newRoster.RB2 = rbs[1].id;
-      chosen.add(rbs[1].id);
-    }
-
-    const wrs = byProj("WR").filter((p) => !chosen.has(p.id));
-    if (wrs[0]) {
-      newRoster.WR1 = wrs[0].id;
-      chosen.add(wrs[0].id);
-    }
-    if (wrs[1]) {
-      newRoster.WR2 = wrs[1].id;
-      chosen.add(wrs[1].id);
-    }
-
-    const te = byProj("TE").find((p) => !chosen.has(p.id));
-    if (te) {
-      newRoster.TE = te.id;
-      chosen.add(te.id);
-    }
-
-    const flexPool = [...byProj("RB"), ...byProj("WR"), ...byProj("TE")].filter((p) => !chosen.has(p.id)).sort((a, b) => b.proj - a.proj);
-    if (flexPool[0]) {
-      newRoster.FLEX = flexPool[0].id;
-      chosen.add(flexPool[0].id);
-    }
-
-    const dst = byProj("DST").find((p) => !chosen.has(p.id));
-    if (dst) {
-      newRoster.DST = dst.id;
-      chosen.add(dst.id);
-    }
-
-    const k = byProj("K").find((p) => !chosen.has(p.id));
-    if (k) {
-      newRoster.K = k.id;
-      chosen.add(k.id);
-    }
-
-    setRoster(newRoster);
-    setBench((b) => b.filter((id) => !chosen.has(id)));
+    const result = optimizeLineup(effectivePlayers, { excludeOut: true });
+    setRoster(result.roster);
+    setBench((b) => b.filter((id) => !result.starterIds.includes(id)));
   }
 
   const usedIds = useMemo(() => {

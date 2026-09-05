@@ -9,6 +9,7 @@ import {
   recommendPickupsTool,
   searchFreeAgentsTool,
 } from "./analysisTools.js";
+import { optimizeLineupTool, suggestTradesTool } from "./coachTools.js";
 import { getMatchupTool, getStandingsTool, syncRostersTool } from "./espnLeagueTools.js";
 import { getByeCalendarTool, getLeagueContextTool, getMyRosterTool, listTeamsTool } from "./localTools.js";
 import {
@@ -39,6 +40,8 @@ const TOOLS: ToolDefinition[] = [
   getStandingsTool,
   getMatchupTool,
   syncRostersTool,
+  optimizeLineupTool,
+  suggestTradesTool,
 ];
 
 const byName = new Map(TOOLS.map((t) => [t.name, t]));

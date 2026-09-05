@@ -245,7 +245,7 @@ Priorities: **P0** = ship with first agent loop · **P1** = next · **P2** = lat
 | `get_bye_calendar` | Who’s on bye when | `teamId?`, `week?` | Players grouped by bye; flags for *this* week | `Player.bye` on roster/FA + current period |
 | `analyze_roster_needs` | Holes vs league baseline | `teamId?` | Per-pos starter scores, needs, depth | `analyzeRosterNeeds` + baseline extract |
 | `compare_players` | Start/sit style compare | `playerIds[]`, `horizon?` | Side-by-side proj / VOR / ROS / status / **bye** | `scoring.ts` + bye field |
-| `optimize_lineup` | Best weekly lineup | `teamId?`, `pool?: "roster" \| "roster_plus_fa"` | Slot map + total; **exclude bye & Out** | Extract `autoOptimize` |
+| `optimize_lineup` | Best weekly lineup | `teamId?`, `pool?: "roster" \| "roster_plus_fa"`, `useLocalLineup?` | Slot map + total; **exclude bye & Out** | `src/lib/optimizeLineup.ts` (**done**) |
 | `recommend_pickups` | Need-aware FA shortlist | `teamId?`, `limit?` | Position groups + reasons (+ bye notes) | FA recommend extract |
 | `search_free_agents` | Browse FA pool | `pos?`, `q?`, `limit?` | Sorted FA list | `FREE_AGENTS` + overlays |
 | `evaluate_trade` | Grade a package | `giveIds[]`, `getIds[]`, `opponentId?`, `horizon?` | Side values, ratio, star gate, notes | `tradeEngine` + scoring |
@@ -261,7 +261,7 @@ Promote schedule tools early — this is what makes Sensei versatile beyond a pr
 | `get_player_schedule` | One player’s remaining games | `playerId` or `query`, `fromWeek?` | Bye + **all remaining** opponents (H/A) through season end | Player.team + NFL schedule cache |
 | `get_schedule_outlook` | Soft/hard stretch summary | `playerIds[]` or `teamId`, `fromWeek?`, `throughWeek?` | Per-player **remaining** opponents (default through season / playoffs); optional “ease” tags later | Schedule + optional rankings |
 | `get_playoff_weeks` | League playoff window | — | Scoring periods treated as playoffs (settings or config e.g. 15–17) | **New** `mSettings` or `LEAGUE_CONFIG` |
-| `suggest_trades` | Coach-style proposals | `teamId?`, `max?` | `TradeSuggestion[]` | Coach pipeline extract |
+| `suggest_trades` | Coach-style proposals | `teamId?`, `max?` | `TradeSuggestion[]` | `src/lib/coachTrades.ts` (**done**) |
 | `refresh_projections` | Pull live proj/status | — | Period, counts | `espn.ts` |
 | `get_news_for_player` | One player’s headlines | `playerId` | `NewsItem[]` | Filter feed |
 | `get_standings` | W-L, PF, rank | — | Standings rows | **New** ESPN `mStandings` / `mTeam` |
@@ -346,10 +346,11 @@ Example trade tool result shape:
 6. ~~**League ESPN**~~ — `get_standings`, `get_matchup`, `sync_rosters` via `src/lib/espnLeague.ts` + live ownership cache.
 7. ~~**Production deploy path**~~ — Vercel serverless `api/[[...route]].ts` wraps the same Hono app (`server/app.ts`). Set `OPENAI_API_KEY` in Vercel env and redeploy (see `docs/vercel-redeploy-sensei.md`).
 8. ~~**Session context polish (partial)**~~ — Auto ownership sync per turn (TTL); client sends **local builder lineup**; server injects **scoring period** + ask-when-unsure for local vs ESPN.
+9. ~~**Coach action tools**~~ — `optimize_lineup` (`src/lib/optimizeLineup.ts`) and `suggest_trades` (`src/lib/coachTrades.ts`) registered for Sensei.
 
 ### Still to do
 
-9. **More polish** — chat persistence / multi-chat; richer tool traces (args/results); `optimize_lineup` / `suggest_trades` tools; optional streaming / model bump later.
+10. **More polish** — chat persistence / multi-chat; richer tool traces (args/results); optional streaming / model bump later.
 
 **Why tools were staged:** prove the agent loop first with a few reads, then expand the registry (this step) without redesigning the architecture.
 
