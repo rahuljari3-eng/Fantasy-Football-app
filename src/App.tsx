@@ -10,6 +10,7 @@ import { TradeAnalyzerPage } from "./pages/TradeAnalyzerPage";
 import { CoachPage } from "./pages/CoachPage";
 import { LeaguePage } from "./pages/LeaguePage";
 import { NewsPage } from "./pages/NewsPage";
+import { ChatPage } from "./pages/ChatPage";
 
 // Which component renders for each tab id (config/pages.ts controls the nav
 // bar itself -- this just has to stay in sync with the TabId union).
@@ -21,6 +22,7 @@ const PAGES = {
   coach: CoachPage,
   league: LeaguePage,
   news: NewsPage,
+  chat: ChatPage,
 };
 
 export default function App() {

@@ -175,7 +175,7 @@ export interface TradeSuggestion {
 
 export type TradeHorizon = "week" | "season";
 
-export type TabId = "roster" | "freeagents" | "lineup" | "trade" | "coach" | "league" | "news";
+export type TabId = "roster" | "freeagents" | "lineup" | "trade" | "coach" | "league" | "news" | "chat";
 
 export interface RefreshProgress {
   done: number;
