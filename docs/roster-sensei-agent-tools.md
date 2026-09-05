@@ -336,10 +336,10 @@ Example trade tool result shape:
 2. ~~**ChatPage wiring**~~ — real OpenAI turn, loading state, collapsed **“N tools used”** accordion, `managedTeamId` from header.
 3. ~~**Starter P0 tools (partial)**~~ — `get_league_context`, `list_teams`, `get_my_roster`, `get_bye_calendar` (enough to prove the loop).
 4. ~~**Remaining P0 tools**~~ — `get_player`, `analyze_roster_needs`, `compare_players`, `evaluate_trade` (week + ROS), `recommend_pickups`, `search_free_agents`, `get_news_feed`, `get_news_for_player`.
+5. ~~**Schedule IQ**~~ — ESPN `proTeamSchedules_wl` cache in `src/lib/nflSchedule.ts`; tools `get_nfl_schedule`, `get_player_schedule`, `get_schedule_outlook`, `get_playoff_weeks` (remaining weeks through season end).
 
 ### Still to do
 
-5. **Schedule IQ** — season schedule fetch + cache; `get_nfl_schedule` / `get_player_schedule` / `get_schedule_outlook` (**remaining weeks**).
 6. **League ESPN** — standings, fantasy matchup, `sync_rosters`.
 7. ~~**Production deploy path**~~ — Vercel serverless `api/[[...route]].ts` wraps the same Hono app (`server/app.ts`). Set `OPENAI_API_KEY` in Vercel env and redeploy (see `docs/vercel-redeploy-sensei.md`).
 8. **Polish** — ask-when-unsure for lineup conflicts; chat persistence / multi-chat; richer traces; optional streaming later.

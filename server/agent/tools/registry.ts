@@ -10,6 +10,12 @@ import {
   searchFreeAgentsTool,
 } from "./analysisTools.ts";
 import { getByeCalendarTool, getLeagueContextTool, getMyRosterTool, listTeamsTool } from "./localTools.ts";
+import {
+  getNflScheduleTool,
+  getPlayerScheduleTool,
+  getPlayoffWeeksTool,
+  getScheduleOutlookTool,
+} from "./scheduleTools.ts";
 import type { ToolContext, ToolDefinition } from "./types.ts";
 
 const TOOLS: ToolDefinition[] = [
@@ -25,6 +31,10 @@ const TOOLS: ToolDefinition[] = [
   searchFreeAgentsTool,
   getNewsFeedTool,
   getNewsForPlayerTool,
+  getNflScheduleTool,
+  getPlayerScheduleTool,
+  getScheduleOutlookTool,
+  getPlayoffWeeksTool,
 ];
 
 const byName = new Map(TOOLS.map((t) => [t.name, t]));
