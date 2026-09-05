@@ -19,6 +19,8 @@ npm run dev            # Vite (:5173) + Roster Sensei API (:8787)
 - **Web** — `http://localhost:5173` (proxies `/api` → the API)
 - **API** — `http://localhost:8787` (OpenAI tool loop; key stays server-side)
 
+On **Vercel**, the same `/api/chat` route is a serverless function (`api/[[...route]].ts`) — no second process. Set `OPENAI_API_KEY` in the Vercel project env (see `docs/vercel-redeploy-sensei.md`).
+
 Useful scripts:
 
 ```bash

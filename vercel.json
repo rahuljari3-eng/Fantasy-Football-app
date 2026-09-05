@@ -1,0 +1,11 @@
+{
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/[[...route]].ts": {
+      "maxDuration": 60,
+      "includeFiles": "src/**"
+    }
+  }
+}

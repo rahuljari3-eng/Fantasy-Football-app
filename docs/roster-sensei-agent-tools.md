@@ -341,7 +341,7 @@ Example trade tool result shape:
 4. **Remaining P0 tools** — needs analysis, compare players, evaluate_trade (**both horizons**), recommend_pickups, search FAs, news.
 5. **Schedule IQ** — season schedule fetch + cache; `get_nfl_schedule` / `get_player_schedule` / `get_schedule_outlook` (**remaining weeks**).
 6. **League ESPN** — standings, fantasy matchup, `sync_rosters`.
-7. **Production deploy path** — Vercel (or similar) needs a **serverless `/api/chat`** (or separate API host). Local `node` + Vite proxy is not what Vercel runs by default.
+7. ~~**Production deploy path**~~ — Vercel serverless `api/[[...route]].ts` wraps the same Hono app (`server/app.ts`). Set `OPENAI_API_KEY` in Vercel env and redeploy (see `docs/vercel-redeploy-sensei.md`).
 8. **Polish** — ask-when-unsure for lineup conflicts; chat persistence / multi-chat; richer traces; optional streaming later.
 
 **Why only some tools so far:** intentional — ship the agent loop + a few high-value read tools first, confirm tool-calling + UI, then expand the registry without redesigning the architecture.
