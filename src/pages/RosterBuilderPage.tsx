@@ -1,10 +1,12 @@
-import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, X } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Lightbulb, X } from "lucide-react";
 import { SLOTS, SLOT_ELIGIBILITY } from "../config/league";
 import { LEAGUE_CONFIG } from "../config/league";
 import { PosBadge } from "../components/PosBadge";
 import { StatusIndicator } from "../components/StatusIndicator";
 import { PlayerNameLink } from "../components/PlayerNameLink";
 import { AddPlayerActions } from "../components/AddPlayerActions";
+import { MatchupBadge } from "../components/MatchupBadge";
+import { SearchInput } from "../components/SearchInput";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 
 const POSITION_FILTERS = ["ALL", "QB", "RB", "WR", "TE", "DST", "K"] as const;
@@ -31,6 +33,8 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
     selectedTeam,
     playerHasNews,
     openPlayerNews,
+    matchupForPlayer,
+    benchUpgradeSuggestions,
   } = app;
 
   return (
@@ -42,6 +46,33 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
           {LEAGUE_CONFIG.espnLeagueId}. Switch teams from the picker in the header.
         </span>
       </div>
+
+      {benchUpgradeSuggestions.length > 0 && (
+        <div className="lg:col-span-5 space-y-2">
+          {benchUpgradeSuggestions.map((s) => (
+            <div
+              key={s.benchPlayer.id}
+              className="animate-fade-slide-up hover-lift flex items-start justify-between gap-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2.5 text-xs text-emerald-200"
+            >
+              <div className="flex items-start gap-2 min-w-0">
+                <Lightbulb size={14} className="shrink-0 mt-0.5 text-emerald-300" />
+                <span>
+                  <strong className="font-semibold">
+                    Start {s.benchPlayer.name} over {s.starter.name}?
+                  </strong>{" "}
+                  {s.reason}
+                </span>
+              </div>
+              <button
+                onClick={() => quickStart(s.benchPlayer)}
+                className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/30 hover:shadow-[0_0_0_1px_rgba(16,185,129,0.4)]"
+              >
+                Start {s.benchPlayer.name}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="lg:col-span-2 space-y-3">
         <div className="flex items-center justify-between">
@@ -60,11 +91,11 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
               <div
                 key={slot}
                 data-drop-slot={slot}
-                className={`flex items-center gap-2 border rounded-xl pl-2.5 pr-3 py-2 ${
+                className={`flex items-center gap-2 border rounded-xl pl-2.5 pr-3 py-2 transition-all duration-150 ${
                   isDragOver
-                    ? "bg-[#C9A227]/15 border-[#C9A227] border-dashed"
+                    ? "bg-[#C9A227]/15 border-[#C9A227] border-dashed scale-[1.015]"
                     : p
-                    ? "bg-[#1C1C1E] border-[#38383A]"
+                    ? "bg-[#1C1C1E] border-[#38383A] hover-lift"
                     : "bg-[#1C1C1E]/40 border-[#38383A]/60 border-dashed"
                 }`}
               >
@@ -78,11 +109,12 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                         onOpen={() => openPlayerNews(p.id)}
                         className="text-sm font-medium truncate"
                       />
-                      <div className="text-[11px] text-[#98989D] flex items-center gap-1.5">
+                      <div className="text-[11px] text-[#98989D] flex items-center gap-1.5 flex-wrap">
                         <PosBadge pos={p.pos} className="rounded" />
                         <span>
                           {p.team} · bye {p.bye}
                         </span>
+                        <MatchupBadge matchup={matchupForPlayer(p)} />
                         <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                       </div>
                     </div>
@@ -108,8 +140,8 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
           <div className="text-xs text-[#98989D] mb-1.5 mono-font">BENCH</div>
           <div
             data-drop-slot="bench"
-            className={`space-y-1.5 rounded-lg p-1.5 border transition-colors ${
-              dragOverTarget === "bench" ? "bg-[#C9A227]/15 border-[#C9A227] border-dashed" : "border-transparent"
+            className={`space-y-1.5 rounded-lg p-1.5 border transition-all duration-150 ${
+              dragOverTarget === "bench" ? "bg-[#C9A227]/15 border-[#C9A227] border-dashed scale-[1.01]" : "border-transparent"
             }`}
           >
             {bench.map((id) => {
@@ -119,13 +151,22 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                 <div
                   key={id}
                   onPointerDown={(e) => handleDragStart(e, p)}
-                  className="flex items-center justify-between bg-[#1C1C1E]/60 border border-[#38383A]/60 rounded-lg px-3 py-1.5 cursor-grab active:cursor-grabbing touch-none"
+                  className="hover-lift flex items-center justify-between bg-[#1C1C1E]/60 border border-[#38383A]/60 rounded-lg px-3 py-1.5 cursor-grab active:cursor-grabbing touch-none"
                 >
-                  <div className="text-sm flex items-center gap-1">
-                    <PlayerNameLink name={p.name} hasNews={playerHasNews(p.id)} onOpen={() => openPlayerNews(p.id)} />
-                    <PosBadge pos={p.pos} className="rounded" />
+                  <div className="min-w-0">
+                    <div className="text-sm flex items-center gap-1">
+                      <PlayerNameLink name={p.name} hasNews={playerHasNews(p.id)} onOpen={() => openPlayerNews(p.id)} />
+                      <PosBadge pos={p.pos} className="rounded" />
+                    </div>
+                    <div className="text-[11px] text-[#98989D] flex items-center gap-1.5 flex-wrap mt-0.5">
+                      <span>
+                        {p.team} · bye {p.bye}
+                      </span>
+                      <MatchupBadge matchup={matchupForPlayer(p)} />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <span className="mono-font text-sm text-[#C9A227] font-medium">{p.proj}</span>
                     <button onClick={() => quickStart(p)} aria-label={`Move ${p.name} to starting lineup`} title="Move to starting lineup" className="text-[#636366] hover:text-[#C9A227] hover:bg-[#C9A227]/10 rounded p-0.5">
                       <ArrowUpFromLine size={14} />
                     </button>
@@ -148,16 +189,11 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
             <p className="text-xs text-[#98989D]">Drag a player onto a starting slot or the bench.</p>
           </div>
           <div className="flex items-center gap-2">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search players…"
-              className="bg-[#1C1C1E] border border-[#38383A] rounded-lg px-3 py-1.5 text-sm w-40 focus:outline-none focus:border-[#C9A227] placeholder:text-[#636366]"
-            />
+            <SearchInput value={search} onChange={setSearch} className="w-40" />
             <select
               value={posFilter}
               onChange={(e) => setPosFilter(e.target.value as typeof posFilter)}
-              className="bg-[#1C1C1E] border border-[#38383A] rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-[#C9A227]"
+              className="bg-[#1C1C1E] border border-[#38383A] rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-[#C9A227] focus:ring-2 focus:ring-[#C9A227]/20"
             >
               {POSITION_FILTERS.map((p) => (
                 <option key={p} value={p}>
@@ -173,7 +209,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
             <div
               key={p.id}
               onPointerDown={(e) => handleDragStart(e, p)}
-              className="flex items-center justify-between px-3 py-2 border-b border-[#38383A]/60 last:border-0 hover:bg-[#1C1C1E] cursor-grab active:cursor-grabbing touch-none"
+              className="flex items-center justify-between px-3 py-2 border-b border-[#38383A]/60 last:border-0 transition-colors duration-150 hover:bg-[#1C1C1E] cursor-grab active:cursor-grabbing touch-none"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <PosBadge pos={p.pos} className="w-10 text-center shrink-0 pointer-events-none" />

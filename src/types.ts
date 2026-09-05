@@ -59,6 +59,13 @@ export type RosterAssignments = Partial<Record<RosterSlotId, number>>;
 
 export type NewsType = "Injury" | "Waiver" | "Trade" | "News";
 
+/** How serious an injury item actually looks, graded from ESPN's own status
+ * designation plus keyword cues in the report text -- see gradeInjury in
+ * lib/news.ts. Only ever set on items that read like a genuine injury (or
+ * possibility of one); reports that don't actually describe an injury are
+ * reclassified as type "News" instead of graded here. */
+export type InjurySeverity = "severe" | "moderate" | "minor";
+
 /** A single news/injury item pulled live from ESPN, tagged to the player it's
  * about wherever ESPN tells us which player that is -- see lib/news.ts. */
 export interface NewsItem {
@@ -75,6 +82,8 @@ export interface NewsItem {
   publishedAt: string;
   /** Real ESPN article/player-news URL this item links to. */
   link: string;
+  /** Only set for type "Injury" -- see InjurySeverity. */
+  severity?: InjurySeverity;
 }
 
 /** A live-refresh correction layered on top of a player's static base data,
@@ -85,6 +94,47 @@ export interface ProjectionOverride {
 }
 
 export type ProjectionOverrides = Record<number, ProjectionOverride>;
+
+/** How favorable a player's real-world matchup looks this week, from A
+ * (plus matchup) to F (brutal) -- see gradeMatchup in lib/matchup.ts. */
+export type MatchupGrade = "A" | "B" | "C" | "D" | "F";
+
+/** A player's real-world matchup for the current week, derived from that
+ * week's live NFL schedule + Vegas lines (see lib/matchup.ts). Combines two
+ * signals: the game's overall implied scoring environment (team total), and
+ * -- for QB/RB/WR/TE -- that specific player's own posted yardage prop line,
+ * which captures their expected volume/role rather than just the game
+ * script. Neither comes from defense-vs-position stats, since those don't
+ * exist yet in the first weeks of a season; the market already bakes in
+ * matchup difficulty, injuries, and expected usage. */
+export interface PlayerMatchup {
+  opponent: string | null;
+  homeAway: "home" | "away" | null;
+  isBye: boolean;
+  /** Combined grade -- team environment alone if no player prop line applies
+   * (K, DST, or no line posted yet), otherwise blended with `propLine`. */
+  grade: MatchupGrade | null;
+  /** The implied point total driving the team-environment half of `grade` --
+   * the player's own team's for offensive positions/K, the opponent's for
+   * DST (a stingier expected opponent output is the better matchup for your
+   * defense). Null if Vegas hasn't posted a line for this game yet. */
+  impliedTotal: number | null;
+  /** The player's own posted yardage prop for the week (passing/rushing/
+   * receiving, whichever applies to their position) and the grade it implies
+   * on its own. Null for K/DST or if no line has posted for this player. */
+  propLine: { label: string; grade: MatchupGrade } | null;
+  /** Human-readable summary, e.g. "vs SEA — implied 24.3 pts, 68.5 proj. rush yds". */
+  label: string;
+}
+
+/** A suggestion to start a bench player over a current starter -- see
+ * benchUpgradeSuggestions in useFantasyApp. */
+export interface BenchSuggestion {
+  benchPlayer: Player;
+  starter: Player;
+  slot: RosterSlotId;
+  reason: string;
+}
 
 /** A player scored for roster-needs analysis: base stats plus its computed
  * injury/tier-adjusted quality score. */

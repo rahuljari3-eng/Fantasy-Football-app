@@ -37,8 +37,10 @@ body {
 
 button,
 input,
-select {
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 100ms ease;
+select,
+a,
+[role="button"] {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
 }
 button:active {
   transform: scale(0.98);
@@ -49,13 +51,74 @@ button:active {
   border-radius: 4px;
 }
 
+/* Shared entrance animations -- keep these short and subtle so the app feels
+   responsive rather than "animated at you". */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fade-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 200ms ease both;
+}
+.animate-fade-slide-up {
+  animation: fade-slide-up 220ms ease both;
+}
+.animate-scale-in {
+  animation: scale-in 160ms ease both;
+}
+
+/* A row/card that lifts slightly on hover -- used for anything draggable or
+   clickable in a list (roster slots, bench, player pool). */
+.hover-lift {
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease, background-color 150ms ease;
+}
+.hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
 @media (prefers-reduced-motion: reduce) {
   button,
   input,
-  select {
+  select,
+  a,
+  [role="button"] {
     transition: none;
   }
   button:active {
+    transform: none;
+  }
+  .animate-fade-in,
+  .animate-fade-slide-up,
+  .animate-scale-in {
+    animation: none;
+  }
+  .hover-lift:hover {
     transform: none;
   }
 }

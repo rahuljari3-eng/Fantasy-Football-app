@@ -12,7 +12,7 @@ export function NavTabs({ active, onChange }: { active: TabId; onChange: (id: Ta
             key={t.id}
             onClick={() => onChange(t.id)}
             aria-current={isActive ? "page" : undefined}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 ${
               isActive
                 ? "bg-[#C9A227]/15 text-[#C9A227] shadow-[inset_0_0_0_1px_rgba(201,162,39,0.4)]"
                 : "text-[#98989D] hover:text-[#FFFFFF] hover:bg-white/5"

@@ -30,7 +30,7 @@ export const MY_TEAM_PLAYERS: Player[] = [
 const MY_TEAM_LINEUP: Record<number, string> = {
   12483: "QB", // Matthew Stafford
   4427366: "RB", // Breece Hall
-  4241416: "RB", // Chuba Hubbard
+  4429023: "RB", // MarShawn Lloyd
   4426515: "WR", // Puka Nacua
   4372016: "WR", // Jaylen Waddle
   3915416: "FLEX", // DJ Moore
@@ -40,9 +40,12 @@ const MY_TEAM_LINEUP: Record<number, string> = {
 };
 
 // Your team as a full LeagueTeam entry, so the app can select it or any
-// opponent interchangeably as "the team you're managing".
+// opponent interchangeably as "the team you're managing". `id` must match
+// ESPN's own numeric team id (not just be unique locally) -- syncRosterFromEspn
+// in useFantasyApp looks up this id in the live ESPN lineup response, so a
+// mismatch here means your team silently never picks up live ESPN changes.
 export const MY_TEAM: LeagueTeam = {
-  id: 8,
+  id: 10,
   name: LEAGUE_CONFIG.myTeamName,
   owner: LEAGUE_CONFIG.myOwnerName,
   roster: MY_TEAM_PLAYERS.map((p) => {

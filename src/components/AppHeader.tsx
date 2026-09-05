@@ -60,7 +60,7 @@ export function AppHeader({
             onClick={onRefresh}
             disabled={refreshing}
             title="Fetch current projections, lineup, and news/injury feed directly from ESPN"
-            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-[#38383A] text-[#98989D] hover:text-[#C9A227] hover:border-[#C9A227]/50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="hover-lift flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-[#38383A] text-[#98989D] hover:text-[#C9A227] hover:border-[#C9A227]/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
           >
             <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
             <span className="hidden sm:inline">
@@ -75,7 +75,7 @@ export function AppHeader({
         </div>
       </div>
       {(lastRefreshed || refreshError || refreshProgress) && (
-        <div className="max-w-6xl mx-auto px-4 pb-1.5 -mt-1">
+        <div className="animate-fade-in max-w-6xl mx-auto px-4 pb-1.5 -mt-1">
           {refreshProgress ? (
             <span className="text-[11px] text-[#98989D]">Pulling current projections from ESPN — step {refreshProgress.done}/{refreshProgress.total}…</span>
           ) : refreshError ? (

@@ -1,6 +1,7 @@
 import { AppHeader } from "./components/AppHeader";
 import { DragGhost } from "./components/DragGhost";
 import { PlayerNewsModal } from "./components/PlayerNewsModal";
+import { ToastContainer } from "./components/ToastContainer";
 import { useFantasyApp } from "./hooks/useFantasyApp";
 import { RosterBuilderPage } from "./pages/RosterBuilderPage";
 import { FreeAgentsPage } from "./pages/FreeAgentsPage";
@@ -43,7 +44,9 @@ export default function App() {
       />
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        <Page app={app} />
+        <div key={app.tab} className="animate-fade-slide-up">
+          <Page app={app} />
+        </div>
       </div>
 
       <DragGhost player={app.dragPlayer} pos={app.dragPos} />
@@ -53,6 +56,8 @@ export default function App() {
         items={app.playerNewsOpenId != null ? app.newsForPlayer(app.playerNewsOpenId) : []}
         onClose={app.closePlayerNews}
       />
+
+      <ToastContainer toasts={app.toasts} onDismiss={app.dismissToast} />
     </div>
   );
 }

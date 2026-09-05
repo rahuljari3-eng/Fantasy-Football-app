@@ -4,6 +4,7 @@ import { PosBadge } from "../components/PosBadge";
 import { StatusIndicator } from "../components/StatusIndicator";
 import { PlayerNameLink } from "../components/PlayerNameLink";
 import { AddPlayerActions } from "../components/AddPlayerActions";
+import { SearchInput } from "../components/SearchInput";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 
 export function FreeAgentsPage({ app }: { app: FantasyApp }) {
@@ -45,7 +46,7 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
               </div>
               <div>
                 {group.candidates.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between px-3.5 py-2 border-b border-[#38383A]/60 last:border-0 hover:bg-[#1C1C1E]">
+                  <div key={p.id} className="flex items-center justify-between px-3.5 py-2 border-b border-[#38383A]/60 last:border-0 transition-colors duration-150 hover:bg-[#1C1C1E]">
                     <div className="min-w-0">
                       <PlayerNameLink
                         name={p.name}
@@ -79,7 +80,7 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
             </div>
           </div>
           {bestAvailableOverall.map((p) => (
-            <div key={p.id} className="flex items-center justify-between px-3.5 py-2 border-b border-[#38383A]/60 last:border-0 hover:bg-[#1C1C1E]">
+            <div key={p.id} className="flex items-center justify-between px-3.5 py-2 border-b border-[#38383A]/60 last:border-0 transition-colors duration-150 hover:bg-[#1C1C1E]">
               <div className="flex items-center gap-3 min-w-0">
                 <PosBadge pos={p.pos} className="w-10 text-center shrink-0" />
                 <div className="min-w-0">
@@ -114,16 +115,11 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
         <h2 className="text-lg font-semibold mb-1">Browse all free agents</h2>
         <p className="text-xs text-[#98989D] mb-3">Every player currently on no roster in your league — {freeAgentPool.length} available.</p>
         <div className="flex items-center gap-2 mb-3">
-          <input
-            value={faSearch}
-            onChange={(e) => setFaSearch(e.target.value)}
-            placeholder="Search players…"
-            className="flex-1 bg-[#1C1C1E] border border-[#38383A] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[#C9A227]/60"
-          />
+          <SearchInput value={faSearch} onChange={setFaSearch} className="flex-1" />
           <select
             value={faPosFilter}
             onChange={(e) => setFaPosFilter(e.target.value as typeof faPosFilter)}
-            className="bg-[#1C1C1E] border border-[#38383A] rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-[#C9A227]/60"
+            className="bg-[#1C1C1E] border border-[#38383A] rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-[#C9A227] focus:ring-2 focus:ring-[#C9A227]/20"
           >
             {["ALL", ...POSITIONS].map((p) => (
               <option key={p} value={p}>
@@ -134,7 +130,7 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
         </div>
         <div className="border border-[#38383A] rounded-xl overflow-hidden max-h-[480px] overflow-y-auto">
           {browsableFreeAgents.map((p) => (
-            <div key={p.id} className="flex items-center justify-between px-3.5 py-2 border-b border-[#38383A]/60 last:border-0 hover:bg-[#1C1C1E]">
+            <div key={p.id} className="flex items-center justify-between px-3.5 py-2 border-b border-[#38383A]/60 last:border-0 transition-colors duration-150 hover:bg-[#1C1C1E]">
               <div className="flex items-center gap-3 min-w-0">
                 <PosBadge pos={p.pos} className="w-10 text-center shrink-0" />
                 <div className="min-w-0">

@@ -17,8 +17,12 @@ import { fetchEspnLineups } from "../lib/espn";
 import { balancePackage, balanceTwoForTwo, fairnessRatio, needAdjustedPackageValue, starGateOk } from "../lib/tradeEngine";
 import { useProjectionRefresh } from "./useProjectionRefresh";
 import { useNewsFeed } from "./useNewsFeed";
+import { useMatchups } from "./useMatchups";
+import { useToasts } from "./useToasts";
 import { useDragAndDrop } from "./useDragAndDrop";
+import { gradeMatchup } from "../lib/matchup";
 import type {
+  BenchSuggestion,
   LeaguePlayer,
   LeagueTeam,
   NewsItem,
@@ -33,6 +37,20 @@ import type {
   TradeSuggestion,
   ViewedTeam,
 } from "../types";
+
+const MATCHUP_GRADE_RANK: Record<string, number> = { A: 5, B: 4, C: 3, D: 2, F: 1 };
+// Rough fantasy-point swing a matchup grade is worth, layered on top of the
+// raw projection to get a single "matchup-adjusted" number for comparing a
+// bench player against a starter -- see benchUpgradeSuggestions. Deliberately
+// modest: the projection itself already accounts for most of a matchup (it's
+// player- and opponent-specific), this is just the extra nudge from the
+// week's Vegas-implied scoring environment on top of that.
+const MATCHUP_GRADE_POINTS: Record<string, number> = { A: 2, B: 0.75, C: 0, D: -0.75, F: -2 };
+const MIN_ADJUSTED_EDGE = 1.5;
+
+function adjustedProjection(p: Player, matchup: { grade: string | null }): number {
+  return p.proj + (matchup.grade ? MATCHUP_GRADE_POINTS[matchup.grade] : 0);
+}
 
 // Every player id in your league -- rostered on any team, or sitting in the
 // free-agent pool -- so the live news feed can be filtered down to only
@@ -138,9 +156,15 @@ export function useFantasyApp() {
   const newsFeedState = useNewsFeed(RELEVANT_PLAYER_IDS);
   const { newsFeed, refreshNews } = newsFeedState;
 
+  const matchupsState = useMatchups();
+  const { matchupData, refreshMatchups } = matchupsState;
+
+  const { toasts, notify, dismissToast } = useToasts();
+
   useEffect(() => {
     syncRosterFromEspn();
     refreshNews();
+    refreshMatchups();
     // Only ever runs once, on load -- switching teams doesn't re-fetch;
     // the "Refresh from ESPN" button covers checking again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,8 +174,14 @@ export function useFantasyApp() {
   const { projectionOverrides } = projectionRefresh;
 
   const refreshFromEspn = useCallback(async () => {
-    await Promise.all([projectionRefresh.refreshProjections(), syncRosterFromEspn(), refreshNews()]);
-  }, [projectionRefresh, syncRosterFromEspn, refreshNews]);
+    await Promise.all([projectionRefresh.refreshProjections(), syncRosterFromEspn(), refreshNews(), refreshMatchups()]);
+    notify("Synced projections, lineup, news, and matchups from ESPN.", "success");
+  }, [projectionRefresh, syncRosterFromEspn, refreshNews, refreshMatchups, notify]);
+
+  // A player's opponent + Vegas-graded matchup quality for the current week --
+  // see lib/matchup.ts. DST is graded off the opponent's implied total
+  // instead of its own.
+  const matchupForPlayer = useCallback((p: Player) => gradeMatchup(p, matchupData), [matchupData]);
 
   // ---------- Live news/injury feed: player linkage + the popover state
   // that lets a click on a player's name or status surface their articles ----------
@@ -240,6 +270,76 @@ export function useFantasyApp() {
     [effectivePlayers, effectiveAllLeaguePlayers]
   );
 
+  // "Should I start this bench guy instead?" -- for each bench player,
+  // compares them against the weakest current starter they're eligible to
+  // replace (same slot-eligibility logic as quickStart). The comparison is
+  // done on a matchup-adjusted projection (raw projection + a small bump/cut
+  // from that week's matchup grade -- see adjustedProjection above) rather
+  // than treating "higher projection" and "better matchup" as two separate
+  // either/or triggers. That single number is what avoids calling a real gap
+  // (e.g. 10 vs 13 points) a "similar projection" just because the matchup
+  // grades differ -- a matchup edge only justifies the swap if it's big
+  // enough to actually close the real point gap.
+  const benchUpgradeSuggestions: BenchSuggestion[] = useMemo(() => {
+    const suggestions: BenchSuggestion[] = [];
+
+    bench.forEach((id) => {
+      const p = playerById(id);
+      if (!p) return;
+      const eligibleSlots = SLOTS.filter((s) => SLOT_ELIGIBILITY[s].includes(p.pos));
+
+      let weakestSlot: RosterSlotId | null = null;
+      let weakest: Player | null = null;
+      // A plain for-of (not .forEach) so TS can narrow `weakest` below --
+      // narrowing a `let` doesn't survive reassignment inside a callback.
+      for (const s of eligibleSlots) {
+        const occId = roster[s];
+        const occ = occId != null ? playerById(occId) : null;
+        if (occ && (!weakest || occ.proj < weakest.proj)) {
+          weakest = occ;
+          weakestSlot = s;
+        }
+      }
+      if (!weakest || !weakestSlot) return;
+
+      const benchMatchup = matchupForPlayer(p);
+      const starterMatchup = matchupForPlayer(weakest);
+      const starterOnBye = starterMatchup.isBye;
+
+      const adjustedEdge = adjustedProjection(p, benchMatchup) - adjustedProjection(weakest, starterMatchup);
+      if (!starterOnBye && adjustedEdge < MIN_ADJUSTED_EDGE) return;
+
+      const rawDelta = p.proj - weakest.proj;
+      const benchRank = benchMatchup.grade ? MATCHUP_GRADE_RANK[benchMatchup.grade] : null;
+      const starterRank = starterMatchup.grade ? MATCHUP_GRADE_RANK[starterMatchup.grade] : null;
+      const matchupFavorsBench = benchRank != null && starterRank != null && benchRank > starterRank;
+
+      let reason: string;
+      if (starterOnBye) {
+        reason = `${weakest.name} is on a bye this week -- ${p.name} is a healthy fill-in${
+          benchMatchup.grade ? ` with a ${benchMatchup.grade}-grade matchup (${benchMatchup.label})` : ""
+        }.`;
+      } else if (rawDelta >= MIN_ADJUSTED_EDGE) {
+        // The raw projection alone already justifies it; matchup is a bonus, not the reason.
+        reason = `${p.name} is projected for more points this week (${p.proj} vs ${weakest.proj})${
+          matchupFavorsBench ? ` and has the better matchup (${benchMatchup.grade} vs ${starterMatchup.grade}).` : "."
+        }`;
+      } else {
+        // The matchup swing is what's actually doing the work here -- call
+        // out the real raw-projection gap it's overcoming instead of
+        // pretending the two projections are close.
+        reason = `${p.name}'s matchup this week (${benchMatchup.grade} -- ${benchMatchup.label}) is enough of an edge over ${weakest.name}'s (${starterMatchup.grade} -- ${starterMatchup.label}) to be worth it despite ${
+          rawDelta < 0 ? `a ${Math.abs(rawDelta).toFixed(1)}-point lower raw projection (${p.proj} vs ${weakest.proj})` : `a similar raw projection (${p.proj} vs ${weakest.proj})`
+        }.`;
+      }
+
+      suggestions.push({ benchPlayer: p, starter: weakest, slot: weakestSlot, reason });
+    });
+
+    return suggestions;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bench, roster, playerById, matchupForPlayer]);
+
   // ---------- Roster builder: slot assignment ----------
   function locateSlot(id: number): RosterSlotId | null {
     const found = (Object.entries(roster) as [RosterSlotId, number | undefined][]).find(([, pid]) => pid === id);
@@ -302,6 +402,7 @@ export function useFantasyApp() {
     const emptySlot = eligibleSlots.find((s) => !roster[s]);
     if (emptySlot) {
       moveToSlot(emptySlot, player);
+      notify(`${player.name} moved into your starting ${emptySlot} slot.`, "success");
       return;
     }
     let worstSlot: RosterSlotId | null = null;
@@ -314,7 +415,11 @@ export function useFantasyApp() {
         worstSlot = s;
       }
     });
-    if (worstSlot) moveToSlot(worstSlot, player);
+    if (worstSlot) {
+      const replaced = roster[worstSlot] != null ? playerById(roster[worstSlot]!) : null;
+      moveToSlot(worstSlot, player);
+      notify(replaced ? `Started ${player.name} over ${replaced.name}.` : `Started ${player.name}.`, "success");
+    }
   }
 
   function addToSlot(slot: RosterSlotId, player: Player) {
@@ -945,6 +1050,7 @@ export function useFantasyApp() {
     removeFromSlot,
     removeFromBench,
     autoOptimize,
+    benchUpgradeSuggestions,
     ...dragAndDrop,
 
     // shared data lookups
@@ -1002,6 +1108,15 @@ export function useFantasyApp() {
     playerNewsOpenId,
     openPlayerNews,
     closePlayerNews,
+
+    // weekly matchups (opponent + Vegas-graded matchup quality)
+    ...matchupsState,
+    matchupForPlayer,
+
+    // toast notifications
+    toasts,
+    notify,
+    dismissToast,
 
     // live projection refresh (and lineup sync + news refresh --
     // refreshFromEspn also reconciles the roster and news against ESPN)

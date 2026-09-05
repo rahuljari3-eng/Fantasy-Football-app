@@ -27,9 +27,9 @@ export function PlayerNewsModal({
   if (!playerName) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-[#1C1C1E] border border-[#38383A] rounded-xl w-full max-w-md max-h-[80vh] overflow-y-auto p-4"
+        className="bg-[#1C1C1E] border border-[#38383A] rounded-xl w-full max-w-md max-h-[80vh] overflow-y-auto p-4 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
