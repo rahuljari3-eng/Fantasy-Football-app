@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { runSenseiTurn, type ChatTurnMessage, type LeagueContext } from "./agent/runSenseiTurn.ts";
+import { runSenseiTurn, type ChatTurnMessage, type LeagueContext } from "./agent/runSenseiTurn.js";
 
 /** Shared Hono app used by local `server/index.ts` and the Vercel `api/` adapter. */
 export function createApp() {

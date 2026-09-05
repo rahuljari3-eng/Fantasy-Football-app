@@ -1,6 +1,6 @@
-import { LEAGUE_CONFIG, REQUIRED_STARTERS, SLOTS } from "../../../src/config/league.ts";
-import { activeTeams, ownershipSource, resolveTeam } from "./leagueData.ts";
-import type { ToolDefinition } from "./types.ts";
+import { LEAGUE_CONFIG, REQUIRED_STARTERS, SLOTS } from "../../../src/config/league.js";
+import { activeTeams, ownershipSource, resolveTeam } from "./leagueData.js";
+import type { ToolDefinition } from "./types.js";
 
 export const getLeagueContextTool: ToolDefinition = {
   name: "get_league_context",

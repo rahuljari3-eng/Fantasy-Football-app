@@ -1,14 +1,14 @@
-import { LEAGUE_CONFIG, ESPN_LEAGUE_BASE_URL } from "../../../src/config/league.ts";
+import { LEAGUE_CONFIG, ESPN_LEAGUE_BASE_URL } from "../../../src/config/league.js";
 import {
   gamesForWeek,
   getNflSchedule,
   normalizeNflAbbrev,
   resolveNflTeam,
   teamScheduleRemaining,
-} from "../../../src/lib/nflSchedule.ts";
-import { findPlayers, resolveTeam, serializePlayer, teamPlayersRanked } from "./leagueData.ts";
-import type { ToolDefinition } from "./types.ts";
-import type { Player } from "../../../src/types.ts";
+} from "../../../src/lib/nflSchedule.js";
+import { findPlayers, resolveTeam, serializePlayer, teamPlayersRanked } from "./leagueData.js";
+import type { ToolDefinition } from "./types.js";
+import type { Player } from "../../../src/types.js";
 
 /** Default fantasy playoff window when league settings aren't fetched yet. */
 const DEFAULT_PLAYOFF_WEEKS = [15, 16, 17];

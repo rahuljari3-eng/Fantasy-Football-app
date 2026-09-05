@@ -1,6 +1,6 @@
-import { LEAGUE_CONFIG } from "../../src/config/league.ts";
-import { findTeamByIdOrName } from "./tools/leagueData.ts";
-import { listToolNames } from "./tools/registry.ts";
+import { LEAGUE_CONFIG } from "../../src/config/league.js";
+import { findTeamByIdOrName } from "./tools/leagueData.js";
+import { listToolNames } from "./tools/registry.js";
 
 export function buildSystemPrompt(managedTeamId: number): string {
   const team = findTeamByIdOrName(managedTeamId);

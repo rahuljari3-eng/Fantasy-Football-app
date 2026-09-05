@@ -1,4 +1,4 @@
-import type { Position, RosterSlotId } from "../types.ts";
+import type { Position, RosterSlotId } from "../types.js";
 
 // Everything specific to *your* real league lives here. Point this at a
 // different ESPN league (or a different season) by editing this one file --

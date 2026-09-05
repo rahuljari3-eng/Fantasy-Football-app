@@ -1,11 +1,11 @@
-import { REQUIRED_STARTERS } from "../../../src/config/league.ts";
-import { EXTRA_PIECE_DISCOUNT, FAIR_RATIO_MAX, FAIR_RATIO_MIN, LOPSIDED_RATIO_MAX, LOPSIDED_RATIO_MIN } from "../../../src/config/trade.ts";
-import { ROS_WEEKS, VOR_BASELINE } from "../../../src/config/scoring.ts";
-import { analyzeRosterNeeds } from "../../../src/lib/rosterNeeds.ts";
-import { fetchLeagueNewsFeed } from "../../../src/lib/news.ts";
-import { playerValue, qualityScore, rosValue, vorPoints } from "../../../src/lib/scoring.ts";
-import { fairnessRatio, needAdjustedPackageValue, packageValue, ratioIsFair, starGateOk } from "../../../src/lib/tradeEngine.ts";
-import type { Player, Position } from "../../../src/types.ts";
+import { REQUIRED_STARTERS } from "../../../src/config/league.js";
+import { EXTRA_PIECE_DISCOUNT, FAIR_RATIO_MAX, FAIR_RATIO_MIN, LOPSIDED_RATIO_MAX, LOPSIDED_RATIO_MIN } from "../../../src/config/trade.js";
+import { ROS_WEEKS, VOR_BASELINE } from "../../../src/config/scoring.js";
+import { analyzeRosterNeeds } from "../../../src/lib/rosterNeeds.js";
+import { fetchLeagueNewsFeed } from "../../../src/lib/news.js";
+import { playerValue, qualityScore, rosValue, vorPoints } from "../../../src/lib/scoring.js";
+import { fairnessRatio, needAdjustedPackageValue, packageValue, ratioIsFair, starGateOk } from "../../../src/lib/tradeEngine.js";
+import type { Player, Position } from "../../../src/types.js";
 import {
   findPlayers,
   freeAgentPool,
@@ -17,8 +17,8 @@ import {
   serializePlayer,
   teamPlayersRanked,
   withPosRanks,
-} from "./leagueData.ts";
-import type { ToolDefinition } from "./types.ts";
+} from "./leagueData.js";
+import type { ToolDefinition } from "./types.js";
 
 function packageWithValues(players: Player[], valueFn: (p: Player) => number, floor: number): number {
   const vals = players.map(valueFn).sort((a, b) => b - a);

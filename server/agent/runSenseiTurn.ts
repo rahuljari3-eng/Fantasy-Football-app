@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
-import { buildSystemPrompt } from "./systemPrompt.ts";
-import { executeTool, getOpenAiTools } from "./tools/registry.ts";
+import { buildSystemPrompt } from "./systemPrompt.js";
+import { executeTool, getOpenAiTools } from "./tools/registry.js";
 
 const MAX_HISTORY_MESSAGES = 20;
 const MAX_TOOL_ROUNDS = 6;

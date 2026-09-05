@@ -1,5 +1,5 @@
 import { handle } from "hono/vercel";
-import { app } from "../server/app.ts";
+import { app } from "../server/app.js";
 
 // Node.js serverless runtime (not Edge) so we can use the OpenAI SDK + fs-free imports from src/.
 export const config = {

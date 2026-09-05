@@ -1,5 +1,5 @@
-import type { LeagueTeam, Player } from "../types.ts";
-import { LEAGUE_CONFIG } from "../config/league.ts";
+import type { LeagueTeam, Player } from "../types.js";
+import { LEAGUE_CONFIG } from "../config/league.js";
 
 // Your real 2026 roster (Ten Idiots League, ESPN league 973201555).
 // Pulled live from the ESPN Fantasy API (Week 1 projections, actual PPR scoring rules).

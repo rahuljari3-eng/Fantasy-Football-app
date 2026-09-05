@@ -5,7 +5,7 @@
 // rostered in your league or sitting in the free-agent pool, and tagged with
 // each player's real ESPN id so an article can be matched back to a specific
 // Player.id anywhere in the app.
-import type { InjurySeverity, NewsItem } from "../types.ts";
+import type { InjurySeverity, NewsItem } from "../types.js";
 
 const NEWS_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/news?limit=50";
 const INJURIES_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries";

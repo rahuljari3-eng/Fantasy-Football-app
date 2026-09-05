@@ -8,16 +8,16 @@ import {
   getPlayerTool,
   recommendPickupsTool,
   searchFreeAgentsTool,
-} from "./analysisTools.ts";
-import { getMatchupTool, getStandingsTool, syncRostersTool } from "./espnLeagueTools.ts";
-import { getByeCalendarTool, getLeagueContextTool, getMyRosterTool, listTeamsTool } from "./localTools.ts";
+} from "./analysisTools.js";
+import { getMatchupTool, getStandingsTool, syncRostersTool } from "./espnLeagueTools.js";
+import { getByeCalendarTool, getLeagueContextTool, getMyRosterTool, listTeamsTool } from "./localTools.js";
 import {
   getNflScheduleTool,
   getPlayerScheduleTool,
   getPlayoffWeeksTool,
   getScheduleOutlookTool,
-} from "./scheduleTools.ts";
-import type { ToolContext, ToolDefinition } from "./types.ts";
+} from "./scheduleTools.js";
+import type { ToolContext, ToolDefinition } from "./types.js";
 
 const TOOLS: ToolDefinition[] = [
   getLeagueContextTool,

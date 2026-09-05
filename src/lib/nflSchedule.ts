@@ -1,6 +1,6 @@
 // NFL pro-team schedule from ESPN fantasy season endpoint (proTeamSchedules_wl).
 // Used by Roster Sensei for bye / remaining-opponent advice.
-import { LEAGUE_CONFIG } from "../config/league.ts";
+import { LEAGUE_CONFIG } from "../config/league.js";
 
 const SCHEDULE_URL = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${LEAGUE_CONFIG.espnSeason}?view=proTeamSchedules_wl`;
 

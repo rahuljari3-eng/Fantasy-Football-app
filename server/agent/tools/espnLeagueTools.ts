@@ -1,13 +1,13 @@
-import { ALL_TEAMS } from "../../../src/data/allTeams.ts";
-import { FREE_AGENTS } from "../../../src/data/freeAgents.ts";
+import { ALL_TEAMS } from "../../../src/data/allTeams.js";
+import { FREE_AGENTS } from "../../../src/data/freeAgents.js";
 import {
   fetchMatchups,
   fetchStandings,
   getLiveLeagueCache,
   syncLiveRosters,
-} from "../../../src/lib/espnLeague.ts";
-import type { LeagueTeam, Player } from "../../../src/types.ts";
-import type { ToolDefinition } from "./types.ts";
+} from "../../../src/lib/espnLeague.js";
+import type { LeagueTeam, Player } from "../../../src/types.js";
+import type { ToolDefinition } from "./types.js";
 
 function snapshotKnownPlayers(): Player[] {
   // Prefer static snapshot metadata (tier/bye) when enriching live ESPN rows.

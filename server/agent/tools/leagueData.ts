@@ -1,11 +1,11 @@
-import { POSITIONS, REQUIRED_STARTERS } from "../../../src/config/league.ts";
-import { ALL_TEAMS } from "../../../src/data/allTeams.ts";
-import { FREE_AGENTS } from "../../../src/data/freeAgents.ts";
-import { getLiveLeagueCache } from "../../../src/lib/espnLeague.ts";
-import { analyzeRosterNeeds } from "../../../src/lib/rosterNeeds.ts";
-import { qualityScore } from "../../../src/lib/scoring.ts";
-import type { LeagueTeam, Player, Position, RosterNeeds } from "../../../src/types.ts";
-import type { ToolContext } from "./types.ts";
+import { POSITIONS, REQUIRED_STARTERS } from "../../../src/config/league.js";
+import { ALL_TEAMS } from "../../../src/data/allTeams.js";
+import { FREE_AGENTS } from "../../../src/data/freeAgents.js";
+import { getLiveLeagueCache } from "../../../src/lib/espnLeague.js";
+import { analyzeRosterNeeds } from "../../../src/lib/rosterNeeds.js";
+import { qualityScore } from "../../../src/lib/scoring.js";
+import type { LeagueTeam, Player, Position, RosterNeeds } from "../../../src/types.js";
+import type { ToolContext } from "./types.js";
 
 /** Stamp 1-based projection ranks within each position (needed for playerValue). */
 export function withPosRanks(players: Player[]): Player[] {

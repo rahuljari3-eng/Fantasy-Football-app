@@ -2,8 +2,8 @@
 // (lm-api-reads.fantasy.espn.com) sends CORS headers that reflect the
 // request's actual Origin for this league, so the browser can call it
 // directly -- no backend proxy needed for a refresh.
-import { ESPN_LEAGUE_BASE_URL } from "../config/league.ts";
-import type { PlayerStatus, ProjectionOverrides } from "../types.ts";
+import { ESPN_LEAGUE_BASE_URL } from "../config/league.js";
+import type { PlayerStatus, ProjectionOverrides } from "../types.js";
 
 export const ESPN_INJURY_LABEL_MAP: Record<string, PlayerStatus> = {
   ACTIVE: "Healthy",

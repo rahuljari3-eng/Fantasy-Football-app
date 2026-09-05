@@ -1,4 +1,4 @@
-import type { LeagueTeam } from "../types.ts";
+import type { LeagueTeam } from "../types.js";
 
 // Real league rosters (12-team "Ten Idiots League", ESPN league 973201555).
 // "starter"/"slot" reflect each manager's ACTUAL lineup (ESPN's own
