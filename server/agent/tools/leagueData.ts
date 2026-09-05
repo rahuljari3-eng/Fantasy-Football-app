@@ -73,7 +73,13 @@ export function freeAgentPool(): Player[] {
   for (const t of activeTeams()) {
     for (const p of t.roster) rostered.add(p.id);
   }
-  return withPosRanks(activeFreeAgents().filter((p) => !rostered.has(p.id)));
+  // Rank against the whole league (allKnownPlayers), not just other free
+  // agents -- see teamPlayersRanked's comment for why re-ranking a narrow
+  // subset badly distorts playerValue's rank-based component.
+  const globalById = new Map(allKnownPlayers().map((p) => [p.id, p]));
+  return activeFreeAgents()
+    .filter((p) => !rostered.has(p.id))
+    .map((p) => globalById.get(p.id) ?? p);
 }
 
 export function resolveTeam(ctx: ToolContext, teamId?: number) {
@@ -83,15 +89,27 @@ export function resolveTeam(ctx: ToolContext, teamId?: number) {
   return { ok: true as const, team };
 }
 
+/** A team's roster, each player carrying his TRUE league-wide positional
+ * rank (from allKnownPlayers(), the same pool the client ranks against) --
+ * NOT a rank recomputed within just this one ~16-man roster. That distinction
+ * matters a lot: playerValue() blends in a steep, rank-based scarcity
+ * premium (55% of the score), so ranking a player only against his own
+ * team's thin position group can make a true RB25 look like a top-2 back
+ * (rank 2 of 6 rostered RBs) and wildly overvalue him. Every trade-adjacent
+ * tool (suggest_trades, optimize_lineup, analyze_roster_needs, evaluate_trade's
+ * need-adjusted branch) goes through this function, so getting the rank pool
+ * right here is what keeps their valuations consistent with evaluate_trade /
+ * compare_players (which already rank correctly via findPlayers -> allKnownPlayers). */
 export function teamPlayersRanked(teamId: number): Player[] {
   const team = findTeamByIdOrName(teamId);
   if (!team) return [];
-  return withPosRanks(team.roster.map((p) => ({ ...p })));
+  const globalById = new Map(allKnownPlayers().map((p) => [p.id, p]));
+  return team.roster.map((p) => globalById.get(p.id) ?? p);
 }
 
 export function leagueBaseline(): Record<Position, number> {
   const baseline = {} as Record<Position, number>;
-  const rosters = activeTeams().map((t) => withPosRanks(t.roster.map((p) => ({ ...p }))));
+  const rosters = activeTeams().map((t) => teamPlayersRanked(t.id));
   for (const pos of POSITIONS) {
     const scores = rosters.map((r) => analyzeRosterNeeds(r)[pos].starterScore).filter((s) => s > 0);
     baseline[pos] = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;

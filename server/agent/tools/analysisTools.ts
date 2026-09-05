@@ -17,7 +17,6 @@ import {
   resolveTeam,
   serializePlayer,
   teamPlayersRanked,
-  withPosRanks,
 } from "./leagueData.js";
 import type { ToolDefinition } from "./types.js";
 
@@ -53,7 +52,14 @@ function resolvePlayerList(queries: unknown): { ok: true; players: Player[] } | 
     else players.push(hits[0]);
   }
   if (missing.length) return { ok: false, error: "player_not_found", detail: missing };
-  return { ok: true, players: withPosRanks(players) };
+  // findPlayers already returns players carrying their TRUE league-wide
+  // positional rank (via allKnownPlayers()) -- do NOT re-rank this list.
+  // Re-ranking a list of 2-4 named players against just each other collapses
+  // everyone toward posRank 1, wiping out playerValue's rank-based scarcity
+  // premium (55% of the score) and making e.g. a bench WR and an elite RB
+  // look artificially similar in value. This was silently corrupting both
+  // evaluate_trade and compare_players.
+  return { ok: true, players };
 }
 
 let newsCache: { at: number; items: Awaited<ReturnType<typeof fetchLeagueNewsFeed>> } | null = null;

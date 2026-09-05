@@ -3,14 +3,14 @@ import { suggestTrades } from "../../../src/lib/coachTrades.js";
 import { fetchWeeklyMatchups, gradeMatchup } from "../../../src/lib/matchup.js";
 import { optimizeLineup } from "../../../src/lib/optimizeLineup.js";
 import { playerValue, qualityScore } from "../../../src/lib/scoring.js";
-import type { Player } from "../../../src/types.js";
+import type { Player, RosterPlayer } from "../../../src/types.js";
 import {
   activeTeams,
+  allKnownPlayers,
   findPlayers,
   freeAgentPool,
   resolveTeam,
   teamPlayersRanked,
-  withPosRanks,
 } from "./leagueData.js";
 import type { ToolDefinition } from "./types.js";
 
@@ -31,7 +31,10 @@ function localPoolPlayers(ctx: {
     const hit = findPlayers(id, 1)[0];
     if (hit) players.push(hit);
   }
-  return withPosRanks(players);
+  // findPlayers() already returns each player carrying his true league-wide
+  // posRank -- re-ranking this small local-lineup subset would collapse
+  // everyone toward rank 1 and corrupt playerValue's scarcity premium.
+  return players;
 }
 
 function serializeSuggestionPlayer(p: Player) {
@@ -100,7 +103,9 @@ export const optimizeLineupTool: ToolDefinition = {
     let players = rosterPlayers;
     if (pool === "roster_plus_fa") {
       const seen = new Set(players.map((p) => p.id));
-      players = withPosRanks([...players, ...freeAgentPool().filter((p) => !seen.has(p.id))]);
+      // Both sides already carry their true league-wide posRank (via
+      // teamPlayersRanked / freeAgentPool) -- concatenate, don't re-rank.
+      players = [...players, ...freeAgentPool().filter((p) => !seen.has(p.id))];
     }
 
     const result = optimizeLineup(players, {
@@ -206,11 +211,22 @@ export const suggestTradesTool: ToolDefinition = {
     if (!resolved.ok) return resolved;
     const { team } = resolved;
 
-    const opponents = activeTeams().filter((t) => t.id !== team.id);
+    // Rank every player against the FULL league pool, not just the roster
+    // they happen to sit on -- playerValue() leans heavily (55%) on
+    // positional rank, so ranking someone only within their own ~16-man
+    // roster can turn a true RB25 into a fake "RB2" and badly distort every
+    // fairness ratio below. See teamPlayersRanked's own comment for why.
+    const globalById = new Map(allKnownPlayers().map((p) => [p.id, p]));
+    const rankGlobally = (roster: RosterPlayer[]): RosterPlayer[] =>
+      roster.map((p) => (globalById.get(p.id) as RosterPlayer | undefined) ?? p);
+
+    const opponents = activeTeams()
+      .filter((t) => t.id !== team.id)
+      .map((t) => ({ ...t, roster: rankGlobally(t.roster) }));
     // Prefer local builder pool for managed team when available.
     const managed = resolveTeam(ctx);
     const advisingManaged = managed.ok && managed.team.id === team.id;
-    let myPlayers = withPosRanks(team.roster.map((p) => ({ ...p })));
+    let myPlayers = teamPlayersRanked(team.id);
     if (advisingManaged && ctx.localLineup) {
       const localPlayers = localPoolPlayers(ctx);
       if (localPlayers?.length) myPlayers = localPlayers;

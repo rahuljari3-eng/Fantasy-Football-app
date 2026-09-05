@@ -13,7 +13,7 @@
 // in the season's early weeks there isn't enough of a sample for "yards
 // allowed to RBs" to mean anything, whereas the market already prices in
 // opponent strength, injuries, and expected usage for this specific week.
-import type { MatchupGrade, Player, PlayerMatchup, Position } from "../types";
+import type { MatchupGrade, Player, PlayerMatchup, Position } from "../types.js";
 
 const SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
 const CORE_API_BASE = "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl";
