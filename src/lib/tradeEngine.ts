@@ -22,10 +22,10 @@ import {
   NEED_MULTIPLIER_FILL,
   NEED_MULTIPLIER_STACKED,
   NEED_MULTIPLIER_NEUTRAL,
-} from "../config/trade";
-import { VOR_BASELINE } from "../config/scoring";
-import { playerValue } from "./scoring";
-import type { Player, Position, RosterNeeds } from "../types";
+} from "../config/trade.ts";
+import { VOR_BASELINE } from "../config/scoring.ts";
+import { playerValue } from "./scoring.ts";
+import type { Player, Position, RosterNeeds } from "../types.ts";
 
 /** A Tier-1 player is a genuine difference-maker (top ~5-8 at his position). */
 export function hasStar(players: Player[]): boolean {

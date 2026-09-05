@@ -1,7 +1,7 @@
 // Every tunable number behind the player-valuation math in lib/scoring.ts.
 // Adjust these to change how the AI Coach, Trade Analyzer, and Free Agents tab
 // price players -- none of the math itself needs to change.
-import type { Position } from "../types";
+import type { Position } from "../types.ts";
 
 /** REPLACEMENT LEVEL: the per-game points at which a position stops mattering
  * for trades -- roughly the last player you'd actually start plus a little

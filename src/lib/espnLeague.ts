@@ -1,9 +1,9 @@
 // Live ESPN league reads for Roster Sensei: standings, fantasy matchups,
 // and full roster / free-agent ownership sync.
-import { ESPN_LEAGUE_BASE_URL } from "../config/league";
-import type { LeagueTeam, Player, Position, RosterPlayer, Tier } from "../types";
-import { ESPN_INJURY_LABEL_MAP, ESPN_LINEUP_SLOT_LABEL, extractEspnProjection } from "./espn";
-import { getNflSchedule } from "./nflSchedule";
+import { ESPN_LEAGUE_BASE_URL } from "../config/league.ts";
+import type { LeagueTeam, Player, Position, RosterPlayer, Tier } from "../types.ts";
+import { ESPN_INJURY_LABEL_MAP, ESPN_LINEUP_SLOT_LABEL, extractEspnProjection } from "./espn.ts";
+import { getNflSchedule } from "./nflSchedule.ts";
 
 const ESPN_POS: Record<number, Position> = {
   1: "QB",

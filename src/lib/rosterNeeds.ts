@@ -2,9 +2,9 @@
 // your roster position-by-position by the *quality* of the players there --
 // projection + tier scarcity premium, discounted for current injury risk --
 // not just how many bodies you have.
-import { POSITIONS, REQUIRED_STARTERS } from "../config/league";
-import { qualityScore } from "./scoring";
-import type { Player, PositionNeed, RosterNeeds } from "../types";
+import { POSITIONS, REQUIRED_STARTERS } from "../config/league.ts";
+import { qualityScore } from "./scoring.ts";
+import type { Player, PositionNeed, RosterNeeds } from "../types.ts";
 
 export function analyzeRosterNeeds(playersList: Player[]): RosterNeeds {
   const needs = {} as RosterNeeds;

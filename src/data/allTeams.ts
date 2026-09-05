@@ -1,6 +1,6 @@
-import type { LeagueTeam } from "../types";
-import { LEAGUE_TEAMS } from "./leagueTeams";
-import { MY_TEAM } from "./myTeam";
+import type { LeagueTeam } from "../types.ts";
+import { LEAGUE_TEAMS } from "./leagueTeams.ts";
+import { MY_TEAM } from "./myTeam.ts";
 
 // Every team in the league, yours first. The app lets you pick any one of
 // these as "the team you're managing" -- the roster builder, AI Coach, free

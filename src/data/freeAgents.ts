@@ -1,4 +1,4 @@
-import type { Player } from "../types";
+import type { Player } from "../types.ts";
 
 // Real available free agents (for trades / waiver browsing) -- currently
 // unrostered in your league, pulled live from ESPN and sorted by projection.

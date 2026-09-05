@@ -19,8 +19,8 @@ import {
   ROS_STATUS_MULTIPLIER,
   ROS_STATUS_MULTIPLIER_DEFAULT,
   ROS_TIER_TREND,
-} from "../config/scoring";
-import type { Player, PlayerStatus, Position, RosterNeeds, Tier } from "../types";
+} from "../config/scoring.ts";
+import type { Player, PlayerStatus, Position, RosterNeeds, Tier } from "../types.ts";
 
 /** Per-game points a replacement-level (waiver-wire) player scores at a position. */
 export function replacementLevel(pos: Position): number {
