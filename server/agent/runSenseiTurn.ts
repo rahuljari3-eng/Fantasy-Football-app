@@ -1,7 +1,14 @@
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { ALL_TEAMS } from "../../src/data/allTeams.js";
+import { FREE_AGENTS } from "../../src/data/freeAgents.js";
+import { ensureLiveRosters, getLiveLeagueCache } from "../../src/lib/espnLeague.js";
+import type { Player } from "../../src/types.js";
 import { buildSystemPrompt } from "./systemPrompt.js";
 import { executeTool, getOpenAiTools } from "./tools/registry.js";
+import type { LeagueContext } from "./tools/types.js";
+
+export type { LeagueContext, LocalLineupContext } from "./tools/types.js";
 
 const MAX_HISTORY_MESSAGES = 20;
 const MAX_TOOL_ROUNDS = 6;
@@ -11,14 +18,16 @@ export interface ChatTurnMessage {
   content: string;
 }
 
-export interface LeagueContext {
-  managedTeamId: number;
-  scoringPeriodId?: number;
-}
-
 export interface SenseiTurnResult {
   message: string;
   toolsUsed: string[];
+}
+
+function snapshotKnownPlayers(): Player[] {
+  const map = new Map<number, Player>();
+  for (const t of ALL_TEAMS) for (const p of t.roster) map.set(p.id, p);
+  for (const p of FREE_AGENTS) if (!map.has(p.id)) map.set(p.id, p);
+  return [...map.values()];
 }
 
 export async function runSenseiTurn(input: {
@@ -31,20 +40,40 @@ export async function runSenseiTurn(input: {
   const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
   const client = new OpenAI({ apiKey });
 
+  const toolsUsed: string[] = [];
+
+  // Keep ownership fresh for this serverless/local process (TTL cache inside ensureLiveRosters).
+  let scoringPeriodId = input.leagueContext.scoringPeriodId;
+  try {
+    const { snapshot, didSync } = await ensureLiveRosters(snapshotKnownPlayers());
+    if (didSync) toolsUsed.push("sync_rosters");
+    scoringPeriodId = scoringPeriodId ?? snapshot.scoringPeriodId;
+  } catch (err) {
+    console.error("[sensei] auto sync_rosters failed; continuing with snapshot", err);
+  }
+  if (scoringPeriodId == null) {
+    scoringPeriodId = getLiveLeagueCache()?.scoringPeriodId;
+  }
+
+  const leagueContext: LeagueContext = {
+    ...input.leagueContext,
+    scoringPeriodId,
+  };
+
   const history = input.messages
     .filter((m) => m.role === "user" || m.role === "assistant")
     .filter((m) => typeof m.content === "string" && m.content.trim().length > 0)
     .slice(-MAX_HISTORY_MESSAGES);
 
   const messages: ChatCompletionMessageParam[] = [
-    { role: "system", content: buildSystemPrompt(input.leagueContext.managedTeamId) },
+    { role: "system", content: buildSystemPrompt(leagueContext) },
     ...history.map((m) => ({ role: m.role, content: m.content })),
   ];
 
-  const toolsUsed: string[] = [];
   const toolCtx = {
-    managedTeamId: input.leagueContext.managedTeamId,
-    scoringPeriodId: input.leagueContext.scoringPeriodId,
+    managedTeamId: leagueContext.managedTeamId,
+    scoringPeriodId: leagueContext.scoringPeriodId,
+    localLineup: leagueContext.localLineup,
   };
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {

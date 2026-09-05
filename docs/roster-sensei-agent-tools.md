@@ -48,7 +48,7 @@ Sensei must be able to zoom between horizons without the user spelling out “th
 
 1. **`OPENAI_API_KEY` never ships to the browser.** Vite client bundles are public. The key stays server-side (Node process / serverless), loaded from `.env` (gitignored).
 2. **Prefer wrapping existing `src/lib` pure functions** before inventing new scoring.
-3. **ESPN ownership can be stale until sync.** Bundled `src/data/` is the default; `sync_rosters` refreshes who-owns-whom + FA pool into a server-side cache that other Sensei tools prefer. The agent should call sync when ownership may have moved.
+3. **ESPN ownership auto-syncs for Sensei.** Each chat turn calls `ensureLiveRosters` (TTL ~5 min) so who-owns-whom prefers live ESPN; if sync fails, tools fall back to `src/data/` and the prompt says so.
 4. **Cap the tool loop** (rounds + ESPN calls) so one chat turn can’t hammer APIs.
 
 ---
@@ -86,16 +86,22 @@ Node API (Hono or Express beside Vite; proxy /api → :8787)
 ```ts
 {
   managedTeamId: number;           // header team picker (default Sensei context)
-  scoringPeriodId?: number;        // last known ESPN week
-  tradeHorizon?: "week" | "season"; // UI hint only; trade asks still answer BOTH
-  localLineup?: {                  // optional: builder edits in localStorage
+  scoringPeriodId?: number;        // optional client hint; server fills from live ESPN sync
+  localLineup?: {                  // roster builder / localStorage
     roster: Record<string, number | undefined>;
     bench: number[];
   };
 }
 ```
 
-Server merges this with `LEAGUE_CONFIG`, the data snapshot, and a short-TTL cache of the last ESPN projection overrides. If the user names another team in chat, the agent may override `managedTeamId` for that turn via tools / prompt reasoning and should state which team it’s using. If local vs ESPN lineup is ambiguous, the agent **asks** before assuming.
+**Server behavior each turn**
+
+1. **Auto `sync_rosters`** via `ensureLiveRosters` when the in-memory live cache is missing or older than ~5 minutes (counts as `sync_rosters` in the tools accordion when a fetch runs).
+2. Resolve **`scoringPeriodId`** from that sync (or client hint).
+3. Inject week + local lineup summary into the **system prompt**; `get_league_context` / `get_my_roster` also expose local vs ESPN starter slots.
+4. If local vs ESPN lineup is ambiguous for start/sit, the agent **asks** which to use.
+
+Server merges this with `LEAGUE_CONFIG` and the live ownership cache (falling back to the bundled snapshot if sync fails). If the user names another team in chat, the agent may override context for that turn and should state which team it’s using.
 
 ### Agentic workflow (clean loop)
 
@@ -338,11 +344,12 @@ Example trade tool result shape:
 4. ~~**Remaining P0 tools**~~ — `get_player`, `analyze_roster_needs`, `compare_players`, `evaluate_trade` (week + ROS), `recommend_pickups`, `search_free_agents`, `get_news_feed`, `get_news_for_player`.
 5. ~~**Schedule IQ**~~ — ESPN `proTeamSchedules_wl` cache in `src/lib/nflSchedule.ts`; tools `get_nfl_schedule`, `get_player_schedule`, `get_schedule_outlook`, `get_playoff_weeks` (remaining weeks through season end).
 6. ~~**League ESPN**~~ — `get_standings`, `get_matchup`, `sync_rosters` via `src/lib/espnLeague.ts` + live ownership cache.
+7. ~~**Production deploy path**~~ — Vercel serverless `api/[[...route]].ts` wraps the same Hono app (`server/app.ts`). Set `OPENAI_API_KEY` in Vercel env and redeploy (see `docs/vercel-redeploy-sensei.md`).
+8. ~~**Session context polish (partial)**~~ — Auto ownership sync per turn (TTL); client sends **local builder lineup**; server injects **scoring period** + ask-when-unsure for local vs ESPN.
 
 ### Still to do
 
-7. ~~**Production deploy path**~~ — Vercel serverless `api/[[...route]].ts` wraps the same Hono app (`server/app.ts`). Set `OPENAI_API_KEY` in Vercel env and redeploy (see `docs/vercel-redeploy-sensei.md`).
-8. **Polish** — ask-when-unsure for lineup conflicts; chat persistence / multi-chat; richer traces; optional streaming later.
+9. **More polish** — chat persistence / multi-chat; richer tool traces (args/results); `optimize_lineup` / `suggest_trades` tools; optional streaming / model bump later.
 
 **Why tools were staged:** prove the agent loop first with a few reads, then expand the registry (this step) without redesigning the architecture.
 
@@ -352,14 +359,15 @@ Example trade tool result shape:
 ## Decisions (locked in)
 
 1. **Team context** — Default to the **header’s selected team**. If the user **explicitly** names another league team in the prompt, Sensei may switch context for that turn (and should say which team it’s advising for).
-2. **Lineup ground truth** — If local builder lineup and ESPN disagree (or it’s ambiguous), **ask the user** which to use rather than silently picking.
-3. **Response UX** — **Wait for the final answer** (no token streaming in v1). Show a collapsed **“N tools used”** accordion (default **collapsed**); expand to list tool names (and light args/results later if useful).
+2. **Lineup ground truth** — Client sends the **local roster-builder lineup** each turn. Prefer local when the user is clearly editing in-app; prefer ESPN when they say so. If local vs ESPN is ambiguous, **ask** rather than silently picking.
+3. **Response UX** — **Wait for the final answer** (no token streaming in v1). Show a collapsed **“N tools used”** accordion (default **collapsed**); expand to list tool names (and light args/results later if useful). Auto-sync appears as `sync_rosters` when a fetch ran.
 4. **Trade horizon** — For fairness / trade asks without a stated horizon, Sensei answers **both week and rest-of-season**.
 5. **Schedule depth** — Prefer **full remaining NFL schedule** (not just next 3–4 weeks) in schedule tools / cache, so ROS and playoff talk is grounded.
 6. **Tool traces** — Yes, expandable; default unexpanded summary like `7 tools used`.
 7. **First ship scope** — Incremental: **server + ChatPage wiring + core P0 tools (including bye calendar)**, then immediately **NFL schedule cache + remaining-weeks schedule tools**, then standings/matchup/ownership. Don’t block the first PR on every P1 ESPN view.
 8. **Model** — Default **`gpt-4o-mini`** (env-overridable via `OPENAI_MODEL`). Good enough for tool calling + fantasy Q&A at low cost/latency; bump to a larger model later if reasoning quality dips.
 9. **Conversations** — **v1 = single active thread** with full chat history sent each turn (capped). Multi-chat sidebar can come later without changing the API shape much.
+10. **Ownership freshness** — Sensei **auto-syncs** live rosters/FA pool on a short TTL each turn (not only when the model remembers to call `sync_rosters`).
 
 ---
 

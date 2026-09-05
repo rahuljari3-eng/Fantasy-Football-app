@@ -45,7 +45,7 @@ function ToolsUsedAccordion({ tools }: { tools: string[] }) {
 
 /** Roster Sensei chat — talks to POST /api/chat (server-side OpenAI + tools). */
 export function ChatPage({ app }: { app: FantasyApp }) {
-  const { selectedTeamId, selectedTeam } = app;
+  const { selectedTeamId, selectedTeam, roster, bench } = app;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -81,11 +81,25 @@ export function ChatPage({ app }: { app: FantasyApp }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: historyForApi,
-          leagueContext: { managedTeamId: selectedTeamId },
+          leagueContext: {
+            managedTeamId: selectedTeamId,
+            localLineup: {
+              roster,
+              bench,
+            },
+          },
         }),
       });
 
-      const data = (await res.json()) as { message?: string; toolsUsed?: string[]; error?: string };
+      const rawBody = await res.text();
+      let data: { message?: string; toolsUsed?: string[]; error?: string } = {};
+      try {
+        data = rawBody ? (JSON.parse(rawBody) as typeof data) : {};
+      } catch {
+        throw new Error(
+          rawBody.trim().slice(0, 180) || `Request failed (${res.status}) — non-JSON response from API`
+        );
+      }
       if (!res.ok) {
         throw new Error(data.error || `Request failed (${res.status})`);
       }
