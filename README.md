@@ -86,4 +86,4 @@ src/
 - Local roster edits are stored per team in localStorage; if ESPN’s lineup snapshot changes on refresh, ESPN wins for slot sync.
 - The "Refresh from ESPN" button calls ESPN from the browser; Roster Sensei keeps **`OPENAI_API_KEY` on the server only**. See `docs/roster-sensei-agent-tools.md`.
 - Ownership tiers in the snapshot are derived from ESPN ownership % at export time and are not refreshed live.
-- Sensei starter tools today: league context, list teams, roster, bye calendar. Trades, schedules, and live sync come next.
+- Sensei tools today: league/roster/byes, player lookup, needs, compare, trade grading (week+ROS), FA search/recommendations, news. Schedule opponents and live ownership sync come next.

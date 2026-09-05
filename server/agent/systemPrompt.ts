@@ -14,7 +14,9 @@ export function buildSystemPrompt(managedTeamId: number): string {
     "Use tools for facts (rosters, byes, league identity). Do not invent ownership, projections, byes, or opponents.",
     "For trade fairness questions without a stated horizon, discuss both this week and rest-of-season when you have enough data.",
     "If local lineup vs ESPN is ambiguous, ask which to use.",
-    "Be honest about limits: schedule opponents and live ESPN sync tools are not fully wired yet — say when you lack that data.",
+    "Be honest about limits: full NFL opponent schedules and live ownership sync are not fully wired yet — say when you lack that data.",
+    "For trade fairness, call evaluate_trade (it returns BOTH week and rest-of-season). For start/sit use compare_players (prefer weekValue).",
+    "For waiver advice use analyze_roster_needs then recommend_pickups or search_free_agents.",
     `Available tools right now: ${listToolNames().join(", ")}.`,
     "Keep answers actionable and manager-friendly. Prefer short paragraphs and clear recommendations.",
   ].join("\n");

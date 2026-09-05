@@ -1,13 +1,7 @@
 import { LEAGUE_CONFIG, REQUIRED_STARTERS, SLOTS } from "../../../src/config/league.ts";
 import { ALL_TEAMS } from "../../../src/data/allTeams.ts";
-import type { ToolContext, ToolDefinition } from "./types.ts";
-
-function resolveTeam(ctx: ToolContext, teamId?: number) {
-  const id = teamId ?? ctx.managedTeamId;
-  const team = ALL_TEAMS.find((t) => t.id === id);
-  if (!team) return { ok: false as const, error: "team_not_found", teamId: id };
-  return { ok: true as const, team };
-}
+import { resolveTeam } from "./leagueData.ts";
+import type { ToolDefinition } from "./types.ts";
 
 export const getLeagueContextTool: ToolDefinition = {
   name: "get_league_context",

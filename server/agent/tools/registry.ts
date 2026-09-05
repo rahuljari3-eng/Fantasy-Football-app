@@ -1,8 +1,31 @@
 import type { ChatCompletionTool } from "openai/resources/chat/completions";
+import {
+  analyzeRosterNeedsTool,
+  comparePlayersTool,
+  evaluateTradeTool,
+  getNewsFeedTool,
+  getNewsForPlayerTool,
+  getPlayerTool,
+  recommendPickupsTool,
+  searchFreeAgentsTool,
+} from "./analysisTools.ts";
 import { getByeCalendarTool, getLeagueContextTool, getMyRosterTool, listTeamsTool } from "./localTools.ts";
 import type { ToolContext, ToolDefinition } from "./types.ts";
 
-const TOOLS: ToolDefinition[] = [getLeagueContextTool, listTeamsTool, getMyRosterTool, getByeCalendarTool];
+const TOOLS: ToolDefinition[] = [
+  getLeagueContextTool,
+  listTeamsTool,
+  getMyRosterTool,
+  getByeCalendarTool,
+  getPlayerTool,
+  analyzeRosterNeedsTool,
+  comparePlayersTool,
+  evaluateTradeTool,
+  recommendPickupsTool,
+  searchFreeAgentsTool,
+  getNewsFeedTool,
+  getNewsForPlayerTool,
+];
 
 const byName = new Map(TOOLS.map((t) => [t.name, t]));
 
