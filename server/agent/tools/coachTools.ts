@@ -242,9 +242,6 @@ export const suggestTradesTool: ToolDefinition = {
     const rankGlobally = (roster: RosterPlayer[]): RosterPlayer[] =>
       roster.map((p) => (globalById.get(p.id) as RosterPlayer | undefined) ?? p);
 
-    const opponents = activeTeams()
-      .filter((t) => t.id !== team.id)
-      .map((t) => ({ ...t, roster: rankGlobally(t.roster) }));
     // Prefer local builder pool for managed team when available.
     const managed = resolveTeam(ctx);
     const advisingManaged = managed.ok && managed.team.id === team.id;
@@ -253,6 +250,29 @@ export const suggestTradesTool: ToolDefinition = {
       const localPlayers = localPoolPlayers(ctx);
       if (localPlayers?.length) myPlayers = localPlayers;
     }
+
+    // The local roster-builder view can include hypothetical/exploratory
+    // entries -- e.g. a free agent dragged onto the bench to test a "what if
+    // I picked him up" plan -- that were never a real transaction. Trading
+    // away a player you don't actually, really own doesn't make sense, and
+    // if that same player is genuinely rostered by someone else, using the
+    // stale local view would otherwise let him show up as both "mine" (the
+    // give side) and a real opponent's "get" target in the same suggestion
+    // set. Cross-check against real (live/bundled) ownership and drop
+    // anything that isn't genuinely mine before it ever reaches the engine.
+    const realOwnerTeamId = new Map<number, number>();
+    for (const t of activeTeams()) {
+      for (const p of t.roster) realOwnerTeamId.set(p.id, t.id);
+    }
+    myPlayers = myPlayers.filter((p) => {
+      const owner = realOwnerTeamId.get(p.id);
+      return owner == null || owner === team.id;
+    });
+    const myIds = new Set(myPlayers.map((p) => p.id));
+
+    const opponents = activeTeams()
+      .filter((t) => t.id !== team.id)
+      .map((t) => ({ ...t, roster: rankGlobally(t.roster).filter((p) => !myIds.has(p.id)) }));
 
     // Ask the engine for a wider pool than requested -- we're about to drop
     // the trivial/fallback ones below, so we need headroom to still land on
