@@ -263,9 +263,17 @@ export const suggestTradesTool: ToolDefinition = {
       max: Math.max(max * 3, 12),
     });
 
+    // If nothing clears a real upgrade bar, return NOTHING rather than the
+    // trivial closest-value-match fallback tier -- a list of lateral,
+    // scrub-for-scrub swaps doesn't stop reading as "here are some trades"
+    // just because it's honestly labeled as pointless. It sometimes really
+    // is true that there's no cheap trade available (a genuine RB2-caliber
+    // upgrade need-adjusts far above what a bench-depth package can match,
+    // by design -- you can't manufacture a starter's worth of value by
+    // stacking bench scrubs), and that's a fine, honest answer on its own.
     const meaningful = rawSuggestions.filter(isMeaningfulSuggestion);
-    const usedFallback = meaningful.length === 0 && rawSuggestions.length > 0;
-    const suggestions = (meaningful.length > 0 ? meaningful : rawSuggestions).slice(0, max);
+    const hadOnlyFallback = meaningful.length === 0 && rawSuggestions.length > 0;
+    const suggestions = meaningful.slice(0, max);
 
     let matchups: Awaited<ReturnType<typeof fetchWeeklyMatchups>> | null = null;
     try {
@@ -298,11 +306,10 @@ export const suggestTradesTool: ToolDefinition = {
       citeHints: [
         `Needs: ${needyPositions.join(", ") || "none"}; strengths: ${strengthPositions.join(", ") || "none"}.`,
         ...(suggestions.length === 0
-          ? ["No trade package clears a meaningful upgrade bar right now -- say so plainly, do not invent one."]
-          : []),
-        ...(usedFallback
           ? [
-              "Every option below is a lateral, closest-value-match swap (no real upgrade) -- there was nothing better available. Say so explicitly rather than presenting these as good trades.",
+              hadOnlyFallback
+                ? "No trade package clears a meaningful upgrade bar right now. The only matches available were lateral, closest-value-match swaps with no real upgrade -- those are intentionally omitted, not lost. Tell the user plainly that nothing worthwhile is available via cheap/depth pieces; if they have a real need, closing it would require trading from a stronger position (a core piece, not bench depth) -- suggest they name a specific core player to explore if they want that path, don't invent a package yourself."
+                : "No trade package clears a meaningful upgrade bar right now -- say so plainly, do not invent one.",
             ]
           : []),
         ...suggestions.slice(0, 3).map((s) => {
