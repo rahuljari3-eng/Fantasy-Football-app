@@ -44,6 +44,7 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "analyze_roster_needs",
     "compare_players",
     "get_standings",
+    "get_news_for_player",
   ],
   waivers: [
     "analyze_roster_needs",

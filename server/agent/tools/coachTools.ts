@@ -38,7 +38,8 @@ function localPoolPlayers(ctx: {
   return players;
 }
 
-function serializeSuggestionPlayer(p: Player) {
+function serializeSuggestionPlayer(p: Player, matchups: Awaited<ReturnType<typeof fetchWeeklyMatchups>> | null) {
+  const m = matchups ? gradeMatchup(p, matchups) : null;
   return {
     id: p.id,
     name: p.name,
@@ -50,6 +51,9 @@ function serializeSuggestionPlayer(p: Player) {
     status: p.status,
     weekValue: Math.round(playerValue(p) * 10) / 10,
     qualityScore: Math.round(qualityScore(p) * 10) / 10,
+    thisWeekMatchup: m
+      ? { opponent: m.opponent, homeAway: m.homeAway, isBye: m.isBye, grade: m.grade, impliedTotal: m.impliedTotal, label: m.label }
+      : null,
   };
 }
 
@@ -263,6 +267,13 @@ export const suggestTradesTool: ToolDefinition = {
     const usedFallback = meaningful.length === 0 && rawSuggestions.length > 0;
     const suggestions = (meaningful.length > 0 ? meaningful : rawSuggestions).slice(0, max);
 
+    let matchups: Awaited<ReturnType<typeof fetchWeeklyMatchups>> | null = null;
+    try {
+      matchups = await fetchWeeklyMatchups();
+    } catch {
+      matchups = null;
+    }
+
     return {
       ok: true,
       teamId: team.id,
@@ -277,8 +288,8 @@ export const suggestTradesTool: ToolDefinition = {
         reason: s.reason,
         needPos: s.needPos,
         overlapPos: s.overlapPos,
-        give: s.give.map(serializeSuggestionPlayer),
-        get: s.get.map(serializeSuggestionPlayer),
+        give: s.give.map((p) => serializeSuggestionPlayer(p, matchups)),
+        get: s.get.map((p) => serializeSuggestionPlayer(p, matchups)),
         giveVal: Math.round(s.giveVal * 10) / 10,
         getVal: Math.round(s.getVal * 10) / 10,
         ratio: Math.round(s.ratio * 100) / 100,
@@ -300,7 +311,7 @@ export const suggestTradesTool: ToolDefinition = {
           return `vs ${s.teamName}: give ${give} (${Math.round(s.giveVal * 10) / 10}) for ${get} (${Math.round(s.getVal * 10) / 10}), ratio ${Math.round(s.ratio * 100) / 100}, upgrade ${Math.round(s.upgrade * 10) / 10}. Reason: ${s.reason}`;
         }),
       ],
-      note: "Values use the same coach/trade engine as the AI Coach tab (week VOR + need adjustment) -- quote giveVal/getVal/ratio EXACTLY as given, do not recompute them from raw proj or per-player weekValue sums (package values are discounted/need-adjusted, not a plain sum). Already filtered to a meaningful upgrade bar and a minimum relevant-player-value floor -- do not add back lateral or scrub-for-scrub swaps yourself. For a specific package grade, call evaluate_trade.",
+      note: "Values use the same coach/trade engine as the AI Coach tab (week VOR + need adjustment) -- quote giveVal/getVal/ratio EXACTLY as given, do not recompute them from raw proj or per-player weekValue sums (package values are discounted/need-adjusted, not a plain sum). Already filtered to a meaningful upgrade bar and a minimum relevant-player-value floor -- do not add back lateral or scrub-for-scrub swaps yourself. Each player carries thisWeekMatchup (opponent, grade, implied total/workload label) -- weave that real football context (matchup quality, role, game script) into why the trade makes sense, not just the raw numbers. For a specific package grade, call evaluate_trade.",
     };
   },
 };

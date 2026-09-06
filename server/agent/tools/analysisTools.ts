@@ -20,6 +20,28 @@ import {
 } from "./leagueData.js";
 import type { ToolDefinition } from "./types.js";
 
+async function fetchMatchupsSafe(): Promise<Awaited<ReturnType<typeof fetchWeeklyMatchups>> | null> {
+  try {
+    return await fetchWeeklyMatchups();
+  } catch {
+    return null;
+  }
+}
+
+/** A player's usual serialized fields plus this week's real-world matchup
+ * grade (same Vegas-implied-total + prop-line engine the app's roster page
+ * uses) -- the actual football context (opponent, game script, workload
+ * signal) behind why a value looks the way it does, not just the number. */
+function serializeWithMatchup(p: Player, matchups: Awaited<ReturnType<typeof fetchWeeklyMatchups>> | null) {
+  const m = matchups ? gradeMatchup(p, matchups) : null;
+  return {
+    ...serializePlayer(p),
+    thisWeekMatchup: m
+      ? { opponent: m.opponent, homeAway: m.homeAway, isBye: m.isBye, grade: m.grade, impliedTotal: m.impliedTotal, label: m.label }
+      : null,
+  };
+}
+
 function packageWithValues(players: Player[], valueFn: (p: Player) => number, floor: number): number {
   const vals = players.map(valueFn).sort((a, b) => b - a);
   if (!vals.length) return 0;
@@ -165,30 +187,8 @@ export const comparePlayersTool: ToolDefinition = {
     if (!resolved.ok) return resolved;
     if (resolved.players.length < 2) return { ok: false, error: "need_at_least_two_players" };
 
-    let matchups = null as Awaited<ReturnType<typeof fetchWeeklyMatchups>> | null;
-    try {
-      matchups = await fetchWeeklyMatchups();
-    } catch {
-      matchups = null;
-    }
-
-    const rows = resolved.players.map((p) => {
-      const base = serializePlayer(p);
-      const m = matchups ? gradeMatchup(p, matchups) : null;
-      return {
-        ...base,
-        thisWeekMatchup: m
-          ? {
-              opponent: m.opponent,
-              homeAway: m.homeAway,
-              isBye: m.isBye,
-              grade: m.grade,
-              impliedTotal: m.impliedTotal,
-              label: m.label,
-            }
-          : null,
-      };
-    });
+    const matchups = await fetchMatchupsSafe();
+    const rows = resolved.players.map((p) => serializeWithMatchup(p, matchups));
 
     const byWeek = [...rows].sort((a, b) => b.weekValue - a.weekValue);
     const byRos = [...rows].sort((a, b) => b.rosValue - a.rosValue);
@@ -262,6 +262,8 @@ export const evaluateTradeTool: ToolDefinition = {
     const seasonGet = packageWithValues(get, rosValue, VOR_BASELINE * ROS_WEEKS);
     const seasonRatio = fairnessRatio(seasonGive, seasonGet);
 
+    const matchups = await fetchMatchupsSafe();
+
     let needAdjusted: unknown = null;
     if (typeof args.opponentTeamId === "number") {
       const baseline = leagueBaseline();
@@ -292,10 +294,15 @@ export const evaluateTradeTool: ToolDefinition = {
       verdict: verdictFromRatio(seasonRatio, gateOk),
     };
 
+    const giveSerialized = give.map((p) => serializeWithMatchup(p, matchups));
+    const getSerialized = get.map((p) => serializeWithMatchup(p, matchups));
+    const matchupLine = (p: (typeof giveSerialized)[number]) =>
+      p.thisWeekMatchup ? ` [${p.thisWeekMatchup.isBye ? "BYE" : p.thisWeekMatchup.label}]` : "";
+
     return {
       ok: true,
-      give: give.map(serializePlayer),
-      get: get.map(serializePlayer),
+      give: giveSerialized,
+      get: getSerialized,
       starGateOk: gateOk,
       week: weekBlock,
       season: seasonBlock,
@@ -305,9 +312,10 @@ export const evaluateTradeTool: ToolDefinition = {
         `Week: give ${weekBlock.giveValue} vs get ${weekBlock.getValue} (ratio ${weekBlock.ratio}, verdict ${weekBlock.verdict}).`,
         `ROS: give ${seasonBlock.giveValue} vs get ${seasonBlock.getValue} (ratio ${seasonBlock.ratio}, verdict ${seasonBlock.verdict}).`,
         `Star gate OK: ${gateOk}. Fair ratio window ${FAIR_RATIO_MIN}–${FAIR_RATIO_MAX}.`,
-        `Give: ${give.map((p) => `${p.name} (proj ${p.proj}, weekValue ${Math.round(playerValue(p) * 10) / 10})`).join("; ")}.`,
-        `Get: ${get.map((p) => `${p.name} (proj ${p.proj}, weekValue ${Math.round(playerValue(p) * 10) / 10})`).join("; ")}.`,
+        `Give: ${giveSerialized.map((p) => `${p.name} (proj ${p.proj}, weekValue ${p.weekValue})${matchupLine(p)}`).join("; ")}.`,
+        `Get: ${getSerialized.map((p) => `${p.name} (proj ${p.proj}, weekValue ${p.weekValue})${matchupLine(p)}`).join("; ")}.`,
       ],
+      note: "Each player carries thisWeekMatchup (opponent, grade, implied total/workload label) -- weave this real football context into your reasoning (game script, opponent strength, role), not just the bare value numbers.",
     };
   },
 };
