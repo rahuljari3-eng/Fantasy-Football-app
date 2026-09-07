@@ -10,7 +10,12 @@ import {
   searchFreeAgentsTool,
 } from "./analysisTools.js";
 import { optimizeLineupTool, suggestTradesTool } from "./coachTools.js";
-import { getMatchupTool, getStandingsTool, syncRostersTool } from "./espnLeagueTools.js";
+import {
+  getCompletedTradesTool,
+  getMatchupTool,
+  getStandingsTool,
+  syncRostersTool,
+} from "./espnLeagueTools.js";
 import { getByeCalendarTool, getLeagueContextTool, getMyRosterTool, listTeamsTool } from "./localTools.js";
 import {
   getNflScheduleTool,
@@ -40,6 +45,7 @@ const TOOLS: ToolDefinition[] = [
   getStandingsTool,
   getMatchupTool,
   syncRostersTool,
+  getCompletedTradesTool,
   optimizeLineupTool,
   suggestTradesTool,
 ];

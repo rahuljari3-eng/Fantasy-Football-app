@@ -41,6 +41,7 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
   trades: [
     "suggest_trades",
     "evaluate_trade",
+    "get_completed_trades",
     "analyze_roster_needs",
     "compare_players",
     "get_standings",
@@ -82,13 +83,14 @@ const INTENT_CHECKLISTS: Record<SenseiIntent, ChecklistItem[]> = {
   trades: [
     {
       id: "trade_packages",
-      description: "Propose packages and/or grade a specific trade",
-      satisfiedBy: ["suggest_trades", "evaluate_trade"],
+      description:
+        "Propose/grade a trade, or load completed trade history when the user asks what already happened",
+      satisfiedBy: ["suggest_trades", "evaluate_trade", "get_completed_trades"],
     },
     {
       id: "needs_context",
-      description: "Understand roster needs before trading",
-      satisfiedBy: ["analyze_roster_needs", "get_my_roster"],
+      description: "Understand roster needs before trading (skip when only asking for completed trade history)",
+      satisfiedBy: ["analyze_roster_needs", "get_my_roster", "get_completed_trades"],
     },
   ],
   waivers: [
@@ -227,7 +229,11 @@ export function heuristicIntents(message: string): SenseiIntent[] {
     out.push("news");
   }
   if (/\b(start|sit|flex|lineup|bench)\b/.test(m)) out.push("start_sit");
-  if (/\b(trade|trades|package|offer)\b/.test(m)) out.push("trades");
+  if (
+    /\b(trade|trades|package|offer|traded|trade history|completed trades?)\b/.test(m)
+  ) {
+    out.push("trades");
+  }
   if (/\b(waiver|waivers|pickup|pickups|free agent|add\/drop|add or drop)\b/.test(m)) out.push("waivers");
   if (/\b(matchup|who am i playing|scoreboard|opponent this week)\b/.test(m)) out.push("matchup");
   if (/\b(schedule|bye|playoff weeks|ros schedule|upcoming opponents)\b/.test(m)) out.push("schedule");

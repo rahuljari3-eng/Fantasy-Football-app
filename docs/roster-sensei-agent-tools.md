@@ -229,7 +229,7 @@ Public/cookie-less GETs work for this league today from the browser; **agent too
 | Fantasy matchup / standings | `get_matchup`, `get_standings` |
 | “Who do they play the next few weeks?” | `get_player_schedule`, `get_nfl_schedule` |
 | Playoff stash / schedule smash | `get_schedule_outlook`, `get_playoff_weeks`, `get_standings` |
-| What moved in the league? | `get_transactions`, `sync_rosters` |
+| What moved in the league? | `get_completed_trades`, `sync_rosters` |
 | Scout an opponent | `list_teams`, `get_team_roster` |
 | League rules / format | `get_league_context` |
 
@@ -273,12 +273,13 @@ Promote schedule tools early — this is what makes Sensei versatile beyond a pr
 | `get_standings` | W-L, PF, rank | — | Standings rows | **New** ESPN `mStandings` / `mTeam` |
 | `get_matchup` | Fantasy week matchups / scores | `week?`, `teamId?` | Matchup pairs | **New** ESPN `mMatchup*` |
 | `sync_rosters` | Live who-owns-whom + FA set | — | Updated teams / FA ids | **New** full roster parse |
+| `get_completed_trades` | Accepted bilateral trades (reconstructed) | `teamId?` | Sides + player names + fairness grade | `fetchEspnCompletedTrades` (`mTransactions2` + roster diff) |
 
 ### P2 — league narrative & richer research
 
 | Tool | Purpose | Inputs | Outputs | Source |
 |------|---------|--------|---------|--------|
-| `get_transactions` | Recent adds/drops/trades | `week?`, `limit?` | Transaction list | **New** `mTransactions2` |
+| `get_transactions` | Recent adds/drops (non-trade) | `week?`, `limit?` | Transaction list | **New** `mTransactions2` (trades covered by `get_completed_trades`) |
 | `get_draft_recap` | Draft board / pick history | — | Picks | **New** `mDraftDetail` |
 | `get_defense_ranks` | Optional matchup context | `week?` or ROS | Positional ranks vs NFL defenses | External or derived — only if we want finer “smash spot” language |
 
