@@ -13,7 +13,7 @@ import { DEFAULT_TAB } from "../config/pages";
 import { playerValue, qualityScore, rosValue } from "../lib/scoring";
 import { analyzeRosterNeeds } from "../lib/rosterNeeds";
 import { deriveAssignments, deriveAssignmentsFromEspnSlots } from "../lib/teamRoster";
-import { fetchEspnLineups } from "../lib/espn";
+import { fetchEspnCompletedTrades, fetchEspnLineups, type CompletedTrade } from "../lib/espn";
 import { balancePackage, balanceTwoForTwo, fairnessRatio, needAdjustedPackageValue, starGateOk } from "../lib/tradeEngine";
 import { optimizeLineup } from "../lib/optimizeLineup";
 import { useProjectionRefresh } from "./useProjectionRefresh";
@@ -93,6 +93,11 @@ export function useFantasyApp() {
   const [tradeHorizon, setTradeHorizon] = useState<TradeHorizon>("week");
   const [tradeOpponentId, setTradeOpponentId] = useState<number | null>(null);
 
+  // Completed (accepted) trades league-wide, reconstructed from public ESPN
+  // data -- see fetchEspnCompletedTrades. Not scoped to whichever team you're
+  // managing; every team's completed trades show up here.
+  const [completedEspnTrades, setCompletedEspnTrades] = useState<CompletedTrade[]>([]);
+
   const [selectedLeagueTeam, setSelectedLeagueTeam] = useState<ViewedTeam | null>(null);
 
   const [faPosFilter, setFaPosFilter] = useState<Position | "ALL">("ALL");
@@ -162,6 +167,18 @@ export function useFantasyApp() {
 
   const { toasts, notify, dismissToast } = useToasts();
 
+  // Deliberately NOT fetched on load or by the general "Refresh from ESPN"
+  // button -- completed trades only get pulled once someone actually opens
+  // the Trade Analyzer's "Completed trades" sub-tab (see TradeAnalyzerPage),
+  // which then also polls this on an interval for live updates while open.
+  const syncCompletedTradesFromEspn = useCallback(async () => {
+    try {
+      setCompletedEspnTrades(await fetchEspnCompletedTrades());
+    } catch {
+      // Best-effort -- same as syncRosterFromEspn.
+    }
+  }, []);
+
   useEffect(() => {
     syncRosterFromEspn();
     refreshNews();
@@ -176,7 +193,7 @@ export function useFantasyApp() {
 
   const refreshFromEspn = useCallback(async () => {
     await Promise.all([projectionRefresh.refreshProjections(), syncRosterFromEspn(), refreshNews(), refreshMatchups()]);
-    notify("Synced projections, lineup, news, and matchups from ESPN.", "success");
+    notify("Synced projections, lineup, and news/matchups from ESPN.", "success");
   }, [projectionRefresh, syncRosterFromEspn, refreshNews, refreshMatchups, notify]);
 
   // A player's opponent + Vegas-graded matchup quality for the current week --
@@ -1044,6 +1061,12 @@ export function useFantasyApp() {
     tradeRatio,
     tradeStarGateViolation,
     toggleTradeList,
+    // Value of an arbitrary package of player ids -- same curve as
+    // giveVal/getVal above, usable for any list (e.g. a completed trade's
+    // side), not just the interactive tradeGive/tradeGet state.
+    tradeSideValue: tradeValue,
+    completedEspnTrades,
+    refreshCompletedTrades: syncCompletedTradesFromEspn,
 
     // league
     selectedLeagueTeam,

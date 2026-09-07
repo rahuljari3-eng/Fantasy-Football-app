@@ -149,3 +149,92 @@ export async function fetchEspnFreeAgentProjections(period: number): Promise<Pro
 
   return fresh;
 }
+
+interface EspnTransactionItem {
+  type: string;
+  playerId: number;
+  fromTeamId: number;
+  toTeamId: number;
+}
+interface EspnTransaction {
+  type: string;
+  proposedDate: number;
+  items?: EspnTransactionItem[];
+}
+interface EspnTransactionsResponse {
+  transactions?: EspnTransaction[];
+}
+
+export interface CompletedTrade {
+  id: string;
+  teamAId: number;
+  teamBId: number;
+  /** Player ids team A received (i.e. team B sent them). */
+  teamAReceived: number[];
+  /** Player ids team B received (i.e. team A sent them). */
+  teamBReceived: number[];
+}
+
+/** Completed trades, reconstructed from public data. ESPN keeps a trade's
+ * itemized contents private (to the two teams involved) even after it's
+ * accepted -- there's no "trade completed: X for Y" record on the
+ * unauthenticated read this app otherwise uses -- so this replays every
+ * draft pick and waiver add/drop in order to compute who "should" own each
+ * player, then diffs that against who actually owns them right now. Any gap
+ * can only be explained by a trade. Only pairs where players moved in BOTH
+ * directions are returned -- a trade where the other side has since been
+ * dropped/re-added erases its own paper trail and can't be reconstructed. */
+export async function fetchEspnCompletedTrades(): Promise<CompletedTrade[]> {
+  const [txRes, rosterRes] = await Promise.all([
+    fetch(`${ESPN_LEAGUE_BASE_URL}?view=mTransactions2`, { headers: { Accept: "application/json" } }),
+    fetch(`${ESPN_LEAGUE_BASE_URL}?view=mRoster&view=mTeam`, { headers: { Accept: "application/json" } }),
+  ]);
+  if (!txRes.ok) throw new Error(`ESPN transactions request failed (${txRes.status})`);
+  if (!rosterRes.ok) throw new Error(`ESPN roster request failed (${rosterRes.status})`);
+
+  const txData = (await txRes.json()) as EspnTransactionsResponse;
+  const rosterData = (await rosterRes.json()) as EspnLeagueResponse;
+
+  const currentOwner = new Map<number, number>();
+  (rosterData.teams || []).forEach((t) => {
+    (t.roster?.entries || []).forEach((e) => {
+      const pid = e.playerPoolEntry?.player?.id;
+      if (pid != null) currentOwner.set(pid, t.id);
+    });
+  });
+
+  // Replay draft/waiver/free-agent moves in chronological order to compute
+  // each player's expected owner if no trade had ever touched them.
+  const expectedOwner = new Map<number, number>();
+  const transactions = (txData.transactions || []).slice().sort((a, b) => a.proposedDate - b.proposedDate);
+  transactions.forEach((t) => {
+    if (!["DRAFT", "WAIVER", "FREEAGENT", "FUTURE_ROSTER"].includes(t.type)) return;
+    (t.items || []).forEach((i) => {
+      if (!["DRAFT", "ADD", "DROP"].includes(i.type)) return;
+      if (i.toTeamId && i.toTeamId !== 0) expectedOwner.set(i.playerId, i.toTeamId);
+      else if (i.fromTeamId && i.fromTeamId !== 0 && (!i.toTeamId || i.toTeamId === 0)) expectedOwner.delete(i.playerId);
+    });
+  });
+
+  const groups = new Map<string, { teamAId: number; teamBId: number; aToB: number[]; bToA: number[] }>();
+  currentOwner.forEach((owner, playerId) => {
+    const expected = expectedOwner.get(playerId);
+    if (expected == null || expected === owner) return;
+    const [teamAId, teamBId] = [expected, owner].sort((a, b) => a - b);
+    const key = `${teamAId}-${teamBId}`;
+    const g = groups.get(key) ?? { teamAId, teamBId, aToB: [], bToA: [] };
+    if (expected === teamAId) g.aToB.push(playerId);
+    else g.bToA.push(playerId);
+    groups.set(key, g);
+  });
+
+  return [...groups.values()]
+    .filter((g) => g.aToB.length > 0 && g.bToA.length > 0)
+    .map((g) => ({
+      id: g.teamAId + "-" + g.teamBId,
+      teamAId: g.teamAId,
+      teamBId: g.teamBId,
+      teamAReceived: g.bToA,
+      teamBReceived: g.aToB,
+    }));
+}
