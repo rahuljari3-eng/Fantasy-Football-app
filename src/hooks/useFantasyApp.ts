@@ -619,6 +619,10 @@ export function useFantasyApp() {
   }, [freeAgentPool, faPosFilter, faSearch]);
 
   // ---------- AI Coach: trade suggestion engine ----------
+  // Keys of suggestions the user has already seen via "Get new recommendations",
+  // so a regenerate swaps in the next-best batch instead of repeating itself.
+  const [excludedCoachKeys, setExcludedCoachKeys] = useState<Set<string>>(() => new Set());
+
   // Need-based suggestions: your real weakness matched to their real weakness.
   const needBasedSuggestions = useMemo(() => {
     const found: TradeSuggestion[] = [];
@@ -882,17 +886,35 @@ export function useFantasyApp() {
     return found.sort((a, b) => Math.abs(a.ratio - 1) - Math.abs(b.ratio - 1));
   }, [myNeeds, leagueBaseline, effectiveLeagueTeams, isTradeablePos]);
 
+  // Union of every suggestion this pipeline is capable of producing right now,
+  // regardless of which ones happen to make the top-N cut. Lets "get new
+  // recommendations" know whether a fresh batch actually exists.
+  const allCoachCandidateKeys = useMemo(() => {
+    const keys = new Set<string>();
+    [...needBasedSuggestions, ...generalSuggestions, ...fallbackSuggestions, ...twoForTwoFallbackSuggestions].forEach((s) => keys.add(suggestionKey(s)));
+    return keys;
+  }, [needBasedSuggestions, generalSuggestions, fallbackSuggestions, twoForTwoFallbackSuggestions]);
+
+  const hasFreshCoachSuggestions = useMemo(
+    () => Array.from(allCoachCandidateKeys).some((k) => !excludedCoachKeys.has(k)),
+    [allCoachCandidateKeys, excludedCoachKeys]
+  );
+
   const coachSuggestions = useMemo(() => {
-    const deduped = dedupeSuggestions([...needBasedSuggestions, ...generalSuggestions]);
+    const notExcluded = (s: TradeSuggestion) => !excludedCoachKeys.has(suggestionKey(s));
+    const deduped = dedupeSuggestions([...needBasedSuggestions, ...generalSuggestions].filter(notExcluded));
     const priority = (s: TradeSuggestion) => (s.reason === "need" ? 1 : 0);
     const byRank = (a: TradeSuggestion, b: TradeSuggestion) => priority(b) - priority(a) || b.upgrade - a.upgrade;
 
     const is1x1 = (s: TradeSuggestion) => s.give.length === 1 && s.get.length === 1;
     const is2x2 = (s: TradeSuggestion) => s.give.length === 2 && s.get.length === 2;
 
+    const freshFallback = fallbackSuggestions.filter(notExcluded);
+    const freshTwoForTwoFallback = twoForTwoFallbackSuggestions.filter(notExcluded);
+
     // Smart pools by shape, then the guaranteed fallback pools to top them up.
-    const oneForOne = [...deduped.filter(is1x1).sort(byRank), ...fallbackSuggestions.filter(is1x1)];
-    const twoForTwo = [...deduped.filter(is2x2).sort(byRank), ...twoForTwoFallbackSuggestions];
+    const oneForOne = [...deduped.filter(is1x1).sort(byRank), ...freshFallback.filter(is1x1)];
+    const twoForTwo = [...deduped.filter(is2x2).sort(byRank), ...freshTwoForTwoFallback];
     const other = deduped.filter((s) => !is1x1(s) && !is2x2(s)).sort(byRank);
 
     const combined: TradeSuggestion[] = [];
@@ -912,10 +934,41 @@ export function useFantasyApp() {
     take(oneForOne, COACH_MIN_ONE_FOR_ONE);
     take(twoForTwo, COACH_MIN_TWO_FOR_TWO);
     // Fill the rest with the best of everything left, keeping shape variety.
-    take([...oneForOne, ...twoForTwo, ...other, ...fallbackSuggestions].sort(byRank), COACH_MAX_SUGGESTIONS);
+    take([...oneForOne, ...twoForTwo, ...other, ...freshFallback].sort(byRank), COACH_MAX_SUGGESTIONS);
+
+    // If excluding already-seen suggestions leaves the list short, top it off
+    // with the best previously-seen ones rather than showing an empty tab --
+    // still good, reasonable trades, just not brand new.
+    if (combined.length < COACH_MAX_SUGGESTIONS) {
+      const everything = [
+        ...needBasedSuggestions,
+        ...generalSuggestions,
+        ...fallbackSuggestions,
+        ...twoForTwoFallbackSuggestions,
+      ].sort(byRank);
+      for (const s of everything) {
+        if (combined.length >= COACH_MAX_SUGGESTIONS) break;
+        const key = suggestionKey(s);
+        if (usedKeys.has(key)) continue;
+        usedKeys.add(key);
+        combined.push(s);
+      }
+    }
 
     return combined;
-  }, [needBasedSuggestions, generalSuggestions, fallbackSuggestions, twoForTwoFallbackSuggestions]);
+  }, [needBasedSuggestions, generalSuggestions, fallbackSuggestions, twoForTwoFallbackSuggestions, excludedCoachKeys]);
+
+  // Swap the current batch out for the next-best one. Once every reasonable
+  // trade has been cycled through, it loops back to the top rather than
+  // getting stuck repeating the same leftovers.
+  function regenerateCoachSuggestions() {
+    setExcludedCoachKeys((prev) => {
+      if (!hasFreshCoachSuggestions) return new Set();
+      const next = new Set(prev);
+      coachSuggestions.forEach((s) => next.add(suggestionKey(s)));
+      return next;
+    });
+  }
 
   function proposeCoachTrade(s: TradeSuggestion) {
     setTradeOpponentId(s.teamId);
@@ -1043,6 +1096,8 @@ export function useFantasyApp() {
     strengthPositions,
     coachSuggestions,
     proposeCoachTrade,
+    regenerateCoachSuggestions,
+    hasFreshCoachSuggestions,
 
     // trade analyzer
     tradeGive,

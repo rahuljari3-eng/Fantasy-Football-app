@@ -1,4 +1,4 @@
-import { AlertTriangle, Repeat, Sparkles, TrendingUp } from "lucide-react";
+import { AlertTriangle, Repeat, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
 import { POSITIONS } from "../config/league";
 import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX, FAIR_RATIO_MIN, FAIR_RATIO_MAX } from "../config/trade";
 import { PosBadge } from "../components/PosBadge";
@@ -16,7 +16,18 @@ function ratioVerdict(ratio: number): { label: string; className: string } {
 }
 
 export function CoachPage({ app }: { app: FantasyApp }) {
-  const { myNeeds, needyPositions, strengthPositions, leagueBaseline, coachSuggestions, proposeCoachTrade, playerHasNews, openPlayerNews } = app;
+  const {
+    myNeeds,
+    needyPositions,
+    strengthPositions,
+    leagueBaseline,
+    coachSuggestions,
+    proposeCoachTrade,
+    regenerateCoachSuggestions,
+    hasFreshCoachSuggestions,
+    playerHasNews,
+    openPlayerNews,
+  } = app;
 
   return (
     <div className="space-y-5">
@@ -65,12 +76,24 @@ export function CoachPage({ app }: { app: FantasyApp }) {
       </div>
 
       <div>
-        <h3 className="text-sm font-medium text-[#98989D] mb-2">Suggested trades</h3>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h3 className="text-sm font-medium text-[#98989D]">Suggested trades</h3>
+          {coachSuggestions.length > 0 && (
+            <button
+              onClick={regenerateCoachSuggestions}
+              className="shrink-0 text-xs bg-[#2C2C2E] text-[#E5E5EA] font-medium px-3 py-1.5 rounded-lg hover:bg-[#38383A] flex items-center gap-1.5 border border-[#38383A]"
+              title={hasFreshCoachSuggestions ? "Swap in a new batch of reasonable trades" : "You've seen every reasonable trade — start over from the top"}
+            >
+              <RefreshCw size={12} /> Get new recommendations
+            </button>
+          )}
+        </div>
         <p className="text-xs text-[#636366] mb-3 max-w-2xl">
           The list always mixes shapes — at least two straight 1-for-1s and two 2-for-2s, never all of one kind. Each card shows a{" "}
           <span className="text-[#C9A227]">value ratio</span> (what you get ÷ what you give, after the package discount and a team-need adjustment).
           Anything from {FAIR_RATIO_MIN.toFixed(2)}–{FAIR_RATIO_MAX.toFixed(2)} is fair; edges are where your read on team need should decide. Extra
-          players only count if they genuinely close the gap, and any deal that moves a Tier-1 player must send a Tier-1 or Tier-2 player back.
+          players only count if they genuinely close the gap, and any deal that moves a Tier-1 player must send a Tier-1 or Tier-2 player back. Not loving
+          these? Hit "Get new recommendations" for another fair batch.
         </p>
         {coachSuggestions.length === 0 ? (
           <div className="bg-[#1C1C1E] border border-[#38383A] rounded-xl p-6 text-center">
