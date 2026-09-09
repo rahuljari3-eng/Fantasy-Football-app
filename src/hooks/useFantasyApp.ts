@@ -15,13 +15,16 @@ import { analyzeRosterNeeds } from "../lib/rosterNeeds";
 import { deriveAssignments, deriveAssignmentsFromEspnSlots } from "../lib/teamRoster";
 import { fetchEspnCompletedTrades, fetchEspnLineups, type CompletedTrade } from "../lib/espn";
 import { balancePackage, balanceTwoForTwo, fairnessRatio, needAdjustedPackageValue, starGateOk } from "../lib/tradeEngine";
+import { findWhatItWouldTake as solveWhatItWouldTake, type WhatWouldItTakeOption } from "../lib/whatWouldItTake";
 import { optimizeLineup } from "../lib/optimizeLineup";
 import { useProjectionRefresh } from "./useProjectionRefresh";
 import { useNewsFeed } from "./useNewsFeed";
 import { useMatchups } from "./useMatchups";
+import { useStandings } from "./useStandings";
 import { useToasts } from "./useToasts";
 import { useDragAndDrop } from "./useDragAndDrop";
 import { gradeMatchup } from "../lib/matchup";
+import { computePlayoffOutlook } from "../lib/playoffOdds";
 import type {
   BenchSuggestion,
   LeaguePlayer,
@@ -165,6 +168,9 @@ export function useFantasyApp() {
   const matchupsState = useMatchups();
   const { matchupData, refreshMatchups } = matchupsState;
 
+  const standingsState = useStandings();
+  const { leagueSchedule } = standingsState;
+
   const { toasts, notify, dismissToast } = useToasts();
 
   // Deliberately NOT fetched on load or by the general "Refresh from ESPN"
@@ -263,6 +269,26 @@ export function useFantasyApp() {
     <P extends Player>(player: P): P => ({ ...applyOverrideRaw(player), posRank: posRankOf(player.id) }),
     [applyOverrideRaw, posRankOf]
   );
+
+  // Every team's optimal-lineup weekly point total, off current (override-
+  // applied) projections -- used as the playoff simulator's "true talent"
+  // baseline for teams with few or no games played yet. See lib/playoffOdds.
+  const projectedTeamStrength = useMemo(() => {
+    const map: Record<number, number> = {};
+    ALL_TEAMS.forEach((t) => {
+      map[t.id] = optimizeLineup(t.roster.map(applyOverride)).projectedTotal;
+    });
+    return map;
+  }, [applyOverride]);
+
+  // Playoff race: who's clinched/eliminated/alive, playoff odds via
+  // simulation, and -- for everyone still alive -- exactly what needs to
+  // happen. Null until the League tab's Standings/Playoff Race sub-tab has
+  // been opened at least once (see useStandings).
+  const playoffOutlook = useMemo(() => {
+    if (!leagueSchedule) return null;
+    return computePlayoffOutlook(leagueSchedule.standings, leagueSchedule.schedule, leagueSchedule.playoffTeamCount, projectedTeamStrength);
+  }, [leagueSchedule, projectedTeamStrength]);
 
   // Your player pool = the team you're managing plus every free agent. Switch
   // teams and this whole pipeline (needs, coach, trade values) re-centers.
@@ -551,6 +577,20 @@ export function useFantasyApp() {
     [needyPositions]
   );
 
+  // ---------- "What would it take?" solver ----------
+  // Reverse of the analyzer: pick anyone on someone else's roster and find the
+  // smallest, cheapest package from YOUR roster that clears the exact same
+  // fairness bar the analyzer/coach use -- see lib/whatWouldItTake.ts.
+  const findWhatItWouldTake = useCallback(
+    (target: LeaguePlayer): WhatWouldItTakeOption[] | null => {
+      const theirTeam = effectiveLeagueTeams.find((t) => t.id === target.fantasyTeamId);
+      if (!theirTeam) return null;
+      const theirNeeds = analyzeRosterNeeds(theirTeam.roster);
+      const giveCandidates = myPlayers.filter((p) => p.status !== "Out" && isTradeablePos(p.pos));
+      return solveWhatItWouldTake(target, giveCandidates, theirNeeds, myNeeds, leagueBaseline);
+    },
+    [effectiveLeagueTeams, myPlayers, myNeeds, leagueBaseline, isTradeablePos]
+  );
 
   // ---------- Free agents tab ----------
   // Every player who isn't rostered by you or anyone else in the league --
@@ -1122,10 +1162,15 @@ export function useFantasyApp() {
     tradeSideValue: tradeValue,
     completedEspnTrades,
     refreshCompletedTrades: syncCompletedTradesFromEspn,
+    findWhatItWouldTake,
 
     // league
     selectedLeagueTeam,
     setSelectedLeagueTeam,
+
+    // standings + playoff race
+    ...standingsState,
+    playoffOutlook,
 
     // live news/injury feed, and the click-a-player's-name-or-status popover
     ...newsFeedState,

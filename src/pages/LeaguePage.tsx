@@ -1,10 +1,24 @@
+import { useEffect, useState } from "react";
 import { AlertTriangle, ChevronRight, Repeat, Shield, Trophy, Users } from "lucide-react";
 import { LEAGUE_CONFIG } from "../config/league";
 import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
+import { StandingsPanel } from "../components/StandingsPanel";
+import { PlayoffRacePanel } from "../components/PlayoffRacePanel";
 import { statusDot } from "../lib/format";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 import type { RosterPlayer } from "../types";
+
+const SUB_TABS: { id: "teams" | "standings" | "playoffs"; label: string }[] = [
+  { id: "teams", label: "Teams" },
+  { id: "standings", label: "Standings" },
+  { id: "playoffs", label: "Playoff race" },
+];
+
+// No push/webhook from ESPN, so this is what "updates live" means while a
+// standings-backed sub-tab is open -- same idea as the Trade Analyzer's
+// Completed Trades poll.
+const STANDINGS_POLL_MS = 30_000;
 
 export function LeaguePage({ app }: { app: FantasyApp }) {
   const {
@@ -12,17 +26,83 @@ export function LeaguePage({ app }: { app: FantasyApp }) {
     setSelectedLeagueTeam,
     myTeamViewed,
     selectedTeam,
+    selectedTeamId,
+    allTeams,
     effectiveLeagueTeams,
     setTradeOpponentId,
     setTab,
     playerHasNews,
     openPlayerNews,
+    leagueSchedule,
+    standingsRefreshing,
+    standingsError,
+    refreshStandings,
+    playoffOutlook,
   } = app;
+
+  const [subTab, setSubTab] = useState<"teams" | "standings" | "playoffs">("teams");
+
+  // Standings/schedule are only ever fetched once one of these sub-tabs is
+  // actually open -- not on page load, not from the global "Refresh from
+  // ESPN" button -- then polled while open so live scoring shows up here.
+  useEffect(() => {
+    if (subTab === "teams") return;
+    refreshStandings();
+    const interval = setInterval(refreshStandings, STANDINGS_POLL_MS);
+    return () => clearInterval(interval);
+  }, [subTab, refreshStandings]);
+
+  const subTabBar = (
+    <div className="inline-flex bg-[#1C1C1E] border border-[#38383A] rounded-lg p-1">
+      {SUB_TABS.map((t) => (
+        <button
+          key={t.id}
+          onClick={() => setSubTab(t.id)}
+          className={`text-xs font-medium px-3 py-1.5 rounded-md ${subTab === t.id ? "bg-[#C9A227] text-[#000000]" : "text-[#98989D] hover:text-[#FFFFFF]"}`}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (!selectedLeagueTeam && subTab !== "teams") {
+    const outlookByTeam = new Map((playoffOutlook ?? []).map((o) => [o.teamId, o]));
+    const teamsById = new Map(allTeams.map((t) => [t.id, t]));
+    return (
+      <div className="space-y-4">
+        <h2 className="display-font text-xl">{LEAGUE_CONFIG.leagueName} {subTab === "standings" ? "— standings" : "— playoff race"}</h2>
+        {subTabBar}
+        {standingsError && <div className="text-xs text-red-400">{standingsError}</div>}
+        {!leagueSchedule && standingsRefreshing && <div className="text-xs text-[#636366] italic">Pulling standings from ESPN…</div>}
+        {leagueSchedule && (
+          <>
+            <p className="text-sm text-[#98989D] max-w-2xl">
+              Week {Math.min(leagueSchedule.currentWeek, leagueSchedule.regularSeasonWeeks)} of {leagueSchedule.regularSeasonWeeks} regular-season weeks · top{" "}
+              {leagueSchedule.playoffTeamCount} make the playoffs. Odds come from simulating the rest of the season thousands of times using each team's
+              record so far and their projected weekly scoring.
+            </p>
+            {subTab === "standings" ? (
+              <StandingsPanel
+                standings={leagueSchedule.standings}
+                outlookByTeam={outlookByTeam}
+                myTeamId={selectedTeamId}
+                playoffTeamCount={leagueSchedule.playoffTeamCount}
+              />
+            ) : (
+              <PlayoffRacePanel outlooks={playoffOutlook ?? []} teamsById={teamsById} myTeamId={selectedTeamId} />
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
 
   if (!selectedLeagueTeam) {
     return (
       <div className="space-y-4">
         <h2 className="display-font text-xl">{LEAGUE_CONFIG.leagueName} — all 12 teams</h2>
+        {subTabBar}
         <p className="text-sm text-[#98989D] max-w-2xl">
           Real rosters pulled from your ESPN league (#{LEAGUE_CONFIG.espnLeagueId}). Tap a team to see their full roster — handy for scouting trade targets
           before you head to the Trade Analyzer.

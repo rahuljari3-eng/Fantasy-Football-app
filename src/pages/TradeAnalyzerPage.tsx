@@ -4,16 +4,19 @@ import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX } from "../config/trade";
 import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
 import { CompletedTradesPanel } from "../components/CompletedTradesPanel";
+import { WhatWouldItTakePanel } from "../components/WhatWouldItTakePanel";
 import type { FantasyApp } from "../hooks/useFantasyApp";
-import type { Player, TradeHorizon } from "../types";
+import type { LeaguePlayer, Player, TradeHorizon } from "../types";
+import type { WhatWouldItTakeOption } from "../lib/whatWouldItTake";
 
 const HORIZONS: { id: TradeHorizon; label: string }[] = [
   { id: "week", label: "This week" },
   { id: "season", label: "Rest of season" },
 ];
 
-const SUB_TABS: { id: "build" | "completed"; label: string }[] = [
+const SUB_TABS: { id: "build" | "wwit" | "completed"; label: string }[] = [
   { id: "build", label: "Build a trade" },
+  { id: "wwit", label: "What would it take?" },
   { id: "completed", label: "Completed trades" },
 ];
 
@@ -49,9 +52,10 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
     tradeSideValue,
     refreshCompletedTrades,
     allTeams,
+    findWhatItWouldTake,
   } = app;
 
-  const [subTab, setSubTab] = useState<"build" | "completed">("build");
+  const [subTab, setSubTab] = useState<"build" | "wwit" | "completed">("build");
   const [loadingCompleted, setLoadingCompleted] = useState(false);
 
   // Completed trades are only ever fetched once this sub-tab is actually
@@ -75,6 +79,13 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
   }, [subTab, refreshCompletedTrades]);
 
   const opponent = effectiveLeagueTeams.find((t) => t.id === tradeOpponentId);
+
+  const loadWwitPackage = (target: LeaguePlayer, option: WhatWouldItTakeOption) => {
+    setTradeOpponentId(target.fantasyTeamId);
+    setTradeGive(option.give.map((p) => p.id));
+    setTradeGet([target.id]);
+    setSubTab("build");
+  };
 
   const sides = [
     { label: "You give up", list: tradeGive, setList: setTradeGive, val: giveVal, pool: effectivePlayers },
@@ -115,6 +126,14 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
           )}
           <CompletedTradesPanel trades={completedEspnTrades} allTeams={allTeams} playerById={playerById} tradeSideValue={tradeSideValue} />
         </div>
+      ) : subTab === "wwit" ? (
+        <WhatWouldItTakePanel
+          players={effectiveAllLeaguePlayers}
+          findWhatItWouldTake={findWhatItWouldTake}
+          playerHasNews={playerHasNews}
+          openPlayerNews={openPlayerNews}
+          onLoadPackage={loadWwitPackage}
+        />
       ) : (
         <>
         <p className="text-sm text-[#98989D] max-w-2xl">
