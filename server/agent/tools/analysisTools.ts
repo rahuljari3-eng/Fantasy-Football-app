@@ -6,8 +6,10 @@ import { analyzeRosterNeeds } from "../../../src/lib/rosterNeeds.js";
 import { fetchLeagueNewsFeed } from "../../../src/lib/news.js";
 import { playerValue, qualityScore, rosValue } from "../../../src/lib/scoring.js";
 import { fairnessRatio, needAdjustedPackageValue, packageValue, ratioIsFair, starGateOk } from "../../../src/lib/tradeEngine.js";
+import { findWhatItWouldTake } from "../../../src/lib/whatWouldItTake.js";
 import type { Player, Position } from "../../../src/types.js";
 import {
+  findPlayerOwner,
   findPlayers,
   freeAgentPool,
   leagueBaseline,
@@ -514,6 +516,96 @@ export const getNewsForPlayerTool: ToolDefinition = {
           : [
               `ESPN league/FA feed has 0 tagged items for ${player.name}. Say that explicitly — do not invent injury status.`,
             ],
+    };
+  },
+};
+
+export const whatWouldItTakeTool: ToolDefinition = {
+  name: "what_would_it_take",
+  description:
+    "Reverse trade solver (same as the Trade Analyzer's 'What would it take?' panel): given a player on someone else's roster, search YOUR roster for the smallest/cheapest packages (1–3 pieces) that clear the fairness bar + star gate. Use when the user asks 'what would it take to get X', 'what's the cheapest way to acquire X', or minimum cost for a specific target.",
+  parameters: {
+    type: "object",
+    properties: {
+      target: {
+        type: "string",
+        description: "Target player name or ESPN id (must be rostered by another fantasy team).",
+      },
+      teamId: {
+        type: "number",
+        description: "Fantasy team whose roster supplies the give-side packages. Defaults to the managed team.",
+      },
+    },
+    required: ["target"],
+    additionalProperties: false,
+  },
+  handler: async (ctx, args) => {
+    if (typeof args.target !== "string" && typeof args.target !== "number") {
+      return { ok: false, error: "target_required" };
+    }
+
+    const hits = findPlayers(args.target, 1);
+    if (!hits.length) return { ok: false, error: "player_not_found", query: args.target };
+    const target = hits[0];
+
+    const owner = findPlayerOwner(target.id);
+    if (!owner) {
+      return {
+        ok: false,
+        error: "target_is_free_agent",
+        player: serializePlayer(target),
+        note: "That player is not on another team's roster — use recommend_pickups / search_free_agents instead of a trade package.",
+      };
+    }
+
+    const teamId = typeof args.teamId === "number" ? args.teamId : ctx.managedTeamId;
+    if (owner.teamId === teamId) {
+      return {
+        ok: false,
+        error: "target_already_on_your_roster",
+        player: serializePlayer(target),
+        ownedBy: owner,
+      };
+    }
+
+    const resolved = resolveTeam(ctx, teamId);
+    if (!resolved.ok) return resolved;
+
+    const baseline = leagueBaseline();
+    const myRoster = teamPlayersRanked(teamId);
+    const theirRoster = teamPlayersRanked(owner.teamId);
+    const myNeeds = analyzeRosterNeeds(myRoster);
+    const theirNeeds = analyzeRosterNeeds(theirRoster);
+    const { needy } = needsSummary(myNeeds, baseline);
+
+    // Mirror the Trade Analyzer: no K/DST; QB only when QB is a real need.
+    const giveCandidates = myRoster.filter((p) => {
+      if (p.status === "Out") return false;
+      if (p.pos === "K" || p.pos === "DST") return false;
+      if (p.pos === "QB" && !needy.includes("QB")) return false;
+      return true;
+    });
+
+    const options = findWhatItWouldTake(target, giveCandidates, theirNeeds, myNeeds, baseline);
+
+    return {
+      ok: true,
+      target: serializePlayer(target),
+      ownedBy: owner,
+      advisingTeam: { id: resolved.team.id, name: resolved.team.name, owner: resolved.team.owner },
+      options: options
+        ? options.map((o) => ({
+            give: o.give.map(serializePlayer),
+            giveVal: Math.round(o.giveVal * 10) / 10,
+            getVal: Math.round(o.getVal * 10) / 10,
+            ratio: Math.round(o.ratio * 100) / 100,
+            fillsNeedFor: o.fillsNeedFor,
+            pieceCount: o.give.length,
+          }))
+        : null,
+      note: options
+        ? "Packages are the minimum size that clears the same fairness window + star gate as evaluate_trade / suggest_trades — quote giveVal/getVal/ratio exactly; do not invent cheaper packages. fillsNeedFor lists positions that fill a hole for the receiving team (why the give side can be smaller)."
+        : "No package of 1–3 tradeable players from this roster clears the fairness bar — say this target is not realistically gettable right now with a fair deal (do not invent a package).",
     };
   },
 };

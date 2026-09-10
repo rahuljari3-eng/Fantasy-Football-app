@@ -8,11 +8,13 @@ import {
   getPlayerTool,
   recommendPickupsTool,
   searchFreeAgentsTool,
+  whatWouldItTakeTool,
 } from "./analysisTools.js";
 import { optimizeLineupTool, suggestTradesTool } from "./coachTools.js";
 import {
   getCompletedTradesTool,
   getMatchupTool,
+  getPlayoffOddsTool,
   getStandingsTool,
   syncRostersTool,
 } from "./espnLeagueTools.js";
@@ -34,6 +36,7 @@ const TOOLS: ToolDefinition[] = [
   analyzeRosterNeedsTool,
   comparePlayersTool,
   evaluateTradeTool,
+  whatWouldItTakeTool,
   recommendPickupsTool,
   searchFreeAgentsTool,
   getNewsFeedTool,
@@ -43,6 +46,7 @@ const TOOLS: ToolDefinition[] = [
   getScheduleOutlookTool,
   getPlayoffWeeksTool,
   getStandingsTool,
+  getPlayoffOddsTool,
   getMatchupTool,
   syncRostersTool,
   getCompletedTradesTool,

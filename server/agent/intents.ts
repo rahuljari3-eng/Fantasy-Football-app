@@ -41,6 +41,7 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
   trades: [
     "suggest_trades",
     "evaluate_trade",
+    "what_would_it_take",
     "get_completed_trades",
     "analyze_roster_needs",
     "compare_players",
@@ -55,7 +56,7 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "get_news_for_player",
   ],
   news: ["get_news_feed", "get_news_for_player", "get_player"],
-  matchup: ["get_matchup", "get_standings", "get_player_schedule", "get_bye_calendar"],
+  matchup: ["get_matchup", "get_standings", "get_playoff_odds", "get_player_schedule", "get_bye_calendar"],
   schedule: [
     "get_nfl_schedule",
     "get_player_schedule",
@@ -63,7 +64,7 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "get_playoff_weeks",
     "get_bye_calendar",
   ],
-  standings: ["get_standings", "get_matchup"],
+  standings: ["get_standings", "get_playoff_odds", "get_matchup"],
   general: [], // means "all tools" — handled in merge
 };
 
@@ -84,13 +85,13 @@ const INTENT_CHECKLISTS: Record<SenseiIntent, ChecklistItem[]> = {
     {
       id: "trade_packages",
       description:
-        "Propose/grade a trade, or load completed trade history when the user asks what already happened",
-      satisfiedBy: ["suggest_trades", "evaluate_trade", "get_completed_trades"],
+        "Propose/grade a trade, solve 'what would it take' for a target, or load completed trade history when the user asks what already happened",
+      satisfiedBy: ["suggest_trades", "evaluate_trade", "what_would_it_take", "get_completed_trades"],
     },
     {
       id: "needs_context",
       description: "Understand roster needs before trading (skip when only asking for completed trade history)",
-      satisfiedBy: ["analyze_roster_needs", "get_my_roster", "get_completed_trades"],
+      satisfiedBy: ["analyze_roster_needs", "get_my_roster", "get_completed_trades", "what_would_it_take"],
     },
   ],
   waivers: [
@@ -135,8 +136,8 @@ const INTENT_CHECKLISTS: Record<SenseiIntent, ChecklistItem[]> = {
   standings: [
     {
       id: "standings_table",
-      description: "Load live standings",
-      satisfiedBy: ["get_standings"],
+      description: "Load live standings and/or playoff-race odds",
+      satisfiedBy: ["get_standings", "get_playoff_odds"],
     },
   ],
   general: [],
@@ -230,14 +231,18 @@ export function heuristicIntents(message: string): SenseiIntent[] {
   }
   if (/\b(start|sit|flex|lineup|bench)\b/.test(m)) out.push("start_sit");
   if (
-    /\b(trade|trades|package|offer|traded|trade history|completed trades?)\b/.test(m)
+    /\b(trade|trades|package|offer|traded|trade history|completed trades?|what would it take|what.?d it take|how (?:much|do i) (?:to )?get)\b/.test(
+      m
+    )
   ) {
     out.push("trades");
   }
   if (/\b(waiver|waivers|pickup|pickups|free agent|add\/drop|add or drop)\b/.test(m)) out.push("waivers");
   if (/\b(matchup|who am i playing|scoreboard|opponent this week)\b/.test(m)) out.push("matchup");
   if (/\b(schedule|bye|playoff weeks|ros schedule|upcoming opponents)\b/.test(m)) out.push("schedule");
-  if (/\b(standing|standings|playoff race|record)\b/.test(m)) out.push("standings");
+  if (/\b(standing|standings|playoff race|playoff odds|clinch|eliminated|make the playoffs|record)\b/.test(m)) {
+    out.push("standings");
+  }
   return out;
 }
 

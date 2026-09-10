@@ -8,9 +8,12 @@ import {
   getLiveLeagueCache,
   syncLiveRosters,
 } from "../../../src/lib/espnLeague.js";
+import { fetchLeagueScheduleSnapshot } from "../../../src/lib/leagueSchedule.js";
+import { optimizeLineup } from "../../../src/lib/optimizeLineup.js";
+import { computePlayoffOutlook } from "../../../src/lib/playoffOdds.js";
 import { fairnessRatio, packageValue, ratioIsFair, starGateOk } from "../../../src/lib/tradeEngine.js";
 import type { LeagueTeam, Player } from "../../../src/types.js";
-import { allKnownPlayers, findTeamByIdOrName, serializePlayer } from "./leagueData.js";
+import { activeTeams, allKnownPlayers, findTeamByIdOrName, serializePlayer, teamPlayersRanked } from "./leagueData.js";
 import type { ToolDefinition } from "./types.js";
 
 function completedTradeVerdict(
@@ -41,7 +44,7 @@ function snapshotKnownPlayers(): Player[] {
 export const getStandingsTool: ToolDefinition = {
   name: "get_standings",
   description:
-    "Live ESPN standings: seed/rank, W-L-T, points for/against, streak. Prefer this for playoff-race or 'where am I?' questions.",
+    "Live ESPN standings: seed/rank, W-L-T, points for/against, streak. Prefer this for W-L / points questions. For playoff odds, clinch math, or 'what do I need to make the playoffs?', use get_playoff_odds instead.",
   parameters: {
     type: "object",
     properties: {},
@@ -60,6 +63,86 @@ export const getStandingsTool: ToolDefinition = {
     }
     const { scoringPeriodId, standings } = await fetchStandings();
     return { ok: true, source: "espn", scoringPeriodId, standings };
+  },
+};
+
+export const getPlayoffOddsTool: ToolDefinition = {
+  name: "get_playoff_odds",
+  description:
+    "Playoff race outlook for the league (same engine as the League tab's Playoff Race view): Monte Carlo makeOdds %, clinched/eliminated/alive status, winsNeededToClinch, controlsOwnDestiny, gamesBackOfCutoff, blockingTeams, remaining schedule, and a human-readable summary per team. Use for 'playoff odds', 'am I in?', 'what do I need to clinch', or who is eliminated.",
+  parameters: {
+    type: "object",
+    properties: {
+      teamId: {
+        type: "number",
+        description:
+          "If set, return only this team's outlook (plus league context). Defaults to the full league, sorted by makeOdds.",
+      },
+    },
+    additionalProperties: false,
+  },
+  handler: async (_ctx, args) => {
+    const teamId = typeof args.teamId === "number" ? args.teamId : undefined;
+    const snap = await fetchLeagueScheduleSnapshot();
+
+    // Same baseline the League tab uses: each team's optimal-lineup weekly
+    // projection as "true talent" for the Monte Carlo (blended with actual PF
+    // once enough games are played — see computePlayoffOutlook).
+    const projectedStrengthByTeam: Record<number, number> = {};
+    for (const t of activeTeams()) {
+      const roster = teamPlayersRanked(t.id);
+      projectedStrengthByTeam[t.id] = optimizeLineup(roster).projectedTotal;
+    }
+
+    const nameById = new Map(snap.standings.map((s) => [s.teamId, s.name]));
+    const ownerById = new Map(snap.standings.map((s) => [s.teamId, s.owner]));
+
+    let outlooks = computePlayoffOutlook(
+      snap.standings,
+      snap.schedule,
+      snap.playoffTeamCount,
+      projectedStrengthByTeam
+    );
+
+    if (teamId != null) {
+      outlooks = outlooks.filter((o) => o.teamId === teamId);
+      if (!outlooks.length) {
+        return {
+          ok: false,
+          error: "team_not_found_in_standings",
+          teamId,
+          note: "ESPN team ids may differ from the bundled snapshot — call list_teams / sync_rosters and match by name.",
+        };
+      }
+    } else {
+      outlooks = [...outlooks].sort((a, b) => b.makeOdds - a.makeOdds || b.pointsFor - a.pointsFor);
+    }
+
+    return {
+      ok: true,
+      currentWeek: snap.currentWeek,
+      regularSeasonWeeks: snap.regularSeasonWeeks,
+      playoffTeamCount: snap.playoffTeamCount,
+      fetchedAt: snap.fetchedAt,
+      teams: outlooks.map((o) => ({
+        teamId: o.teamId,
+        name: nameById.get(o.teamId) ?? `Team ${o.teamId}`,
+        owner: ownerById.get(o.teamId) ?? null,
+        record: `${o.wins}-${o.losses}${o.ties ? `-${o.ties}` : ""}`,
+        pointsFor: o.pointsFor,
+        gamesRemaining: o.gamesRemaining,
+        makeOdds: o.makeOdds,
+        status: o.status,
+        controlsOwnDestiny: o.controlsOwnDestiny,
+        winsNeededToClinch: o.winsNeededToClinch,
+        gamesBackOfCutoff: o.gamesBackOfCutoff,
+        blockingTeams: o.blockingTeams,
+        remaining: o.remaining,
+        summary: o.summary,
+      })),
+      note:
+        "makeOdds is a Monte Carlo estimate (0–100); clinched/eliminated are exact math. Quote each team's summary and makeOdds — do not invent clinch scenarios. winsNeededToClinch is null when even winning out does not guarantee a spot (needs help from blockingTeams).",
+    };
   },
 };
 
