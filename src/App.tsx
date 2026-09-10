@@ -6,6 +6,7 @@ import { useFantasyApp } from "./hooks/useFantasyApp";
 import { RosterBuilderPage } from "./pages/RosterBuilderPage";
 import { FreeAgentsPage } from "./pages/FreeAgentsPage";
 import { LineupPage } from "./pages/LineupPage";
+import { MatchupPage } from "./pages/MatchupPage";
 import { TradeAnalyzerPage } from "./pages/TradeAnalyzerPage";
 import { CoachPage } from "./pages/CoachPage";
 import { LeaguePage } from "./pages/LeaguePage";
@@ -18,6 +19,7 @@ const PAGES = {
   roster: RosterBuilderPage,
   freeagents: FreeAgentsPage,
   lineup: LineupPage,
+  matchup: MatchupPage,
   trade: TradeAnalyzerPage,
   coach: CoachPage,
   league: LeaguePage,

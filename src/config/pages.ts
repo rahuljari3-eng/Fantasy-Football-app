@@ -1,4 +1,4 @@
-import { Shield, Repeat, Newspaper, Users, UserPlus, Sparkles, Trophy, MessageCircle } from "lucide-react";
+import { Shield, Repeat, Newspaper, Users, UserPlus, Sparkles, Trophy, MessageCircle, Swords } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { TabId } from "../types";
 
@@ -14,6 +14,7 @@ export const PAGE_NAV: PageNavEntry[] = [
   { id: "roster", label: "Build roster", icon: Users },
   { id: "freeagents", label: "Free agents", icon: UserPlus },
   { id: "lineup", label: "Lineup", icon: Shield },
+  { id: "matchup", label: "Matchup", icon: Swords },
   { id: "trade", label: "Trade analyzer", icon: Repeat },
   { id: "coach", label: "AI Coach", icon: Sparkles },
   { id: "league", label: "League", icon: Trophy },

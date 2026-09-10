@@ -23,8 +23,10 @@ import { useMatchups } from "./useMatchups";
 import { useStandings } from "./useStandings";
 import { useToasts } from "./useToasts";
 import { useDragAndDrop } from "./useDragAndDrop";
+import { useMatchupCenter } from "./useMatchupCenter";
 import { gradeMatchup } from "../lib/matchup";
 import { computePlayoffOutlook } from "../lib/playoffOdds";
+import { buildHeadToHeadMatchup, type MatchupSideInput } from "../lib/matchupCenter";
 import type {
   BenchSuggestion,
   LeaguePlayer,
@@ -171,6 +173,9 @@ export function useFantasyApp() {
   const standingsState = useStandings();
   const { leagueSchedule } = standingsState;
 
+  const matchupCenterState = useMatchupCenter();
+  const { liveLineups, refreshLiveLineups } = matchupCenterState;
+
   const { toasts, notify, dismissToast } = useToasts();
 
   // Deliberately NOT fetched on load or by the general "Refresh from ESPN"
@@ -189,6 +194,7 @@ export function useFantasyApp() {
     syncRosterFromEspn();
     refreshNews();
     refreshMatchups();
+    refreshLiveLineups();
     // Only ever runs once, on load -- switching teams doesn't re-fetch;
     // the "Refresh from ESPN" button covers checking again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -198,14 +204,54 @@ export function useFantasyApp() {
   const { projectionOverrides } = projectionRefresh;
 
   const refreshFromEspn = useCallback(async () => {
-    await Promise.all([projectionRefresh.refreshProjections(), syncRosterFromEspn(), refreshNews(), refreshMatchups()]);
+    await Promise.all([
+      projectionRefresh.refreshProjections(),
+      syncRosterFromEspn(),
+      refreshNews(),
+      refreshMatchups(),
+      refreshLiveLineups(),
+    ]);
     notify("Synced projections, lineup, and news/matchups from ESPN.", "success");
-  }, [projectionRefresh, syncRosterFromEspn, refreshNews, refreshMatchups, notify]);
+  }, [projectionRefresh, syncRosterFromEspn, refreshNews, refreshMatchups, refreshLiveLineups, notify]);
 
   // A player's opponent + Vegas-graded matchup quality for the current week --
   // see lib/matchup.ts. DST is graded off the opponent's implied total
   // instead of its own.
   const matchupForPlayer = useCallback((p: Player) => gradeMatchup(p, matchupData), [matchupData]);
+
+  // Once a starter's real NFL game has kicked off (live or final), their
+  // lineup slot locks for the rest of the week -- they can't be benched,
+  // removed, or swapped out, and a benched player whose own game has already
+  // started can't be moved into a starting slot either. See moveToSlot,
+  // moveToBench, removeFromSlot, and quickStart below.
+  const isPlayerLocked = useCallback(
+    (p: Player) => {
+      const state = matchupForPlayer(p).gameState;
+      return state === "in" || state === "post";
+    },
+    [matchupForPlayer]
+  );
+
+  // A locked-in player's real live score for the team you're currently
+  // managing (ESPN's own per-player appliedStatTotal -- see
+  // lib/espn.ts's fetchEspnLiveLineups). Null if the live-lineup fetch
+  // hasn't loaded yet or this player isn't on the managed team's roster;
+  // callers should fall back to the player's static projection in that case.
+  const liveScoreForPlayer = useCallback(
+    (id: number): number | null => {
+      const entry = liveLineups?.[selectedTeamId]?.[id];
+      return entry ? entry.liveScore : null;
+    },
+    [liveLineups, selectedTeamId]
+  );
+
+  // The number actually worth showing for a player right now: their real
+  // live score once their game has started, their static projection before
+  // that.
+  const effectivePoints = useCallback(
+    (p: Player): number => (isPlayerLocked(p) ? liveScoreForPlayer(p.id) ?? p.proj : p.proj),
+    [isPlayerLocked, liveScoreForPlayer]
+  );
 
   // ---------- Live news/injury feed: player linkage + the popover state
   // that lets a click on a player's name or status surface their articles ----------
@@ -314,6 +360,71 @@ export function useFantasyApp() {
     [effectivePlayers, effectiveAllLeaguePlayers]
   );
 
+  // This week's head-to-head fantasy matchup: who you're playing, the live
+  // score, remaining projected points, and a simulated win probability -- see
+  // lib/matchupCenter.ts. Null until the Matchup tab has been opened at least
+  // once (standings + live lineups are both fetched on demand there, same
+  // pattern as the League tab). "Me" is built from your real, locally-managed
+  // starting lineup (`roster`) rather than the live ESPN sync, since that's
+  // the lineup you're actually setting in this app; the opponent is built
+  // from their real live ESPN lineup (`liveLineups`), falling back to the
+  // bundled snapshot's starter flags if that hasn't loaded yet. Each side's
+  // live per-player scores come from that same `liveLineups` fetch -- NOT
+  // from the schedule's own totalPoints, which ESPN leaves at a flat 0 for
+  // every matchup in the league until the whole scoring period closes out.
+  const headToHeadMatchup = useMemo(() => {
+    if (!leagueSchedule) return null;
+    const week = leagueSchedule.currentWeek;
+    const m = leagueSchedule.schedule.find(
+      (s) => s.week === week && (s.homeId === selectedTeamId || s.awayId === selectedTeamId)
+    );
+    if (!m) return null;
+    const isHome = m.homeId === selectedTeamId;
+    const oppId = isHome ? m.awayId : m.homeId;
+    const oppTeam = ALL_TEAMS.find((t) => t.id === oppId);
+    if (!oppTeam) return null;
+
+    const myStarters = SLOTS.map((s) => roster[s])
+      .filter((id): id is number => id != null)
+      .map(playerById)
+      .filter((p): p is Player => !!p);
+
+    const oppLiveEntries = liveLineups?.[oppId];
+    const oppStarters = oppTeam.roster
+      .filter((p) => {
+        const slot = oppLiveEntries ? oppLiveEntries[p.id]?.slot : p.starter ? p.slot : "BE";
+        return slot != null && slot !== "BE" && slot !== "IR";
+      })
+      .map((p) => playerById(p.id) ?? applyOverride(p));
+
+    const liveScoresFor = (teamId: number): Record<number, number> => {
+      const entries = liveLineups?.[teamId];
+      if (!entries) return {};
+      const scores: Record<number, number> = {};
+      Object.entries(entries).forEach(([playerId, entry]) => {
+        scores[Number(playerId)] = entry.liveScore;
+      });
+      return scores;
+    };
+
+    const meInput: MatchupSideInput = {
+      teamId: selectedTeamId,
+      name: selectedTeam.name,
+      owner: selectedTeam.owner,
+      starters: myStarters,
+      liveScoreByPlayerId: liveScoresFor(selectedTeamId),
+    };
+    const oppInput: MatchupSideInput = {
+      teamId: oppId,
+      name: oppTeam.name,
+      owner: oppTeam.owner,
+      starters: oppStarters,
+      liveScoreByPlayerId: liveScoresFor(oppId),
+    };
+
+    return buildHeadToHeadMatchup(week, m.decided, meInput, oppInput, matchupData);
+  }, [leagueSchedule, selectedTeamId, selectedTeam, roster, playerById, liveLineups, matchupData, applyOverride]);
+
   // "Should I start this bench guy instead?" -- for each bench player,
   // compares them against the weakest current starter they're eligible to
   // replace (same slot-eligibility logic as quickStart). The comparison is
@@ -330,6 +441,7 @@ export function useFantasyApp() {
     bench.forEach((id) => {
       const p = playerById(id);
       if (!p) return;
+      if (isPlayerLocked(p)) return; // can't be started -- their game already began
       const eligibleSlots = SLOTS.filter((s) => SLOT_ELIGIBILITY[s].includes(p.pos));
 
       let weakestSlot: RosterSlotId | null = null;
@@ -339,7 +451,7 @@ export function useFantasyApp() {
       for (const s of eligibleSlots) {
         const occId = roster[s];
         const occ = occId != null ? playerById(occId) : null;
-        if (occ && (!weakest || occ.proj < weakest.proj)) {
+        if (occ && !isPlayerLocked(occ) && (!weakest || occ.proj < weakest.proj)) {
           weakest = occ;
           weakestSlot = s;
         }
@@ -382,7 +494,7 @@ export function useFantasyApp() {
 
     return suggestions;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bench, roster, playerById, matchupForPlayer]);
+  }, [bench, roster, playerById, matchupForPlayer, isPlayerLocked]);
 
   // ---------- Roster builder: slot assignment ----------
   function locateSlot(id: number): RosterSlotId | null {
@@ -399,8 +511,17 @@ export function useFantasyApp() {
       const occupantId = roster[targetSlot];
       if (occupantId === player.id) return;
 
-      const sourceSlot = locateSlot(player.id);
+      if (isPlayerLocked(player)) {
+        notify(`${player.name}'s game has already started -- they're locked in for the rest of the week.`, "error");
+        return;
+      }
       const occupant = occupantId != null ? playerById(occupantId) : null;
+      if (occupant && isPlayerLocked(occupant)) {
+        notify(`${occupant.name}'s game has already started -- that slot is locked for the rest of the week.`, "error");
+        return;
+      }
+
+      const sourceSlot = locateSlot(player.id);
       const occupantGoesToSlot = !!(occupant && sourceSlot && SLOT_ELIGIBILITY[sourceSlot].includes(occupant.pos));
 
       setRoster((r) => {
@@ -418,13 +539,17 @@ export function useFantasyApp() {
         return next;
       });
     },
-    [roster, playerById]
+    [roster, playerById, isPlayerLocked, notify]
   );
 
   /** Moves a player to the bench, clearing whatever starting slot they were in. */
   const moveToBench = useCallback(
     (player: Player) => {
       if (bench.includes(player.id)) return;
+      if (isPlayerLocked(player)) {
+        notify(`${player.name}'s game has already started -- they're locked in for the rest of the week.`, "error");
+        return;
+      }
       const sourceSlot = locateSlot(player.id);
       if (sourceSlot) {
         setRoster((r) => {
@@ -435,13 +560,17 @@ export function useFantasyApp() {
       }
       setBench((b) => (b.includes(player.id) ? b : [...b, player.id]));
     },
-    [bench, roster]
+    [bench, roster, isPlayerLocked, notify]
   );
 
   /** Bench player -> starting lineup, one click: fills an empty eligible slot
    * if one exists, otherwise swaps into the eligible slot with the weakest
-   * current starter. */
+   * current starter (skipping any slot whose occupant is already locked in). */
   function quickStart(player: Player) {
+    if (isPlayerLocked(player)) {
+      notify(`${player.name}'s game has already started -- they can't be started now.`, "error");
+      return;
+    }
     const eligibleSlots = SLOTS.filter((s) => SLOT_ELIGIBILITY[s].includes(player.pos));
     const emptySlot = eligibleSlots.find((s) => !roster[s]);
     if (emptySlot) {
@@ -454,7 +583,7 @@ export function useFantasyApp() {
     eligibleSlots.forEach((s) => {
       const occId = roster[s];
       const occ = occId != null ? playerById(occId) : null;
-      if (occ && occ.proj < worstProj) {
+      if (occ && !isPlayerLocked(occ) && occ.proj < worstProj) {
         worstProj = occ.proj;
         worstSlot = s;
       }
@@ -463,11 +592,19 @@ export function useFantasyApp() {
       const replaced = roster[worstSlot] != null ? playerById(roster[worstSlot]!) : null;
       moveToSlot(worstSlot, player);
       notify(replaced ? `Started ${player.name} over ${replaced.name}.` : `Started ${player.name}.`, "success");
+    } else {
+      notify(`No open slot -- every eligible starter has already locked in for the week.`, "error");
     }
   }
 
   function addToSlot(slot: RosterSlotId, player: Player) {
     if (!SLOT_ELIGIBILITY[slot].includes(player.pos)) return;
+    const occupantId = roster[slot];
+    const occupant = occupantId != null ? playerById(occupantId) : null;
+    if (occupant && isPlayerLocked(occupant)) {
+      notify(`${occupant.name}'s game has already started -- that slot is locked for the rest of the week.`, "error");
+      return;
+    }
     setRoster((r) => ({ ...r, [slot]: player.id }));
   }
 
@@ -476,6 +613,12 @@ export function useFantasyApp() {
   }
 
   function removeFromSlot(slot: RosterSlotId) {
+    const occupantId = roster[slot];
+    const occupant = occupantId != null ? playerById(occupantId) : null;
+    if (occupant && isPlayerLocked(occupant)) {
+      notify(`${occupant.name}'s game has already started -- they can't be removed from your lineup this week.`, "error");
+      return;
+    }
     setRoster((r) => {
       const copy = { ...r };
       delete copy[slot];
@@ -496,9 +639,27 @@ export function useFantasyApp() {
   });
 
   function autoOptimize() {
-    const result = optimizeLineup(effectivePlayers, { excludeOut: true });
+    // Locked starters (their game already started) are pinned in place, and
+    // any locked bench player is excluded from the pool entirely so they
+    // can't get pulled into a starting slot after kickoff.
+    const lockedAssignments: RosterAssignments = {};
+    SLOTS.forEach((slot) => {
+      const id = roster[slot];
+      const p = id != null ? playerById(id) : null;
+      if (p && isPlayerLocked(p)) lockedAssignments[slot] = id!;
+    });
+    const lockedBenchIds = new Set(bench.filter((id) => {
+      const p = playerById(id);
+      return p ? isPlayerLocked(p) : false;
+    }));
+    const pool = effectivePlayers.filter((p) => !lockedBenchIds.has(p.id));
+
+    const result = optimizeLineup(pool, { excludeOut: true, lockedAssignments });
     setRoster(result.roster);
     setBench((b) => b.filter((id) => !result.starterIds.includes(id)));
+    if (Object.keys(lockedAssignments).length > 0) {
+      notify("Kept your already-started players locked in place while optimizing the rest.", "info");
+    }
   }
 
   const usedIds = useMemo(() => {
@@ -515,13 +676,17 @@ export function useFantasyApp() {
       .sort((a, b) => b.proj - a.proj);
   }, [usedIds, posFilter, search, effectivePlayers]);
 
+  // Blends real live scores for anyone already locked in with static
+  // projections for anyone who hasn't played yet, so this number (and every
+  // header/page that displays it) stays accurate once games kick off instead
+  // of quietly under- or over-counting a starter who's already on the board.
   const rosterTotal = useMemo(() => {
     return SLOTS.reduce((sum, slot) => {
       const id = roster[slot];
       const p = id != null ? playerById(id) : null;
-      return sum + (p ? p.proj : 0);
+      return sum + (p ? effectivePoints(p) : 0);
     }, 0);
-  }, [roster, playerById]);
+  }, [roster, playerById, effectivePoints]);
 
   // ---------- AI Coach: your current needs ----------
   const myPlayers = useMemo(() => Array.from(usedIds).map(playerById).filter((p): p is Player => !!p), [usedIds, playerById]);
@@ -577,19 +742,37 @@ export function useFantasyApp() {
     [needyPositions]
   );
 
+  // The give-side pool every trade-suggestion generator below draws from:
+  // everyone at a tradeable position EXCEPT your single best player there
+  // (keep your studs, trade from the rest), and not currently Out. Shared by
+  // generalSuggestions, twoForTwoFallbackSuggestions, and the "what would it
+  // take?" solver so none of them can suggest parting with a player the
+  // others would consider untouchable.
+  const myMovablePlayers = useMemo(() => {
+    const movable: Player[] = [];
+    POSITIONS.forEach((pos) => {
+      if (!isTradeablePos(pos)) return;
+      myNeeds[pos].players.slice(1).forEach((p) => {
+        if (p.status !== "Out") movable.push(p);
+      });
+    });
+    return movable;
+  }, [myNeeds, isTradeablePos]);
+
   // ---------- "What would it take?" solver ----------
   // Reverse of the analyzer: pick anyone on someone else's roster and find the
   // smallest, cheapest package from YOUR roster that clears the exact same
-  // fairness bar the analyzer/coach use -- see lib/whatWouldItTake.ts.
+  // fairness bar the analyzer/coach use -- see lib/whatWouldItTake.ts. Draws
+  // from the same myMovablePlayers pool as the rest of the trade engine, so it
+  // never offers up a player you actually need to keep.
   const findWhatItWouldTake = useCallback(
     (target: LeaguePlayer): WhatWouldItTakeOption[] | null => {
       const theirTeam = effectiveLeagueTeams.find((t) => t.id === target.fantasyTeamId);
       if (!theirTeam) return null;
       const theirNeeds = analyzeRosterNeeds(theirTeam.roster);
-      const giveCandidates = myPlayers.filter((p) => p.status !== "Out" && isTradeablePos(p.pos));
-      return solveWhatItWouldTake(target, giveCandidates, theirNeeds, myNeeds, leagueBaseline);
+      return solveWhatItWouldTake(target, myMovablePlayers, theirNeeds, myNeeds, leagueBaseline);
     },
-    [effectiveLeagueTeams, myPlayers, myNeeds, leagueBaseline, isTradeablePos]
+    [effectiveLeagueTeams, myMovablePlayers, myNeeds, leagueBaseline]
   );
 
   // ---------- Free agents tab ----------
@@ -750,14 +933,7 @@ export function useFantasyApp() {
   // clear need, so there's always something reasonable on the table.
   const generalSuggestions = useMemo(() => {
     const found: TradeSuggestion[] = [];
-    // Anything beyond your single best player at a TRADEABLE position is "movable".
-    const movable: Player[] = [];
-    POSITIONS.forEach((pos) => {
-      if (!isTradeablePos(pos)) return;
-      myNeeds[pos].players.slice(1).forEach((p) => {
-        if (p.status !== "Out") movable.push(p);
-      });
-    });
+    const movable = myMovablePlayers;
 
     movable.forEach((offerPlayer) => {
       const offerVal = playerValue(offerPlayer);
@@ -822,7 +998,7 @@ export function useFantasyApp() {
     });
 
     return dedupeSuggestions(found.sort((a, b) => b.upgrade - a.upgrade));
-  }, [myNeeds, leagueBaseline, effectiveAllLeaguePlayers, effectiveLeagueTeams, isTradeablePos]);
+  }, [myNeeds, leagueBaseline, effectiveAllLeaguePlayers, effectiveLeagueTeams, isTradeablePos, myMovablePlayers]);
 
   // Guaranteed tier: simple, fair, same-position swaps so the AI Coach always
   // has something on the table even when nothing clears the bar above.
@@ -867,11 +1043,7 @@ export function useFantasyApp() {
   // two-for-two options and never devolves into all 1-for-1s (or all 2-for-1s).
   const twoForTwoFallbackSuggestions = useMemo(() => {
     const found: TradeSuggestion[] = [];
-    const myMovable = POSITIONS.filter(isTradeablePos)
-      .flatMap((pos) => myNeeds[pos].players.slice(1))
-      .filter((p) => p.status !== "Out")
-      .sort((a, b) => playerValue(b) - playerValue(a))
-      .slice(0, 6);
+    const myMovable = [...myMovablePlayers].sort((a, b) => playerValue(b) - playerValue(a)).slice(0, 6);
     if (myMovable.length < 2) return found;
 
     const givePairs: Player[][] = [];
@@ -924,7 +1096,7 @@ export function useFantasyApp() {
       });
     });
     return found.sort((a, b) => Math.abs(a.ratio - 1) - Math.abs(b.ratio - 1));
-  }, [myNeeds, leagueBaseline, effectiveLeagueTeams, isTradeablePos]);
+  }, [myNeeds, leagueBaseline, effectiveLeagueTeams, isTradeablePos, myMovablePlayers]);
 
   // Union of every suggestion this pipeline is capable of producing right now,
   // regardless of which ones happen to make the top-N cut. Lets "get new
@@ -1109,6 +1281,9 @@ export function useFantasyApp() {
     removeFromBench,
     autoOptimize,
     benchUpgradeSuggestions,
+    isPlayerLocked,
+    liveScoreForPlayer,
+    effectivePoints,
     ...dragAndDrop,
 
     // shared data lookups
@@ -1183,6 +1358,11 @@ export function useFantasyApp() {
     // weekly matchups (opponent + Vegas-graded matchup quality)
     ...matchupsState,
     matchupForPlayer,
+
+    // this week's head-to-head fantasy matchup (opponent, live score,
+    // projected points, win probability)
+    ...matchupCenterState,
+    headToHeadMatchup,
 
     // toast notifications
     toasts,

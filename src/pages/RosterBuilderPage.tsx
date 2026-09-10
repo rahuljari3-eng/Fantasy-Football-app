@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Lightbulb, X } from "lucide-react";
 import { SLOTS, SLOT_ELIGIBILITY } from "../config/league";
 import { LEAGUE_CONFIG } from "../config/league";
@@ -6,10 +8,17 @@ import { StatusIndicator } from "../components/StatusIndicator";
 import { PlayerNameLink } from "../components/PlayerNameLink";
 import { AddPlayerActions } from "../components/AddPlayerActions";
 import { MatchupBadge } from "../components/MatchupBadge";
+import { LockBadge } from "../components/LockBadge";
 import { SearchInput } from "../components/SearchInput";
 import type { FantasyApp } from "../hooks/useFantasyApp";
+import type { Player } from "../types";
 
 const POSITION_FILTERS = ["ALL", "QB", "RB", "WR", "TE", "DST", "K"] as const;
+
+// Live game state (which drives the roster-lock rule) only ever changes
+// while games are being played, so this is polled while the page is open --
+// same idea as the League tab's standings poll.
+const GAME_STATE_POLL_MS = 30_000;
 
 export function RosterBuilderPage({ app }: { app: FantasyApp }) {
   const {
@@ -17,7 +26,6 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
     bench,
     playerById,
     dragOverTarget,
-    handleDragStart,
     moveToBench,
     removeFromSlot,
     quickStart,
@@ -35,7 +43,27 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
     openPlayerNews,
     matchupForPlayer,
     benchUpgradeSuggestions,
+    isPlayerLocked,
+    effectivePoints,
+    handleDragStart,
+    refreshMatchups,
+    refreshLiveLineups,
   } = app;
+
+  useEffect(() => {
+    refreshMatchups();
+    refreshLiveLineups();
+    const interval = setInterval(() => {
+      refreshMatchups();
+      refreshLiveLineups();
+    }, GAME_STATE_POLL_MS);
+    return () => clearInterval(interval);
+  }, [refreshMatchups, refreshLiveLineups]);
+
+  const dragStartIfUnlocked = (e: ReactPointerEvent, p: Player) => {
+    if (isPlayerLocked(p)) return;
+    handleDragStart(e, p);
+  };
 
   return (
     <div className="grid lg:grid-cols-5 gap-6">
@@ -87,6 +115,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
             const id = roster[slot];
             const p = id != null ? playerById(id) : null;
             const isDragOver = dragOverTarget === slot;
+            const locked = p ? isPlayerLocked(p) : false;
             return (
               <div
                 key={slot}
@@ -107,7 +136,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                         name={p.name}
                         hasNews={playerHasNews(p.id)}
                         onOpen={() => openPlayerNews(p.id)}
-                        className="text-sm font-medium truncate"
+                        className={`text-sm font-medium truncate ${locked ? "text-emerald-400" : ""}`}
                       />
                       <div className="text-[11px] text-[#98989D] flex items-center gap-1.5 flex-wrap">
                         <PosBadge pos={p.pos} className="rounded" />
@@ -116,16 +145,23 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                         </span>
                         <MatchupBadge matchup={matchupForPlayer(p)} />
                         <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
+                        {locked && <LockBadge />}
                       </div>
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0">
-                      <span className="mono-font text-sm text-[#C9A227] font-medium">{p.proj}</span>
-                      <button onClick={() => moveToBench(p)} aria-label={`Move ${p.name} to bench`} title="Move to bench" className="text-[#636366] hover:text-[#C9A227] hover:bg-[#C9A227]/10 rounded p-0.5">
-                        <ArrowDownToLine size={14} />
-                      </button>
-                      <button onClick={() => removeFromSlot(slot)} aria-label={`Remove ${p.name}`} className="text-[#636366] hover:text-red-400 hover:bg-red-500/10 rounded p-0.5">
-                        <X size={14} />
-                      </button>
+                      <span className={`mono-font text-sm font-medium ${locked ? "text-emerald-400" : "text-[#C9A227]"}`}>
+                        {effectivePoints(p)}
+                      </span>
+                      {!locked && (
+                        <>
+                          <button onClick={() => moveToBench(p)} aria-label={`Move ${p.name} to bench`} title="Move to bench" className="text-[#636366] hover:text-[#C9A227] hover:bg-[#C9A227]/10 rounded p-0.5">
+                            <ArrowDownToLine size={14} />
+                          </button>
+                          <button onClick={() => removeFromSlot(slot)} aria-label={`Remove ${p.name}`} className="text-[#636366] hover:text-red-400 hover:bg-red-500/10 rounded p-0.5">
+                            <X size={14} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -147,15 +183,23 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
             {bench.map((id) => {
               const p = playerById(id);
               if (!p) return null;
+              const locked = isPlayerLocked(p);
               return (
                 <div
                   key={id}
-                  onPointerDown={(e) => handleDragStart(e, p)}
-                  className="hover-lift flex items-center justify-between bg-[#1C1C1E]/60 border border-[#38383A]/60 rounded-lg px-3 py-1.5 cursor-grab active:cursor-grabbing touch-none"
+                  onPointerDown={(e) => dragStartIfUnlocked(e, p)}
+                  className={`hover-lift flex items-center justify-between bg-[#1C1C1E]/60 border border-[#38383A]/60 rounded-lg px-3 py-1.5 touch-none ${
+                    locked ? "cursor-default" : "cursor-grab active:cursor-grabbing"
+                  }`}
                 >
                   <div className="min-w-0">
                     <div className="text-sm flex items-center gap-1">
-                      <PlayerNameLink name={p.name} hasNews={playerHasNews(p.id)} onOpen={() => openPlayerNews(p.id)} />
+                      <PlayerNameLink
+                        name={p.name}
+                        hasNews={playerHasNews(p.id)}
+                        onOpen={() => openPlayerNews(p.id)}
+                        className={locked ? "text-emerald-400" : ""}
+                      />
                       <PosBadge pos={p.pos} className="rounded" />
                     </div>
                     <div className="text-[11px] text-[#98989D] flex items-center gap-1.5 flex-wrap mt-0.5">
@@ -163,13 +207,18 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                         {p.team} · bye {p.bye}
                       </span>
                       <MatchupBadge matchup={matchupForPlayer(p)} />
+                      {locked && <LockBadge label="Can't start" />}
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5 shrink-0">
-                    <span className="mono-font text-sm text-[#C9A227] font-medium">{p.proj}</span>
-                    <button onClick={() => quickStart(p)} aria-label={`Move ${p.name} to starting lineup`} title="Move to starting lineup" className="text-[#636366] hover:text-[#C9A227] hover:bg-[#C9A227]/10 rounded p-0.5">
-                      <ArrowUpFromLine size={14} />
-                    </button>
+                    <span className={`mono-font text-sm font-medium ${locked ? "text-emerald-400" : "text-[#C9A227]"}`}>
+                      {effectivePoints(p)}
+                    </span>
+                    {!locked && (
+                      <button onClick={() => quickStart(p)} aria-label={`Move ${p.name} to starting lineup`} title="Move to starting lineup" className="text-[#636366] hover:text-[#C9A227] hover:bg-[#C9A227]/10 rounded p-0.5">
+                        <ArrowUpFromLine size={14} />
+                      </button>
+                    )}
                     <button onClick={() => removeFromBench(id)} aria-label={`Remove ${p.name} from bench`} className="text-[#98989D] hover:text-red-400 hover:bg-red-500/10 rounded p-0.5">
                       <X size={14} />
                     </button>
@@ -230,7 +279,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <span className="mono-font text-sm text-[#C9A227] font-medium">{p.proj}</span>
-                <AddPlayerActions player={p} roster={roster} onAddToSlot={addToSlot} onAddToBench={addToBench} />
+                <AddPlayerActions player={p} roster={roster} onAddToSlot={addToSlot} onAddToBench={addToBench} locked={isPlayerLocked(p)} />
               </div>
             </div>
           ))}

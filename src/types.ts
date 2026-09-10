@@ -125,6 +125,11 @@ export interface PlayerMatchup {
   propLine: { label: string; grade: MatchupGrade } | null;
   /** Human-readable summary, e.g. "vs SEA — implied 24.3 pts, 68.5 proj. rush yds". */
   label: string;
+  /** Live status of the player's NFL game this week -- "pre" (not started),
+   * "in" (live), "post" (final), or null on a bye. Once a starter's game
+   * reaches "in" or "post" their lineup slot locks for the rest of the week
+   * -- see isPlayerLocked in useFantasyApp. */
+  gameState: "pre" | "in" | "post" | null;
 }
 
 /** A suggestion to start a bench player over a current starter -- see
@@ -175,7 +180,7 @@ export interface TradeSuggestion {
 
 export type TradeHorizon = "week" | "season";
 
-export type TabId = "roster" | "freeagents" | "lineup" | "trade" | "coach" | "league" | "news" | "chat";
+export type TabId = "roster" | "freeagents" | "lineup" | "matchup" | "trade" | "coach" | "league" | "news" | "chat";
 
 export interface RefreshProgress {
   done: number;

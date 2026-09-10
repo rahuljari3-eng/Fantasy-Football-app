@@ -1,12 +1,40 @@
+import { useEffect } from "react";
 import { Activity, AlertTriangle } from "lucide-react";
 import { SLOTS } from "../config/league";
 import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
+import { LockBadge } from "../components/LockBadge";
 import { statusColor } from "../lib/format";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 
+// Live game state (which drives the roster-lock rule) only ever changes
+// while games are being played, so this is polled while the page is open --
+// same idea as the League tab's standings poll.
+const GAME_STATE_POLL_MS = 30_000;
+
 export function LineupPage({ app }: { app: FantasyApp }) {
-  const { roster, playerById, rosterTotal, autoOptimize, playerHasNews, openPlayerNews } = app;
+  const {
+    roster,
+    playerById,
+    rosterTotal,
+    autoOptimize,
+    playerHasNews,
+    openPlayerNews,
+    isPlayerLocked,
+    effectivePoints,
+    refreshMatchups,
+    refreshLiveLineups,
+  } = app;
+
+  useEffect(() => {
+    refreshMatchups();
+    refreshLiveLineups();
+    const interval = setInterval(() => {
+      refreshMatchups();
+      refreshLiveLineups();
+    }, GAME_STATE_POLL_MS);
+    return () => clearInterval(interval);
+  }, [refreshMatchups, refreshLiveLineups]);
 
   return (
     <div className="space-y-4">
@@ -32,6 +60,7 @@ export function LineupPage({ app }: { app: FantasyApp }) {
           {SLOTS.map((slot) => {
             const id = roster[slot];
             const p = id != null ? playerById(id) : null;
+            const locked = p ? isPlayerLocked(p) : false;
             return (
               <div key={slot} className={`flex items-center justify-between rounded-lg px-3 py-2 border ${p ? "bg-[#000000] border-[#38383A]/60" : "bg-[#000000]/40 border-[#38383A]/40 border-dashed"}`}>
                 <div className="flex items-center gap-2 min-w-0">
@@ -44,8 +73,9 @@ export function LineupPage({ app }: { app: FantasyApp }) {
                           name={p.name}
                           hasNews={playerHasNews(p.id)}
                           onOpen={() => openPlayerNews(p.id)}
-                          className="text-sm truncate"
+                          className={`text-sm truncate ${locked ? "text-emerald-400" : ""}`}
                         />
+                        {locked && <LockBadge />}
                         {p.status !== "Healthy" && (
                           playerHasNews(p.id) ? (
                             <button
@@ -68,7 +98,11 @@ export function LineupPage({ app }: { app: FantasyApp }) {
                     <span className="text-sm text-[#636366] italic">Empty</span>
                   )}
                 </div>
-                {p && <span className="mono-font text-sm text-[#C9A227] font-medium shrink-0">{p.proj}</span>}
+                {p && (
+                  <span className={`mono-font text-sm font-medium shrink-0 ${locked ? "text-emerald-400" : "text-[#C9A227]"}`}>
+                    {effectivePoints(p)}
+                  </span>
+                )}
               </div>
             );
           })}

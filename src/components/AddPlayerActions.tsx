@@ -9,16 +9,20 @@ export function AddPlayerActions({
   roster,
   onAddToSlot,
   onAddToBench,
+  locked = false,
 }: {
   player: Player;
   roster: RosterAssignments;
   onAddToSlot: (slot: RosterSlotId, player: Player) => void;
   onAddToBench: (player: Player) => void;
+  /** True if this player's own game has already started -- they can still be
+   * added to the bench, but not directly into a starting slot. */
+  locked?: boolean;
 }) {
   const openEligibleSlot = SLOTS.find((s) => SLOT_ELIGIBILITY[s].includes(player.pos) && !roster[s]);
   return (
     <div className="flex gap-1">
-      {openEligibleSlot && (
+      {openEligibleSlot && !locked && (
         <button
           onClick={() => onAddToSlot(openEligibleSlot, player)}
           className="text-[11px] bg-[#C9A227] text-[#000000] font-semibold px-2 py-1 rounded-md hover:bg-[#e0b82e]"

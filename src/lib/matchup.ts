@@ -34,13 +34,28 @@ interface EspnCompetition {
   odds?: EspnOdds[];
   date?: string;
 }
+interface EspnEventStatus {
+  type?: { state?: string };
+}
 interface EspnEvent {
   id?: string;
   competitions?: EspnCompetition[];
+  status?: EspnEventStatus;
 }
 interface EspnScoreboardResponse {
   week?: { number?: number };
   events?: EspnEvent[];
+}
+
+/** Where a game actually is right now: hasn't kicked off, live, or final.
+ * Drives the roster-lock rule -- see gameState on PlayerMatchup below. */
+export type GameState = "pre" | "in" | "post";
+
+function normalizeGameState(raw: string | undefined): GameState {
+  if (raw === "in" || raw === "post") return raw;
+  // Unknown/missing state fails open (treated as "pre") rather than locking
+  // a player's slot on a data hiccup.
+  return "pre";
 }
 
 export interface TeamMatchup {
@@ -52,6 +67,8 @@ export interface TeamMatchup {
   /** The opponent's implied point total -- what a DST is actually graded on. */
   opponentImpliedTotal: number | null;
   kickoff: string | null;
+  /** Live status of this team's game this week. */
+  state: GameState;
 }
 
 /** A player's own posted yardage prop lines for the week, whichever the
@@ -164,12 +181,15 @@ export async function fetchWeeklyMatchups(): Promise<WeeklyMatchups> {
       awayImplied = Math.round((odds.overUnder / 2 + odds.spread / 2) * 10) / 10;
     }
 
+    const state = normalizeGameState(ev.status?.type?.state);
+
     teams[homeAbbr] = {
       opponent: awayAbbr,
       homeAway: "home",
       impliedTeamTotal: homeImplied,
       opponentImpliedTotal: awayImplied,
       kickoff: comp.date ?? null,
+      state,
     };
     teams[awayAbbr] = {
       opponent: homeAbbr,
@@ -177,6 +197,7 @@ export async function fetchWeeklyMatchups(): Promise<WeeklyMatchups> {
       impliedTeamTotal: awayImplied,
       opponentImpliedTotal: homeImplied,
       kickoff: comp.date ?? null,
+      state,
     };
   });
 
@@ -299,13 +320,13 @@ function gradePlayerProp(pos: Position, playerId: number, matchups: WeeklyMatchu
 export function gradeMatchup(player: Pick<Player, "id" | "pos" | "team">, matchups: WeeklyMatchups): PlayerMatchup {
   const t = matchups.teams[player.team];
   if (!t) {
-    return { opponent: null, homeAway: null, isBye: true, grade: null, impliedTotal: null, propLine: null, label: "Bye week" };
+    return { opponent: null, homeAway: null, isBye: true, grade: null, impliedTotal: null, propLine: null, label: "Bye week", gameState: null };
   }
 
   const oppLabel = t.homeAway === "home" ? `vs ${t.opponent}` : `@ ${t.opponent}`;
   const relevant = player.pos === "DST" ? t.opponentImpliedTotal : t.impliedTeamTotal;
   if (relevant == null) {
-    return { opponent: t.opponent, homeAway: t.homeAway, isBye: false, grade: null, impliedTotal: null, propLine: null, label: oppLabel };
+    return { opponent: t.opponent, homeAway: t.homeAway, isBye: false, grade: null, impliedTotal: null, propLine: null, label: oppLabel, gameState: t.state };
   }
 
   const teamGrade = player.pos === "DST" ? gradeDefenseImplied(relevant) : gradeOffenseImplied(relevant);
@@ -323,5 +344,6 @@ export function gradeMatchup(player: Pick<Player, "id" | "pos" | "team">, matchu
     impliedTotal: relevant,
     propLine: prop ? { label: prop.label, grade: prop.grade } : null,
     label,
+    gameState: t.state,
   };
 }

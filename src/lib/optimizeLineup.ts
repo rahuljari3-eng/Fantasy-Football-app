@@ -7,6 +7,10 @@ export interface OptimizeLineupOptions {
   byeWeek?: number;
   /** Exclude "Out" by default; set false only for diagnostics. */
   excludeOut?: boolean;
+  /** Slots whose occupant is locked in for the week (their game has already
+   * started) and must be preserved exactly rather than optimized over --
+   * see isPlayerLocked in useFantasyApp. */
+  lockedAssignments?: RosterAssignments;
 }
 
 export interface OptimizeLineupResult {
@@ -41,10 +45,22 @@ export function optimizeLineup(players: Player[], opts: OptimizeLineupOptions = 
   const chosen = new Set<number>();
   const newRoster: RosterAssignments = {};
 
+  // Locked slots are pinned exactly as-is before the greedy fill runs, and
+  // excluded from the pool so they can't also get picked for another slot.
+  if (opts.lockedAssignments) {
+    for (const slot of SLOTS) {
+      const id = opts.lockedAssignments[slot];
+      if (id == null) continue;
+      newRoster[slot] = id;
+      chosen.add(id);
+    }
+  }
+
   const byProj = (pos: Position) =>
     usable.filter((p) => p.pos === pos && !chosen.has(p.id)).sort((a, b) => b.proj - a.proj);
 
   const take = (slot: RosterSlotId, player: Player | undefined) => {
+    if (newRoster[slot] != null) return; // already locked
     if (!player) return;
     newRoster[slot] = player.id;
     chosen.add(player.id);
@@ -64,7 +80,10 @@ export function optimizeLineup(players: Player[], opts: OptimizeLineupOptions = 
   take("DST", byProj("DST")[0]);
   take("K", byProj("K")[0]);
 
-  const byId = new Map(usable.map((p) => [p.id, p]));
+  // Built from the full input pool (not just `usable`) so a locked player who
+  // was pinned above still has their projection counted even if they'd
+  // otherwise have been filtered out (e.g. flagged "Out").
+  const byId = new Map(players.map((p) => [p.id, p]));
   let projectedTotal = 0;
   const emptySlots: RosterSlotId[] = [];
   for (const slot of SLOTS) {

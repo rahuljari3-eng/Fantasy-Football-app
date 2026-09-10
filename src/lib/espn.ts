@@ -28,7 +28,13 @@ interface EspnPlayer {
   stats?: EspnStatLine[];
 }
 interface EspnRosterEntry {
-  playerPoolEntry?: { player?: EspnPlayer };
+  playerPoolEntry?: {
+    player?: EspnPlayer;
+    /** ESPN's own live/current total for this player this scoring period --
+     * equals their projection before kickoff, then their real accumulating
+     * score once the game has started. */
+    appliedStatTotal?: number;
+  };
   lineupSlotId?: number;
 }
 interface EspnTeam {
@@ -117,6 +123,42 @@ export async function fetchEspnLineups(): Promise<Record<number, Record<number, 
       slots[player.id] = ESPN_LINEUP_SLOT_LABEL[e.lineupSlotId] ?? "BE";
     });
     lineups[t.id] = slots;
+  });
+
+  return lineups;
+}
+
+export interface EspnLiveLineupEntry {
+  slot: string;
+  /** ESPN's own live/current total for this player this scoring period --
+   * their projection before kickoff, their real accumulating score once the
+   * game has started. */
+  liveScore: number;
+}
+
+/** Same idea as fetchEspnLineups, but also carries each player's live score
+ * (ESPN's own appliedStatTotal) -- what the Matchup tab needs to total up a
+ * team's real starting lineup for the current week, including anyone who's
+ * already locked in and racking up actual points. */
+export async function fetchEspnLiveLineups(): Promise<Record<number, Record<number, EspnLiveLineupEntry>>> {
+  const res = await fetch(`${ESPN_LEAGUE_BASE_URL}?view=mRoster&view=mTeam`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`ESPN request failed (${res.status})`);
+  const data = (await res.json()) as EspnLeagueResponse;
+  const lineups: Record<number, Record<number, EspnLiveLineupEntry>> = {};
+
+  (data.teams || []).forEach((t) => {
+    const entries: Record<number, EspnLiveLineupEntry> = {};
+    (t.roster?.entries || []).forEach((e) => {
+      const player = e.playerPoolEntry?.player;
+      if (!player || e.lineupSlotId == null) return;
+      entries[player.id] = {
+        slot: ESPN_LINEUP_SLOT_LABEL[e.lineupSlotId] ?? "BE",
+        liveScore: Math.round((e.playerPoolEntry?.appliedStatTotal ?? 0) * 10) / 10,
+      };
+    });
+    lineups[t.id] = entries;
   });
 
   return lineups;
