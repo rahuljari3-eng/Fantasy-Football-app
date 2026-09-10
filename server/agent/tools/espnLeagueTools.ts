@@ -105,7 +105,7 @@ export const getStandingsTool: ToolDefinition = {
 export const getPlayoffOddsTool: ToolDefinition = {
   name: "get_playoff_odds",
   description:
-    "Playoff race outlook for the league (same engine as the League tab's Playoff Race view): Monte Carlo makeOdds %, clinched/eliminated/alive status, winsNeededToClinch, controlsOwnDestiny, gamesBackOfCutoff, blockingTeams, remaining schedule, and a human-readable summary per team. Use for 'playoff odds', 'am I in?', 'what do I need to clinch', or who is eliminated.",
+    "Playoff race outlook for the league (same engine as the League tab's Playoff Race view): Monte Carlo makeOdds %, clinched/eliminated/alive status, winsNeededToClinch (e.g. 3 of 5 remaining), controlsOwnDestiny, gamesBackOfCutoff, teamsThatCanFinishAhead / teamsThatCanTieOnRecord, remaining schedule, and a human-readable summary per team. Use for 'playoff odds', 'am I in?', 'what do I need to clinch', or who is eliminated.",
   parameters: {
     type: "object",
     properties: {
@@ -172,12 +172,14 @@ export const getPlayoffOddsTool: ToolDefinition = {
         controlsOwnDestiny: o.controlsOwnDestiny,
         winsNeededToClinch: o.winsNeededToClinch,
         gamesBackOfCutoff: o.gamesBackOfCutoff,
+        teamsThatCanFinishAhead: o.teamsThatCanFinishAhead,
+        teamsThatCanTieOnRecord: o.teamsThatCanTieOnRecord,
         blockingTeams: o.blockingTeams,
         remaining: o.remaining,
         summary: o.summary,
       })),
       note:
-        "makeOdds is a Monte Carlo estimate (0–100); clinched/eliminated are exact math. Quote each team's summary and makeOdds — do not invent clinch scenarios. winsNeededToClinch is null when even winning out does not guarantee a spot (needs help from blockingTeams).",
+        "makeOdds is a Monte Carlo estimate (0–100); clinched/eliminated/controlsOwnDestiny are exact schedule-aware math. ALWAYS quote summary verbatim for clinch language. When controlsOwnDestiny is true, also quote winsNeededToClinch vs gamesRemaining (e.g. \"win 3 of the last 5\") — do not say win-out unless winsNeededToClinch equals gamesRemaining. If controlsOwnDestiny is false, say so; if summary mentions points for, PF is the tiebreaker for berths among tied records.",
     };
   },
 };
