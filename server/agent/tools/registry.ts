@@ -14,8 +14,11 @@ import { optimizeLineupTool, suggestTradesTool } from "./coachTools.js";
 import {
   getCompletedTradesTool,
   getMatchupTool,
+  getPlayerPerformanceTool,
   getPlayoffOddsTool,
   getStandingsTool,
+  getTeamWeekScoreTool,
+  getWeekScorersTool,
   syncRostersTool,
 } from "./espnLeagueTools.js";
 import { getByeCalendarTool, getLeagueContextTool, getMyRosterTool, listTeamsTool } from "./localTools.js";
@@ -48,6 +51,9 @@ const TOOLS: ToolDefinition[] = [
   getStandingsTool,
   getPlayoffOddsTool,
   getMatchupTool,
+  getPlayerPerformanceTool,
+  getTeamWeekScoreTool,
+  getWeekScorersTool,
   syncRostersTool,
   getCompletedTradesTool,
   optimizeLineupTool,

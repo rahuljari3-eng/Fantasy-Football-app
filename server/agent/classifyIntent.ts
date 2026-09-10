@@ -24,7 +24,8 @@ export async function classifySenseiIntents(
     "- Prefer specific intents over general.",
     "- ANY question about news, injury, health, questionable/doubtful status, 'latest on X', 'update on X', or 'what's going on with X' MUST include intent \"news\".",
     "- Use multiple intents when the question spans categories (e.g. start/sit + injury news → [\"start_sit\",\"news\"]).",
-    "- trades = propose/grade packages, 'what would it take to get X', OR completed trade history / what already traded; waivers = adds/drops/FA; news = injuries/headlines; matchup = fantasy opponent/scoreboard; schedule = NFL opponents/byes/ROS slate; standings = W-L/playoff race/playoff odds/clinch; start_sit = lineup/flex/who to start; general = only if nothing else fits.",
+    "- trades = propose/grade packages, 'what would it take to get X', OR completed trade history / what already traded; waivers = adds/drops/FA; news = injuries/headlines; matchup = fantasy opponent/scoreboard; schedule = NFL opponents/byes/ROS slate; standings = W-L/playoff race/playoff odds/clinch; performance = how a player did, fantasy points scored, box score, game log, top scorers tonight/this week, a fantasy team's week total/contributors; start_sit = lineup/flex/who to start; general = only if nothing else fits.",
+    "- 'how did X do', 'what did X score', 'who scored the most tonight', box score, game-log, team week total, or PPG questions MUST include intent \"performance\" (not just news or general).",
     "- clarifyingQuestion only if the user question is too ambiguous to research (else null).",
   ].join("\n");
 

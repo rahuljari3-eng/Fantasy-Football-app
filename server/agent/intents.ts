@@ -8,6 +8,7 @@ export const SENSEI_INTENTS = [
   "matchup",
   "schedule",
   "standings",
+  "performance",
   "general",
 ] as const;
 
@@ -56,7 +57,15 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "get_news_for_player",
   ],
   news: ["get_news_feed", "get_news_for_player", "get_player"],
-  matchup: ["get_matchup", "get_standings", "get_playoff_odds", "get_player_schedule", "get_bye_calendar"],
+  matchup: [
+    "get_matchup",
+    "get_team_week_score",
+    "get_week_scorers",
+    "get_standings",
+    "get_playoff_odds",
+    "get_player_schedule",
+    "get_bye_calendar",
+  ],
   schedule: [
     "get_nfl_schedule",
     "get_player_schedule",
@@ -65,6 +74,15 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "get_bye_calendar",
   ],
   standings: ["get_standings", "get_playoff_odds", "get_matchup"],
+  performance: [
+    "get_player_performance",
+    "get_week_scorers",
+    "get_team_week_score",
+    "get_news_for_player",
+    "get_player",
+    "get_matchup",
+    "list_teams",
+  ],
   general: [], // means "all tools" — handled in merge
 };
 
@@ -116,8 +134,8 @@ const INTENT_CHECKLISTS: Record<SenseiIntent, ChecklistItem[]> = {
   matchup: [
     {
       id: "fantasy_matchup",
-      description: "Load this week's fantasy matchup / scoreboard",
-      satisfiedBy: ["get_matchup"],
+      description: "Load this week's fantasy matchup / scoreboard and/or a team's week score",
+      satisfiedBy: ["get_matchup", "get_team_week_score"],
     },
   ],
   schedule: [
@@ -138,6 +156,14 @@ const INTENT_CHECKLISTS: Record<SenseiIntent, ChecklistItem[]> = {
       id: "standings_table",
       description: "Load live standings and/or playoff-race odds",
       satisfiedBy: ["get_standings", "get_playoff_odds"],
+    },
+  ],
+  performance: [
+    {
+      id: "player_actuals",
+      description:
+        "Load actual fantasy points — a named player, week/tonight leaderboard, or a fantasy team's week scoreboard",
+      satisfiedBy: ["get_player_performance", "get_week_scorers", "get_team_week_score"],
     },
   ],
   general: [],
@@ -242,6 +268,16 @@ export function heuristicIntents(message: string): SenseiIntent[] {
   if (/\b(schedule|bye|playoff weeks|ros schedule|upcoming opponents)\b/.test(m)) out.push("schedule");
   if (/\b(standing|standings|playoff race|playoff odds|clinch|eliminated|make the playoffs|record)\b/.test(m)) {
     out.push("standings");
+  }
+  if (
+    /\b(how did|what did .+ score|box ?score|game log|scored today|points today|last night|do today|do yesterday|final line|boxscore)\b/.test(
+      m
+    ) ||
+    /\b(most (fantasy )?points|top scorers?|who scored|tonight'?s game|today'?s game|total score|who (has )?contributed|points so far|average points|ppg|per game)\b/.test(
+      m
+    )
+  ) {
+    out.push("performance");
   }
   return out;
 }

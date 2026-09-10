@@ -10,11 +10,47 @@ import {
 } from "../../../src/lib/espnLeague.js";
 import { fetchLeagueScheduleSnapshot } from "../../../src/lib/leagueSchedule.js";
 import { optimizeLineup } from "../../../src/lib/optimizeLineup.js";
+import {
+  fetchPlayerPerformance,
+  fetchTeamWeekScore,
+  fetchTopScorers,
+} from "../../../src/lib/playerPerformance.js";
 import { computePlayoffOutlook } from "../../../src/lib/playoffOdds.js";
 import { fairnessRatio, packageValue, ratioIsFair, starGateOk } from "../../../src/lib/tradeEngine.js";
 import type { LeagueTeam, Player } from "../../../src/types.js";
-import { activeTeams, allKnownPlayers, findTeamByIdOrName, serializePlayer, teamPlayersRanked } from "./leagueData.js";
+import {
+  activeTeams,
+  allKnownPlayers,
+  findPlayers,
+  findTeamByIdOrName,
+  serializePlayer,
+  teamPlayersRanked,
+} from "./leagueData.js";
 import type { ToolDefinition } from "./types.js";
+
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+/** Resolve a fantasy team by id, team name, abbrev-ish name, or owner name. */
+function resolveFantasyTeam(query: string | number | undefined, fallbackId?: number): LeagueTeam | null {
+  if (typeof query === "number") return findTeamByIdOrName(query) ?? null;
+  if (typeof query === "string" && /^\d+$/.test(query.trim())) {
+    return findTeamByIdOrName(Number(query.trim())) ?? null;
+  }
+  if (typeof query === "string" && query.trim()) {
+    const q = query.trim().toLowerCase();
+    const teams = activeTeams();
+    const exact = teams.find((t) => t.name.toLowerCase() === q || t.owner.toLowerCase() === q);
+    if (exact) return exact;
+    const partial = teams.find(
+      (t) => t.name.toLowerCase().includes(q) || t.owner.toLowerCase().includes(q) || q.includes(t.name.toLowerCase())
+    );
+    if (partial) return partial;
+  }
+  if (fallbackId != null) return findTeamByIdOrName(fallbackId) ?? null;
+  return null;
+}
 
 function completedTradeVerdict(
   ratio: number,
@@ -181,6 +217,236 @@ export const getMatchupTool: ToolDefinition = {
         teamId != null && filtered.length === 0
           ? "No matchup found for that teamId this week — ESPN team ids may differ from the bundled snapshot; call sync_rosters or list_teams after sync."
           : undefined,
+    };
+  },
+};
+
+export const getPlayerPerformanceTool: ToolDefinition = {
+  name: "get_player_performance",
+  description:
+    "How ONE named player actually did in a fantasy week (and recent game log): actual fantasy points, projection, scoring breakdown, NFL game result, box-score line. Requires a player name/id. For 'who scored the most tonight/today' use get_week_scorers; for a fantasy team's week total / contributors use get_team_week_score. Do NOT use get_player alone for final scores.",
+  parameters: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description: "Player name or ESPN id",
+      },
+      week: {
+        type: "number",
+        description: "Fantasy scoring period / week. Defaults to ESPN's current week.",
+      },
+      includeBoxScore: {
+        type: "boolean",
+        description: "Include NFL box-score line when a final/live game is linked (default true).",
+      },
+    },
+    required: ["query"],
+    additionalProperties: false,
+  },
+  handler: async (_ctx, args) => {
+    if (typeof args.query !== "string" && typeof args.query !== "number") {
+      return { ok: false, error: "query_required" };
+    }
+    const hits = findPlayers(args.query, 1);
+    if (!hits.length) return { ok: false, error: "player_not_found", query: args.query };
+    const player = hits[0];
+    const week = typeof args.week === "number" ? args.week : undefined;
+    const includeBoxScore = args.includeBoxScore !== false;
+
+    const perf = await fetchPlayerPerformance(player.id, week, { includeNflBoxScore: includeBoxScore });
+    if (!perf) {
+      return {
+        ok: false,
+        error: "performance_unavailable",
+        player: serializePlayer(player),
+        note: "Could not load ESPN actuals for this player.",
+      };
+    }
+
+    const tw = perf.thisWeek;
+    const statusNote =
+      tw.actualPoints != null
+        ? tw.game?.status
+          ? `Actuals are in (${tw.game.status}).`
+          : "Actual fantasy points are available for this week."
+        : tw.projectedPoints != null
+          ? "No actual fantasy points yet for this week — game may still be scheduled or in progress. projectedPoints is ESPN's projection, not a final score."
+          : "No actual or projected scoring line for this week yet.";
+
+    return {
+      ok: true,
+      player: serializePlayer(player),
+      ownedBy: perf.fantasyTeamId != null ? { teamId: perf.fantasyTeamId, teamName: perf.fantasyTeamName } : null,
+      currentWeek: perf.currentWeek,
+      week: perf.week,
+      thisWeek: {
+        actualPoints: tw.actualPoints,
+        projectedPoints: tw.projectedPoints,
+        vsProjection:
+          tw.actualPoints != null && tw.projectedPoints != null
+            ? round1(tw.actualPoints - tw.projectedPoints)
+            : null,
+        fantasyBreakdown: tw.fantasyBreakdown,
+        game: tw.game,
+        nflBoxLine: tw.nflBoxLine
+          ? {
+              category: tw.nflBoxLine.category,
+              line: Object.fromEntries(
+                tw.nflBoxLine.labels.map((label, i) => [label, tw.nflBoxLine!.stats[i] ?? null])
+              ),
+            }
+          : null,
+      },
+      gameLog: perf.gameLog.map((g) => ({
+        week: g.week,
+        actualPoints: g.actualPoints,
+        projectedPoints: g.projectedPoints,
+        game: g.game,
+        fantasyBreakdown: g.fantasyBreakdown,
+        nflBoxLine: g.nflBoxLine
+          ? {
+              category: g.nflBoxLine.category,
+              line: Object.fromEntries(g.nflBoxLine.labels.map((label, i) => [label, g.nflBoxLine!.stats[i] ?? null])),
+            }
+          : null,
+      })),
+      seasonToDate: perf.seasonToDate,
+      note: `${statusNote} Quote thisWeek.actualPoints (and nflBoxLine / fantasyBreakdown) for "how did they do" answers — never substitute weekValue/proj from get_player as if it were the final score.`,
+    };
+  },
+};
+
+export const getTeamWeekScoreTool: ToolDefinition = {
+  name: "get_team_week_score",
+  description:
+    "Fantasy team's full week scoreboard: every rostered player's actual + projected points, starter vs bench, and who has contributed so far. Use for 'what's my/X's score this week', 'who scored for Kareem Pies', or team totals. Do NOT reconstruct this by calling get_player_performance one player at a time — you will miss scorers.",
+  parameters: {
+    type: "object",
+    properties: {
+      team: {
+        type: "string",
+        description: "Fantasy team name, owner name, or team id. Defaults to the managed team.",
+      },
+      week: {
+        type: "number",
+        description: "Scoring period / week. Defaults to current week.",
+      },
+    },
+    additionalProperties: false,
+  },
+  handler: async (ctx, args) => {
+    const team = resolveFantasyTeam(
+      typeof args.team === "string" || typeof args.team === "number" ? args.team : undefined,
+      ctx.managedTeamId
+    );
+    if (!team) return { ok: false, error: "team_not_found", query: args.team ?? ctx.managedTeamId };
+    const week = typeof args.week === "number" ? args.week : undefined;
+    const score = await fetchTeamWeekScore(team.id, week);
+    if (!score) return { ok: false, error: "team_week_unavailable", teamId: team.id, teamName: team.name };
+
+    return {
+      ok: true,
+      team: { id: team.id, name: team.name, owner: team.owner },
+      week: score.week,
+      currentWeek: score.currentWeek,
+      starterActualTotal: score.starterActualTotal,
+      benchActualTotal: score.benchActualTotal,
+      starterProjectedRemaining: score.starterProjectedRemaining,
+      contributors: score.contributors.map((p) => ({
+        name: p.name,
+        playerId: p.playerId,
+        slot: p.slot,
+        isStarter: p.isStarter,
+        actualPoints: p.actualPoints,
+        game: p.game,
+      })),
+      benchContributors: score.benchContributors.map((p) => ({
+        name: p.name,
+        playerId: p.playerId,
+        slot: p.slot,
+        actualPoints: p.actualPoints,
+        game: p.game,
+      })),
+      players: score.players.map((p) => ({
+        name: p.name,
+        playerId: p.playerId,
+        slot: p.slot,
+        isStarter: p.isStarter,
+        actualPoints: p.actualPoints,
+        projectedPoints: p.projectedPoints,
+        game: p.game,
+      })),
+      note:
+        "starterActualTotal is the fantasy matchup total so far (starters only) — quote contributors for who made up that total. benchContributors scored but do not count toward the matchup total. Players with actualPoints null have not played / no scoring line yet.",
+    };
+  },
+};
+
+export const getWeekScorersTool: ToolDefinition = {
+  name: "get_week_scorers",
+  description:
+    "Leaderboard of fantasy points scored this week across the league. Use for 'who got the most points tonight/today/this week', 'top scorers', or scoring in a specific NFL game. Set tonightOnly=true for tonight's/today's completed or in-progress NFL games (no player name needed). Optional eventId scopes to one NFL game.",
+  parameters: {
+    type: "object",
+    properties: {
+      week: {
+        type: "number",
+        description: "Scoring period / week. Defaults to current week.",
+      },
+      tonightOnly: {
+        type: "boolean",
+        description:
+          "If true, only players whose scoring line is tied to a final or in-progress NFL game on today's scoreboard (answers 'tonight' / 'today's game').",
+      },
+      eventId: {
+        type: "string",
+        description: "Optional ESPN NFL event id to scope scorers to one game.",
+      },
+      limit: {
+        type: "number",
+        description: "Max scorers to return (default 15, max 50).",
+      },
+    },
+    additionalProperties: false,
+  },
+  handler: async (_ctx, args) => {
+    const week = typeof args.week === "number" ? args.week : undefined;
+    const tonightOnly = args.tonightOnly === true;
+    const eventId = typeof args.eventId === "string" ? args.eventId : undefined;
+    const limit = typeof args.limit === "number" ? args.limit : 15;
+
+    const result = await fetchTopScorers({ week, tonightOnly, eventId, limit, minPoints: 0 });
+    const top = result.scorers[0] ?? null;
+
+    return {
+      ok: true,
+      week: result.week,
+      currentWeek: result.currentWeek,
+      scope: result.scope,
+      games: result.games,
+      topScorer: top
+        ? {
+            name: top.name,
+            actualPoints: top.actualPoints,
+            fantasyTeamName: top.fantasyTeamName,
+            game: top.game,
+          }
+        : null,
+      scorers: result.scorers.map((p, i) => ({
+        rank: i + 1,
+        name: p.name,
+        playerId: p.playerId,
+        actualPoints: p.actualPoints,
+        fantasyTeamName: p.fantasyTeamName,
+        slot: p.slot,
+        game: p.game,
+        eventId: p.eventId,
+      })),
+      note:
+        result.scorers.length === 0
+          ? "No fantasy actuals matched this scope yet — games may still be scheduled. Do not invent scorers; say so."
+          : "Quote topScorer / scorers[].actualPoints directly. For 'who scored the most tonight', use tonightOnly=true rather than inventing a player name for get_player_performance.",
     };
   },
 };
