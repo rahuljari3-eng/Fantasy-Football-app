@@ -19,9 +19,9 @@ export const MY_TEAM_PLAYERS: Player[] = [
   { id: 2976212, name: "Stefon Diggs", pos: "WR", team: "WSH", bye: 7, proj: 9.7, tier: 1, status: "Healthy" },
   { id: -16007, name: "Broncos D/ST", pos: "DST", team: "DEN", bye: 10, proj: 5.9, tier: 1, status: "Healthy" },
   { id: 4686361, name: "Cam Little", pos: "K", team: "JAX", bye: 7, proj: 8.8, tier: 1, status: "Healthy" },
-  { id: 4685247, name: "Braelon Allen", pos: "RB", team: "NYJ", bye: 13, proj: 4.6, tier: 3, status: "Healthy" },
   { id: 3929645, name: "Juwan Johnson", pos: "TE", team: "NO", bye: 8, proj: 8.8, tier: 2, status: "Healthy" },
   { id: 4429023, name: "MarShawn Lloyd", pos: "RB", team: "GB", bye: 11, proj: 12.9, tier: 2, status: "Healthy" },
+  { id: 4429086, name: "Michael Mayer", pos: "TE", team: "LV", bye: 13, proj: 9.3, tier: 3, status: "Healthy" },
 ];
 
 // Which ESPN lineup slot each of your players was starting in, so your team
@@ -34,7 +34,7 @@ const MY_TEAM_LINEUP: Record<number, string> = {
   4426515: "WR", // Puka Nacua
   4372016: "WR", // Jaylen Waddle
   3915416: "FLEX", // DJ Moore
-  4432665: "TE", // Brock Bowers
+  4429086: "TE", // Michael Mayer
   [-16007]: "DST", // Broncos D/ST
   4686361: "K", // Cam Little
 };

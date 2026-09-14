@@ -20,7 +20,9 @@ export const ESPN_INJURY_LABEL_MAP: Record<string, PlayerStatus> = {
 interface EspnStatLine {
   statSourceId: number;
   scoringPeriodId: number;
+  statSplitTypeId?: number;
   appliedTotal?: number;
+  appliedAverage?: number;
 }
 interface EspnPlayer {
   id: number;
@@ -69,10 +71,30 @@ export function extractEspnProjection(stats: EspnStatLine[] | undefined, scoring
   return match ? Math.round((match.appliedTotal ?? 0) * 10) / 10 : null;
 }
 
+/** ESPN's own full-season points-per-game projection (statSourceId 1 =
+ * projection, scoringPeriodId 0 = season-level rather than one week) -- see
+ * Player.seasonProj. Unlike extractEspnProjection, this doesn't collapse to
+ * ~0 for a player who's Questionable/Doubtful/Out this particular week; it's
+ * ESPN's season-long model, so a short absence barely moves it. ESPN sends a
+ * couple of season-level entries with different statSplitTypeId; either is
+ * fine here, just prefer 2 ("rest of season") when both are present. */
+export function extractEspnSeasonProjection(stats: EspnStatLine[] | undefined): number | null {
+  const candidates = (stats || []).filter((s) => s.statSourceId === 1 && s.scoringPeriodId === 0);
+  if (candidates.length === 0) return null;
+  const match = candidates.find((s) => s.statSplitTypeId === 2) ?? candidates[0];
+  const avg = match.appliedAverage ?? (match.appliedTotal != null ? match.appliedTotal / 17 : null);
+  return avg != null ? Math.round(avg * 10) / 10 : null;
+}
+
 function toOverride(player: EspnPlayer, period: number): ProjectionOverrides[number] | null {
   const proj = extractEspnProjection(player.stats, period);
   if (proj == null) return null;
-  return { proj, status: ESPN_INJURY_LABEL_MAP[player.injuryStatus ?? ""] || player.injuryStatus || "Healthy" };
+  const seasonProj = extractEspnSeasonProjection(player.stats);
+  return {
+    proj,
+    status: ESPN_INJURY_LABEL_MAP[player.injuryStatus ?? ""] || player.injuryStatus || "Healthy",
+    ...(seasonProj != null ? { seasonProj } : {}),
+  };
 }
 
 /** Primary path: pull real Week-N projections (and current injury status)
@@ -170,7 +192,9 @@ export async function fetchEspnLiveLineups(): Promise<Record<number, Record<numb
 export async function fetchEspnFreeAgentProjections(period: number): Promise<ProjectionOverrides> {
   const filter = {
     players: {
-      limit: 300,
+      // See the matching comment in lib/espnLeague.ts -- this league's real FA
+      // pool runs ~1,000 players, well past the old 300 cap.
+      limit: 3000,
       filterStatus: { value: ["FREEAGENT", "WAIVERS"] },
       sortPercOwned: { sortPriority: 1, sortAsc: false },
     },

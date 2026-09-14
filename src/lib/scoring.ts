@@ -44,29 +44,48 @@ export function rankValue(pos: Position, rank: number): number {
   return RANK_VALUE_BASE * Math.exp(-RANK_DECAY_K[pos] * Math.max(0, rank - 1));
 }
 
-/** A player's standalone trade value. When a positional rank is known
- * (filled in at runtime) it's a blend of the rank chart and the points-VOR
- * curve; otherwise it falls back to points-VOR alone. Floored so nobody lands
- * at or below zero. This is NOT raw projected points. */
-export function playerValue(p: Player): number {
-  const pointsPart = VOR_BASELINE + curvedVor(vorPoints(p));
-  if (typeof p.posRank !== "number") return Math.max(1, pointsPart);
-  const rankPart = VOR_BASELINE + rankValue(p.pos, p.posRank);
+/** Shared curve behind playerValue/seasonPlayerValue: value-over-replacement
+ * blended with the rank chart when a rank is known. Floored so nobody lands
+ * at or below zero. */
+function valueFromProjAndRank(pos: Position, proj: number, rank: number | undefined): number {
+  const pointsPart = VOR_BASELINE + curvedVor(proj - replacementLevel(pos));
+  if (typeof rank !== "number") return Math.max(1, pointsPart);
+  const rankPart = VOR_BASELINE + rankValue(pos, rank);
   return Math.max(1, pointsPart * POINTS_WEIGHT + rankPart * RANK_WEIGHT);
+}
+
+/** A player's standalone trade value THIS WEEK -- priced off proj/posRank,
+ * ESPN's numbers for the current scoring period specifically. This is NOT raw
+ * projected points. Used for week-mode trade pricing and live lineup scoring,
+ * where "what is this player worth given he may not even play this week" is
+ * exactly the right question. For "how good is this player, full stop" (AI
+ * Coach needs outlook, recommended trades), see qualityScore/rosValue below
+ * instead -- using this here would let a single Questionable/Doubtful/Out
+ * week collapse a genuinely elite player's standing. */
+export function playerValue(p: Player): number {
+  return valueFromProjAndRank(p.pos, p.proj, p.posRank);
 }
 
 /** A player's value as a roster ASSET for the rest of the season, not just
  * this week -- used everywhere the app judges "how good is this player":
  * AI Coach needs analysis (and its position-by-position outlook), free-agent
- * recommendations, and trade-suggestion candidate filtering. Discounted by
- * the season-outlook injury multiplier (a "Questionable"/"Out" tag this week
- * barely moves a 16-game outlook, unlike a single week) and nudged for tier
- * trajectory (elite players tend to hold their role over a season; deep
- * bench/flex players carry more bust risk across one). Deliberately NOT the
- * same thing as playerValue/rosValue below, which price a SPECIFIC TRADE and
- * are explicitly split by the Trade Analyzer's own week/season toggle. */
+ * recommendations, and trade-suggestion candidate filtering. Priced off
+ * seasonProj/seasonPosRank (ESPN's own rest-of-season model) rather than
+ * proj/posRank, specifically so a player who's Questionable/Doubtful/Out
+ * *this particular week* doesn't get valued as though that's his talent
+ * level -- his weekly proj (and therefore posRank) can genuinely collapse
+ * toward 0 for a week he doesn't play, but that's a one-week fact, not a
+ * season-long one. Discounted by the season-outlook injury multiplier (a
+ * "Questionable"/"Out" tag this week barely moves a 16-game outlook, unlike a
+ * single week) and nudged for tier trajectory (elite players tend to hold
+ * their role over a season; deep bench/flex players carry more bust risk
+ * across one). Deliberately NOT the same thing as playerValue/rosValue below,
+ * which price a SPECIFIC TRADE and are explicitly split by the Trade
+ * Analyzer's own week/season toggle. */
 export function qualityScore(p: Player): number {
-  return playerValue(p) * rosStatusMultiplier(p.status) * rosTierTrend(p.tier);
+  const proj = p.seasonProj ?? p.proj;
+  const rank = p.seasonPosRank ?? p.posRank;
+  return valueFromProjAndRank(p.pos, proj, rank) * rosStatusMultiplier(p.status) * rosTierTrend(p.tier);
 }
 
 export function isPlayerStarter(player: Player, needsObj: RosterNeeds): boolean {
@@ -82,9 +101,13 @@ export function rosTierTrend(tier: Tier): number {
   return ROS_TIER_TREND[tier];
 }
 
-/** Rest-of-season value estimate: the same curved value-over-replacement,
- * projected across the remaining schedule and nudged for injury risk and tier
- * trajectory. A heuristic, not an independently modeled season projection. */
+/** Rest-of-season value estimate: the same curved value-over-replacement --
+ * off seasonProj/seasonPosRank, like qualityScore, not this week's proj/
+ * posRank -- projected across the remaining schedule and nudged for injury
+ * risk and tier trajectory. A heuristic, not an independently modeled season
+ * projection. */
 export function rosValue(p: Player): number {
-  return playerValue(p) * ROS_WEEKS * rosStatusMultiplier(p.status) * rosTierTrend(p.tier);
+  const proj = p.seasonProj ?? p.proj;
+  const rank = p.seasonPosRank ?? p.posRank;
+  return valueFromProjAndRank(p.pos, proj, rank) * ROS_WEEKS * rosStatusMultiplier(p.status) * rosTierTrend(p.tier);
 }

@@ -23,10 +23,23 @@ export interface Player {
   proj: number;
   tier: Tier;
   status: PlayerStatus;
-  /** 1-based rank among all known players at this position (by projection),
-   * filled in at runtime. Drives the rank-chart component of trade value --
-   * see lib/scoring.ts. Absent on raw static data. */
+  /** 1-based rank among all known players at this position (by THIS WEEK's
+   * projection), filled in at runtime. Drives the rank-chart component of
+   * playerValue (week-priced trade value, live lineup scoring). Absent on
+   * raw static data. */
   posRank?: number;
+  /** ESPN's own rest-of-season points-per-game projection (their full-season
+   * model, not just this week's), when a live refresh has fetched it.
+   * Deliberately separate from `proj` -- unlike a single week's number, this
+   * doesn't collapse toward 0 for a player who's Questionable/Doubtful/Out
+   * this week but expected back soon, so it's what qualityScore/rosValue (AI
+   * Coach needs outlook, recommended trades) use instead of `proj`/`posRank`.
+   * Falls back to `proj` when absent (no live refresh yet, or ESPN didn't
+   * have a season projection for this player). */
+  seasonProj?: number;
+  /** Same idea as posRank, but ranked by seasonProj -- what qualityScore/
+   * rosValue use for the rank-chart component instead of posRank. */
+  seasonPosRank?: number;
 }
 
 /** A player entry inside a league team's roster (ESPN also tells us slot/starter). */
@@ -91,6 +104,8 @@ export interface NewsItem {
 export interface ProjectionOverride {
   proj?: number;
   status?: PlayerStatus;
+  /** See Player.seasonProj. */
+  seasonProj?: number;
 }
 
 export type ProjectionOverrides = Record<number, ProjectionOverride>;

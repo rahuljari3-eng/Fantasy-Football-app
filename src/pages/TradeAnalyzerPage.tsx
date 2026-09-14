@@ -53,9 +53,16 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
     refreshCompletedTrades,
     allTeams,
     findWhatItWouldTake,
+    wwitTargetId,
+    setWwitTargetId,
   } = app;
 
-  const [subTab, setSubTab] = useState<"build" | "wwit" | "completed">("build");
+  // Defaults to the "What would it take?" sub-tab, already on the right
+  // player, when we got here via openWhatWouldItTake (e.g. clicking a player
+  // in the AI Coach's "Players to trade for" list) -- this page fully
+  // remounts on every tab switch (see the `key={app.tab}` in App.tsx), so a
+  // plain initializer is enough; no effect needed to catch a later change.
+  const [subTab, setSubTab] = useState<"build" | "wwit" | "completed">(wwitTargetId != null ? "wwit" : "build");
   const [loadingCompleted, setLoadingCompleted] = useState(false);
 
   // Completed trades are only ever fetched once this sub-tab is actually
@@ -133,6 +140,8 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
           playerHasNews={playerHasNews}
           openPlayerNews={openPlayerNews}
           onLoadPackage={loadWwitPackage}
+          targetId={wwitTargetId}
+          setTargetId={setWwitTargetId}
         />
       ) : (
         <>

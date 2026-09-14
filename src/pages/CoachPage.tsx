@@ -1,8 +1,9 @@
-import { AlertTriangle, Repeat, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
+import { AlertTriangle, ArrowRightLeft, Repeat, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
 import { POSITIONS } from "../config/league";
 import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX, FAIR_RATIO_MIN, FAIR_RATIO_MAX } from "../config/trade";
 import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
+import { StatusIndicator } from "../components/StatusIndicator";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 
 /** Turn a get/give value ratio into a short verdict + a tailwind text color. */
@@ -25,6 +26,8 @@ export function CoachPage({ app }: { app: FantasyApp }) {
     proposeCoachTrade,
     regenerateCoachSuggestions,
     hasFreshCoachSuggestions,
+    tradeTargetsByNeed,
+    openWhatWouldItTake,
     playerHasNews,
     openPlayerNews,
   } = app;
@@ -186,6 +189,71 @@ export function CoachPage({ app }: { app: FantasyApp }) {
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-[#98989D] mb-2">Players to trade for</h3>
+        <p className="text-xs text-[#636366] mb-3 max-w-2xl">
+          Realistic targets at each need position -- not just whoever's best. Every league's top guy at a position is usually untouchable, so this runs
+          candidates through the "What would it take?" solver first and only keeps the ones where some package from your actual roster would clear their
+          team's fairness bar. Each one shows the cheapest such package -- click through for the full list.
+        </p>
+        {tradeTargetsByNeed.length > 0 ? (
+          <div className="grid md:grid-cols-2 gap-4">
+            {tradeTargetsByNeed.map((group) => (
+              <div key={group.pos} className="border border-[#38383A] rounded-xl overflow-hidden">
+                <div className="px-3.5 py-2.5 bg-[#C9A227]/10 border-b border-[#C9A227]/30">
+                  <div className="flex items-center gap-2">
+                    <PosBadge pos={group.pos} />
+                    <span className="text-sm font-medium">Need at {group.pos}</span>
+                  </div>
+                  <div className="text-[11px] text-[#98989D] mt-1">{group.reason}</div>
+                </div>
+                <div>
+                  {group.candidates.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => openWhatWouldItTake(p.id)}
+                      className="w-full flex items-center justify-between px-3.5 py-2 border-b border-[#38383A]/60 last:border-0 transition-colors duration-150 hover:bg-[#1C1C1E] text-left gap-2"
+                    >
+                      <div className="min-w-0">
+                        <PlayerNameLink
+                          name={p.name}
+                          hasNews={playerHasNews(p.id)}
+                          onOpen={() => openPlayerNews(p.id)}
+                          className="text-sm font-medium truncate"
+                        />
+                        <div className="text-[11px] text-[#98989D] flex items-center gap-1.5">
+                          <span>
+                            {p.team} · {p.fantasyTeamName}
+                          </span>
+                          <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
+                        </div>
+                        <div className="text-[11px] text-emerald-400/90 mt-0.5 truncate">
+                          Costs {p.cheapestOption.give.map((g) => g.name).join(" + ")}
+                          {p.cheapestOption.fillsNeedFor.length > 0 && (
+                            <span className="text-[#98989D]"> -- fills their {p.cheapestOption.fillsNeedFor.join("/")} need</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="mono-font text-sm text-[#C9A227] font-medium">{p.proj}</span>
+                        <span className="text-[#98989D] hover:text-[#FFFFFF] border border-[#38383A] rounded-md p-1" title="What would it take?">
+                          <ArrowRightLeft size={13} />
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-[#1C1C1E] border border-[#38383A] rounded-xl p-4 text-sm text-[#98989D]">
+            No trade-worthy needs right now -- every needy position is either better served by a free-agent pickup above, or you're not thin enough
+            anywhere to justify giving up real value.
           </div>
         )}
       </div>

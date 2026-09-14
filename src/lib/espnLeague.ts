@@ -282,7 +282,11 @@ async function fetchFreeAgents(
 ): Promise<Player[]> {
   const filter = {
     players: {
-      limit: 300,
+      // High enough to never truncate -- this league's real free-agent pool
+      // runs ~1,000 players; a low cap (this used to be 300) silently hides
+      // anyone ranked below it, which is its own version of the stale-roster
+      // bug this pool exists to avoid.
+      limit: 3000,
       filterStatus: { value: ["FREEAGENT", "WAIVERS"] },
       sortPercOwned: { sortPriority: 1, sortAsc: false },
     },
@@ -300,6 +304,38 @@ async function fetchFreeAgents(
     if (enriched) out.push(enriched);
   }
   return out.sort((a, b) => b.proj - a.proj);
+}
+
+/** Client-facing: just the live free-agent pool (no standings sync), for the
+ * Free Agents tab -- every player ESPN currently has as FREEAGENT or WAIVERS
+ * in this league, live, instead of the bundled static snapshot.
+ *
+ * ESPN's own FREEAGENT/WAIVERS status filter on the /players endpoint turns
+ * out NOT to be trustworthy on its own -- verified against this league's live
+ * data, it happily returns players with a real `onTeamId` set (i.e. actually
+ * rostered; e.g. it included a player who's rostered on MY OWN team). So this
+ * also pulls the real roster list (the same view=mRoster call
+ * deriveAssignmentsFromEspnSlots's sync uses) and excludes anyone who
+ * actually appears on any team, the same safety net syncLiveRosters below
+ * already has for its own free-agent pool.
+ *
+ * `knownPlayers` is optional -- just used to fill in a field ESPN's response
+ * happens to omit for a given player. Caller is responsible for falling back
+ * to bundled data if this throws. */
+export async function fetchLiveFreeAgents(knownPlayers: Player[] = []): Promise<Player[]> {
+  const known = new Map(knownPlayers.map((p) => [p.id, p]));
+  const [schedule, rosterRes] = await Promise.all([
+    getNflSchedule(),
+    fetch(`${ESPN_LEAGUE_BASE_URL}?view=mRoster&view=mTeam`, { headers: { Accept: "application/json" } }),
+  ]);
+  if (!rosterRes.ok) throw new Error(`ESPN request failed (${rosterRes.status})`);
+  const rosterData = (await rosterRes.json()) as EspnLeaguePayload;
+  const scoringPeriodId = rosterData.scoringPeriodId ?? 1;
+  const rosteredIds = new Set(
+    (rosterData.teams || []).flatMap((t) => (t.roster?.entries || []).map((e) => e.playerPoolEntry?.player?.id).filter((id): id is number => id != null))
+  );
+  const agents = await fetchFreeAgents(scoringPeriodId, known, schedule.teamsById);
+  return agents.filter((p) => !rosteredIds.has(p.id));
 }
 
 /** Pull live rosters + FA pool from ESPN and store in the server-side cache. */

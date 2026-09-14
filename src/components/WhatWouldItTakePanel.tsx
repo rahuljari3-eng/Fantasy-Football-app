@@ -18,14 +18,21 @@ export function WhatWouldItTakePanel({
   playerHasNews,
   openPlayerNews,
   onLoadPackage,
+  targetId,
+  setTargetId,
 }: {
   players: LeaguePlayer[];
   findWhatItWouldTake: (target: LeaguePlayer) => WhatWouldItTakeOption[] | null;
   playerHasNews: (id: number) => boolean;
   openPlayerNews: (id: number) => void;
   onLoadPackage: (target: LeaguePlayer, option: WhatWouldItTakeOption) => void;
+  /** Controlled from the parent so a player clicked elsewhere in the app
+   * (e.g. the AI Coach's "Players to trade for" list) can land here already
+   * picked, instead of this panel only ever starting at its own search
+   * screen. */
+  targetId: number | null;
+  setTargetId: (id: number | null) => void;
 }) {
-  const [targetId, setTargetId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState<Position | "ALL">("ALL");
 

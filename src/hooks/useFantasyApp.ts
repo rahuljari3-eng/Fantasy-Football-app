@@ -14,6 +14,7 @@ import { playerValue, qualityScore, rosValue } from "../lib/scoring";
 import { analyzeRosterNeeds } from "../lib/rosterNeeds";
 import { deriveAssignments, deriveAssignmentsFromEspnSlots } from "../lib/teamRoster";
 import { fetchEspnCompletedTrades, fetchEspnLineups, type CompletedTrade } from "../lib/espn";
+import { fetchLiveFreeAgents } from "../lib/espnLeague";
 import { balancePackage, balanceTwoForTwo, fairnessRatio, needAdjustedPackageValue, starGateOk } from "../lib/tradeEngine";
 import { findWhatItWouldTake as solveWhatItWouldTake, type WhatWouldItTakeOption } from "../lib/whatWouldItTake";
 import { optimizeLineup } from "../lib/optimizeLineup";
@@ -142,6 +143,14 @@ export function useFantasyApp() {
   selectedTeamIdRef.current = selectedTeamId;
   const selectedTeamRef = useRef(selectedTeam);
   selectedTeamRef.current = selectedTeam;
+  // Read inside syncRosterFromEspn to detect a player local state has never
+  // heard of (see "newly known" below) without putting roster/bench in that
+  // callback's deps -- this only needs their value at sync time, not a
+  // reactive subscription.
+  const rosterRef = useRef(roster);
+  rosterRef.current = roster;
+  const benchRef = useRef(bench);
+  benchRef.current = bench;
 
   const syncRosterFromEspn = useCallback(async () => {
     try {
@@ -151,8 +160,23 @@ export function useFantasyApp() {
       if (!liveSlots) return;
 
       const priorSlots = readStoredEspnSnapshot(teamId);
-      const changed = !priorSlots || !slotsEqual(priorSlots, liveSlots);
-      if (changed) {
+      const espnChanged = !priorSlots || !slotsEqual(priorSlots, liveSlots);
+
+      // Even when ESPN's lineup itself hasn't moved since our last check,
+      // make sure every player ESPN has on the roster is at least somewhere
+      // in local state (starting or benched). If one isn't, local state
+      // learned about them for the first time just now -- e.g. our bundled
+      // player data didn't include a recent waiver add yet -- so there's no
+      // "last edit" of ours to protect and they'd otherwise sit missing
+      // forever, since nothing about ESPN's own lineup would ever look
+      // "changed" again to trigger a recompute.
+      const knownIds = new Set<number>([
+        ...Object.values(rosterRef.current).filter((id): id is number => id != null),
+        ...benchRef.current,
+      ]);
+      const hasUnknownPlayer = Object.keys(liveSlots).some((id) => !knownIds.has(Number(id)));
+
+      if (espnChanged || hasUnknownPlayer) {
         const next = deriveAssignmentsFromEspnSlots(selectedTeamRef.current, liveSlots);
         setRoster(next.roster);
         setBench(next.bench);
@@ -161,6 +185,24 @@ export function useFantasyApp() {
     } catch {
       // Best-effort -- lineup sync failing shouldn't disturb whatever's
       // already saved locally.
+    }
+  }, []);
+
+  // The Free Agents tab's real player pool: every player ESPN currently has
+  // as FREEAGENT/WAIVERS in this league, fetched live. Replaces the bundled
+  // FREE_AGENTS snapshot (data/freeAgents.ts) whenever a live fetch has
+  // succeeded -- that snapshot is a point-in-time export and goes stale the
+  // moment anyone in the league makes a waiver move, so it's kept only as an
+  // offline/error fallback. Null until the first successful sync.
+  const [liveFreeAgents, setLiveFreeAgents] = useState<Player[] | null>(null);
+
+  const syncFreeAgentsFromEspn = useCallback(async () => {
+    try {
+      const agents = await fetchLiveFreeAgents(FREE_AGENTS);
+      setLiveFreeAgents(agents);
+    } catch {
+      // Best-effort -- same as syncRosterFromEspn; keep whatever we already
+      // had (the bundled snapshot on first load, or the last successful pull).
     }
   }, []);
 
@@ -192,6 +234,7 @@ export function useFantasyApp() {
 
   useEffect(() => {
     syncRosterFromEspn();
+    syncFreeAgentsFromEspn();
     refreshNews();
     refreshMatchups();
     refreshLiveLineups();
@@ -207,12 +250,13 @@ export function useFantasyApp() {
     await Promise.all([
       projectionRefresh.refreshProjections(),
       syncRosterFromEspn(),
+      syncFreeAgentsFromEspn(),
       refreshNews(),
       refreshMatchups(),
       refreshLiveLineups(),
     ]);
-    notify("Synced projections, lineup, and news/matchups from ESPN.", "success");
-  }, [projectionRefresh, syncRosterFromEspn, refreshNews, refreshMatchups, refreshLiveLineups, notify]);
+    notify("Synced projections, lineup, free agents, and news/matchups from ESPN.", "success");
+  }, [projectionRefresh, syncRosterFromEspn, syncFreeAgentsFromEspn, refreshNews, refreshMatchups, refreshLiveLineups, notify]);
 
   // A player's opponent + Vegas-graded matchup quality for the current week --
   // see lib/matchup.ts. DST is graded off the opponent's implied total
@@ -284,6 +328,11 @@ export function useFantasyApp() {
         ...player,
         proj: ov.proj ?? player.proj,
         status: ov.status || player.status,
+        // Falls back to the live weekly proj (not the static bundled one)
+        // when ESPN didn't send a season projection for this player, so it's
+        // never less current than proj itself -- just insulated from a
+        // single bad/injured week the way proj isn't.
+        seasonProj: ov.seasonProj ?? player.seasonProj ?? ov.proj ?? player.proj,
       };
     },
     [projectionOverrides]
@@ -291,9 +340,11 @@ export function useFantasyApp() {
 
   // Positional rank (1 = best projected at the position) across every player in
   // the league plus free agents, computed off post-override projections. Feeds
-  // the rank-chart component of playerValue -- see lib/scoring.ts.
+  // the rank-chart component of playerValue -- see lib/scoring.ts. THIS WEEK's
+  // projection only -- see seasonPosRankOf below for the season-stable version
+  // qualityScore/rosValue use instead.
   const posRankOf = useMemo(() => {
-    const pool = [...ALL_TEAMS.flatMap((t) => t.roster), ...FREE_AGENTS].map(applyOverrideRaw);
+    const pool = [...ALL_TEAMS.flatMap((t) => t.roster), ...(liveFreeAgents ?? FREE_AGENTS)].map(applyOverrideRaw);
     const groups = new Map<Position, Player[]>();
     pool.forEach((p) => {
       const g = groups.get(p.pos) ?? [];
@@ -307,13 +358,40 @@ export function useFantasyApp() {
       });
     });
     return (id: number) => ranks.get(id);
-  }, [applyOverrideRaw]);
+  }, [applyOverrideRaw, liveFreeAgents]);
 
-  // applyOverride now also stamps the positional rank, so every "effective*"
-  // array carries it and playerValue can use the rank chart consistently.
+  // Same idea as posRankOf, but ranked by seasonProj instead of this week's
+  // proj -- so a player who's Questionable/Doubtful/Out this week (proj
+  // collapsed toward 0) doesn't also collapse to the bottom of his position's
+  // rank chart, which is what was crushing an actually-elite player's
+  // AI-Coach quality score and trade value over a one- or two-week absence.
+  const seasonPosRankOf = useMemo(() => {
+    const pool = [...ALL_TEAMS.flatMap((t) => t.roster), ...(liveFreeAgents ?? FREE_AGENTS)].map(applyOverrideRaw);
+    const groups = new Map<Position, Player[]>();
+    pool.forEach((p) => {
+      const g = groups.get(p.pos) ?? [];
+      g.push(p);
+      groups.set(p.pos, g);
+    });
+    const ranks = new Map<number, number>();
+    groups.forEach((list) => {
+      list.sort((a, b) => (b.seasonProj ?? b.proj) - (a.seasonProj ?? a.proj)).forEach((p, i) => {
+        if (!ranks.has(p.id)) ranks.set(p.id, i + 1);
+      });
+    });
+    return (id: number) => ranks.get(id);
+  }, [applyOverrideRaw, liveFreeAgents]);
+
+  // applyOverride now also stamps both positional ranks, so every
+  // "effective*" array carries them and playerValue/qualityScore can use the
+  // rank chart consistently.
   const applyOverride = useCallback(
-    <P extends Player>(player: P): P => ({ ...applyOverrideRaw(player), posRank: posRankOf(player.id) }),
-    [applyOverrideRaw, posRankOf]
+    <P extends Player>(player: P): P => ({
+      ...applyOverrideRaw(player),
+      posRank: posRankOf(player.id),
+      seasonPosRank: seasonPosRankOf(player.id),
+    }),
+    [applyOverrideRaw, posRankOf, seasonPosRankOf]
   );
 
   // Every team's optimal-lineup weekly point total, off current (override-
@@ -339,8 +417,8 @@ export function useFantasyApp() {
   // Your player pool = the team you're managing plus every free agent. Switch
   // teams and this whole pipeline (needs, coach, trade values) re-centers.
   const effectivePlayers: Player[] = useMemo(
-    () => [...selectedTeam.roster, ...FREE_AGENTS].map(applyOverride),
-    [applyOverride, selectedTeam]
+    () => [...selectedTeam.roster, ...(liveFreeAgents ?? FREE_AGENTS)].map(applyOverride),
+    [applyOverride, selectedTeam, liveFreeAgents]
   );
   // Every OTHER team is an opponent -- including your own default team when
   // you're currently managing someone else's.
@@ -775,6 +853,19 @@ export function useFantasyApp() {
     [effectiveLeagueTeams, myMovablePlayers, myNeeds, leagueBaseline]
   );
 
+  // Which player id (if any) the "What would it take?" panel should open
+  // straight to a result for, instead of its default search-and-pick screen.
+  // Set by clicking a player elsewhere in the app (currently: the AI Coach's
+  // "Players to trade for" list) via openWhatWouldItTake below, consumed by
+  // TradeAnalyzerPage/WhatWouldItTakePanel, then cleared once they've picked
+  // it up so navigating back to the tab manually still starts at the picker.
+  const [wwitTargetId, setWwitTargetId] = useState<number | null>(null);
+
+  const openWhatWouldItTake = useCallback((playerId: number) => {
+    setWwitTargetId(playerId);
+    setTab("trade");
+  }, []);
+
   // ---------- Free agents tab ----------
   // Every player who isn't rostered by you or anyone else in the league --
   // unfiltered, so recommendations always see the full pool regardless of
@@ -822,6 +913,53 @@ export function useFantasyApp() {
       }))
       .filter((group) => group.candidates.length > 0);
   }, [needyPositionsRanked, freeAgentPool, needReason]);
+
+  // Same idea as recommendedPickups, but for players you'd have to trade
+  // for: everyone rostered by someone else in the league (never a free
+  // agent, since those already have their own "just add them" path above).
+  // Kickers/defenses and non-need QBs are excluded -- see isTradeablePos --
+  // since nobody trades for those.
+  //
+  // A raw best-available-by-quality list here is nearly useless -- it's just
+  // every league's top overall player at the position, i.e. exactly the
+  // "superstar nobody's giving up" case. So instead of ranking the whole
+  // position and taking the top 3, this runs the top candidates through the
+  // same "What would it take?" solver the WWIT tab uses and KEEPS ONLY the
+  // ones where some package up to 3 pieces from your actual movable players
+  // clears the standard fairness bar (star gate included) -- i.e. someone
+  // realistically gettable, not a name that just tops the position. That bar
+  // already encodes "their team needs what I have": a team with no real hole
+  // where your surplus lives will price their guy higher than a cheap package
+  // can clear, so a mutual-fit target naturally survives while a poor-fit one
+  // (even a merely-good player) doesn't. Survivors are ranked by quality
+  // among themselves, so the best REALISTIC upgrade leads -- not the
+  // cheapest, and not the best unconditionally. Each candidate carries its
+  // cheapest clearing package so the UI can show what it'd actually cost
+  // before the user ever opens the solver, and is still meant to be clicked
+  // straight into "What would it take?" for the full option list.
+  const tradeTargetsByNeed = useMemo(() => {
+    return needyPositionsRanked
+      .filter((pos) => isTradeablePos(pos))
+      .map((pos) => {
+        const candidates = effectiveAllLeaguePlayers
+          .filter((p) => p.pos === pos && p.status !== "Out")
+          .map((p) => ({ ...p, qScore: qualityScore(p) }))
+          .sort((a, b) => b.qScore - a.qScore)
+          // Cap how many go through the solver -- combinatorial search per
+          // candidate, and the top ~12 by quality is already generous odds
+          // of finding the realistically-gettable ones among them.
+          .slice(0, 12)
+          .map((p) => {
+            const options = findWhatItWouldTake(p);
+            return options && options.length > 0 ? { ...p, cheapestOption: options[0] } : null;
+          })
+          .filter((p): p is NonNullable<typeof p> => p !== null)
+          .sort((a, b) => b.qScore - a.qScore)
+          .slice(0, 3);
+        return { pos, reason: needReason(pos), candidates };
+      })
+      .filter((group) => group.candidates.length > 0);
+  }, [needyPositionsRanked, effectiveAllLeaguePlayers, needReason, isTradeablePos, findWhatItWouldTake]);
 
   // Fallback when nothing qualifies as a "need": just surface the best
   // overall available players so the tab is never empty.
@@ -1313,6 +1451,8 @@ export function useFantasyApp() {
     proposeCoachTrade,
     regenerateCoachSuggestions,
     hasFreshCoachSuggestions,
+    tradeTargetsByNeed,
+    openWhatWouldItTake,
 
     // trade analyzer
     tradeGive,
@@ -1338,6 +1478,8 @@ export function useFantasyApp() {
     completedEspnTrades,
     refreshCompletedTrades: syncCompletedTradesFromEspn,
     findWhatItWouldTake,
+    wwitTargetId,
+    setWwitTargetId,
 
     // league
     selectedLeagueTeam,

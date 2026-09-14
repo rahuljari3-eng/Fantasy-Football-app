@@ -1,7 +1,12 @@
 import type { Player } from "../types.js";
 
-// Real available free agents (for trades / waiver browsing) -- currently
-// unrostered in your league, pulled live from ESPN and sorted by projection.
+// Bundled fallback only -- a point-in-time export of who was unrostered when
+// this file was last regenerated. The app no longer treats this as the real
+// free-agent pool: useFantasyApp fetches the live pool from ESPN
+// (fetchLiveFreeAgents in lib/espnLeague.ts) on load and on "Refresh from
+// ESPN", and only falls back to this static list if that live fetch fails
+// (e.g. offline). Don't hand-edit this expecting it to reflect current
+// waiver-wire reality.
 export const FREE_AGENTS: Player[] = [
   { id: 4432577, name: "C.J. Stroud", pos: "QB", team: "HOU", bye: 8, proj: 16.2, tier: 3, status: "Healthy" },
   { id: 3046779, name: "Jared Goff", pos: "QB", team: "DET", bye: 6, proj: 15.8, tier: 2, status: "Healthy" },
