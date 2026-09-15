@@ -2,17 +2,43 @@ import { useEffect } from "react";
 import { ExternalLink, X } from "lucide-react";
 import { newsTypeColor, newsTypeIcon } from "../lib/format";
 import type { NewsItem } from "../types";
+import type { PlayerPerformanceResult, WeekPerformance } from "../lib/playerPerformance";
+
+/** One game-log row: this week's live/final line, or a prior week's. */
+function ScoreRow({ perf }: { perf: WeekPerformance }) {
+  const played = perf.actualPoints != null;
+  return (
+    <div className="flex items-center justify-between bg-[#000000]/40 border border-[#38383A]/60 rounded-lg px-2.5 py-1.5">
+      <div className="min-w-0">
+        <div className="text-sm text-[#E5E5EA]">Week {perf.week}</div>
+        {perf.game && (
+          <div className="text-[11px] text-[#636366] truncate">
+            {perf.game.score ?? perf.game.name} · {perf.game.status}
+          </div>
+        )}
+      </div>
+      <span className={`mono-font text-sm shrink-0 ${played ? "text-[#C9A227]" : "text-[#636366]"}`}>
+        {played ? perf.actualPoints : perf.projectedPoints != null ? `${perf.projectedPoints} proj` : "—"}
+      </span>
+    </div>
+  );
+}
 
 /** Popped open by clicking a player's name or injury status anywhere in the
- * app -- shows every live news/injury item ESPN has tagged to that player,
- * each linking straight out to the real article. */
+ * app -- shows this week's live/final line plus a recent game log (pulled
+ * live from ESPN's actuals, not projections), and every news/injury item
+ * ESPN has tagged to them, each linking straight out to the real article. */
 export function PlayerNewsModal({
   playerName,
   items,
+  performance,
+  performanceLoading,
   onClose,
 }: {
   playerName: string | null;
   items: NewsItem[];
+  performance: PlayerPerformanceResult | null;
+  performanceLoading: boolean;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -38,6 +64,22 @@ export function PlayerNewsModal({
             <X size={16} />
           </button>
         </div>
+
+        {performanceLoading ? (
+          <div className="text-xs text-[#636366] italic mb-3">Loading recent scores…</div>
+        ) : performance ? (
+          <div className="mb-4">
+            <div className="text-xs font-medium text-[#98989D] mb-1.5">Recent scores</div>
+            <div className="space-y-1.5">
+              <ScoreRow perf={performance.thisWeek} />
+              {performance.gameLog.slice(0, 3).map((g) => (
+                <ScoreRow key={g.week} perf={g} />
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {performance && <div className="text-xs font-medium text-[#98989D] mb-1.5">News &amp; injuries</div>}
         {items.length === 0 ? (
           <div className="text-sm text-[#98989D]">No recent news or injury updates.</div>
         ) : (

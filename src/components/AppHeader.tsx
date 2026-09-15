@@ -15,6 +15,10 @@ export function AppHeader({
   refreshError,
   lastRefreshed,
   onRefresh,
+  currentWeek,
+  displayWeek,
+  regularSeasonWeeks,
+  onSelectWeek,
 }: {
   tab: TabId;
   onTabChange: (id: TabId) => void;
@@ -27,6 +31,16 @@ export function AppHeader({
   refreshError: string | null;
   lastRefreshed: string | null;
   onRefresh: () => void;
+  /** ESPN's current fantasy scoring period, once the schedule/standings have
+   * loaded (see useStandings) -- null until then. */
+  currentWeek: number | null;
+  /** The week actually being shown right now -- currentWeek unless someone's
+   * picked a different one to browse (see useFantasyApp's viewedWeek). */
+  displayWeek: number | null;
+  /** Last selectable week (regular season only) -- null until the schedule
+   * has loaded, in which case this control just doesn't render yet. */
+  regularSeasonWeeks: number | null;
+  onSelectWeek: (week: number) => void;
 }) {
   return (
     <div className="border-b border-[#C9A227]/25 bg-[#1C1C1E]/95 backdrop-blur sticky top-0 z-20 shadow-[0_2px_16px_rgba(0,0,0,0.25)]">
@@ -39,6 +53,25 @@ export function AppHeader({
             <div className="display-font text-lg font-semibold leading-none truncate">{LEAGUE_CONFIG.appName}</div>
             <div className="text-[11px] text-[#98989D] mono-font tracking-wide truncate">{LEAGUE_CONFIG.scoringFormatLabel}</div>
           </div>
+          {displayWeek != null && regularSeasonWeeks != null && (
+            <label
+              className="hidden sm:flex items-center bg-[#C9A227]/10 border border-[#C9A227]/30 rounded-full pl-1 pr-2 py-1 shrink-0 focus-within:border-[#C9A227]/60 cursor-pointer"
+              title="View a different week's projections (upcoming) or actual scores (past)"
+            >
+              <select
+                value={displayWeek}
+                onChange={(e) => onSelectWeek(Number(e.target.value))}
+                className="bg-transparent text-[#C9A227] text-[11px] font-semibold mono-font tracking-wide focus:outline-none cursor-pointer"
+              >
+                {Array.from({ length: regularSeasonWeeks }, (_, i) => i + 1).map((w) => (
+                  <option key={w} value={w} className="bg-[#1C1C1E] text-[#FFFFFF]">
+                    WEEK {w}
+                    {w === currentWeek ? " (current)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <label className="flex items-center gap-1.5 bg-[#000000] border border-[#38383A] rounded-full pl-3 pr-1 py-1 focus-within:border-[#C9A227]/60">

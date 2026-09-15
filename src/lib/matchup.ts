@@ -13,6 +13,7 @@
 // in the season's early weeks there isn't enough of a sample for "yards
 // allowed to RBs" to mean anything, whereas the market already prices in
 // opponent strength, injuries, and expected usage for this specific week.
+import { ESPN_LEAGUE_BASE_URL } from "../config/league.js";
 import type { MatchupGrade, Player, PlayerMatchup, Position } from "../types.js";
 
 const SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
@@ -157,9 +158,37 @@ async function fetchAllPlayerPropLines(eventIds: string[]): Promise<Record<numbe
  * ESPN's scoreboard defaults to "this week" based on today's date, so no
  * week number needs to be computed here. */
 export async function fetchWeeklyMatchups(): Promise<WeeklyMatchups> {
-  const res = await fetch(SCOREBOARD_URL, { headers: { Accept: "application/json" } });
+  const [res, periodRes] = await Promise.all([
+    fetch(SCOREBOARD_URL, { headers: { Accept: "application/json" } }),
+    // Cross-checked against the FANTASY side's own current scoring period --
+    // see scoreboardIsStale below. Best-effort: if this fails, just skip the
+    // cross-check rather than blocking the whole matchup refresh over it.
+    fetch(`${ESPN_LEAGUE_BASE_URL}?view=mTeam`, { headers: { Accept: "application/json" } }).catch(() => null),
+  ]);
   if (!res.ok) throw new Error(`ESPN scoreboard request failed (${res.status})`);
   const data = (await res.json()) as EspnScoreboardResponse;
+
+  // This NFL scoreboard and the fantasy scoring period are two independent
+  // ESPN systems that don't necessarily roll over to a new week at the same
+  // moment -- confirmed live: the scoreboard kept reporting last week's now-
+  // FINAL games as "this week" for a stretch after the fantasy scoring
+  // period had already advanced to the new one. When that's happening, none
+  // of this response's "post" game states are actually about the current
+  // fantasy week -- trusting them would lock every player in (and surface
+  // last week's final score instead of this week's projection) before this
+  // week's real games have even happened. Force every team to "pre" in that
+  // window instead; it self-corrects the moment the scoreboard catches up.
+  let currentFantasyPeriod: number | null = null;
+  if (periodRes?.ok) {
+    try {
+      const periodData = (await periodRes.json()) as { scoringPeriodId?: number };
+      currentFantasyPeriod = periodData.scoringPeriodId ?? null;
+    } catch {
+      // Malformed response -- skip the cross-check, same as a failed fetch.
+    }
+  }
+  const scoreboardIsStale = currentFantasyPeriod != null && data.week?.number != null && data.week.number !== currentFantasyPeriod;
+
   const teams: Record<string, TeamMatchup> = {};
   const eventIds: string[] = [];
 
@@ -181,7 +210,7 @@ export async function fetchWeeklyMatchups(): Promise<WeeklyMatchups> {
       awayImplied = Math.round((odds.overUnder / 2 + odds.spread / 2) * 10) / 10;
     }
 
-    const state = normalizeGameState(ev.status?.type?.state);
+    const state = scoreboardIsStale ? "pre" : normalizeGameState(ev.status?.type?.state);
 
     teams[homeAbbr] = {
       opponent: awayAbbr,

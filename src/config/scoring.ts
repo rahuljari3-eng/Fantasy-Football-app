@@ -43,11 +43,26 @@ export const BELOW_REPLACEMENT_SLOPE = 0.8;
  * position (in a 1QB league every QB1 lands in a narrow points band), so
  * projection alone can't tell a genuine difference-maker from a merely-good
  * starter. Blend in a KeepTradeCut / FantasyCalc-style rank chart:
- *   rankValue = RANK_VALUE_BASE * exp(-RANK_DECAY_K[pos] * (rank - 1))
+ *   rankValue = RANK_VALUE_BASE[pos] * exp(-RANK_DECAY_K[pos] * (rank - 1))
  * where rank is the player's 1-based projection rank at his position. The
  * exponential makes the top of each position steeply more valuable, and
- * per-position decay reflects how fast each position gets replaceable. */
-export const RANK_VALUE_BASE = 100;
+ * per-position decay reflects how fast each position gets replaceable.
+ *
+ * PER-POSITION, not a single shared number: at rank 1 (rank - 1 = 0) the
+ * exponential is always exactly 1, so a single shared base would hand a
+ * league's TOP kicker or defense the exact same rank-chart ceiling as its top
+ * RB or WR -- "best at the position" isn't a real scarcity signal for K/DST
+ * the way it is for the others (any two streamable kickers are close enough
+ * that nobody trades for one), so their peak is much lower. QB/RB/WR/TE keep
+ * the original shared ceiling. */
+export const RANK_VALUE_BASE: Record<Position, number> = {
+  QB: 100,
+  RB: 100,
+  WR: 100,
+  TE: 100,
+  DST: 20,
+  K: 20,
+};
 
 export const RANK_DECAY_K: Record<Position, number> = {
   QB: 0.16, // steep: QB1 >> QB6 even when weekly points are close

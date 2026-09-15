@@ -41,7 +41,7 @@ export function curvedVor(vor: number): number {
 /** KTC-style rank chart value: steep exponential decay from the top of a
  * position. `rank` is 1-based (1 = best projected at the position). */
 export function rankValue(pos: Position, rank: number): number {
-  return RANK_VALUE_BASE * Math.exp(-RANK_DECAY_K[pos] * Math.max(0, rank - 1));
+  return RANK_VALUE_BASE[pos] * Math.exp(-RANK_DECAY_K[pos] * Math.max(0, rank - 1));
 }
 
 /** Shared curve behind playerValue/seasonPlayerValue: value-over-replacement

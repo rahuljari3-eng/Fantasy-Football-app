@@ -223,6 +223,7 @@ interface EspnTransactionItem {
   toTeamId: number;
 }
 interface EspnTransaction {
+  id?: string;
   type: string;
   proposedDate: number;
   items?: EspnTransactionItem[];
@@ -251,15 +252,33 @@ export interface CompletedTrade {
  * directions are returned -- a trade where the other side has since been
  * dropped/re-added erases its own paper trail and can't be reconstructed. */
 export async function fetchEspnCompletedTrades(): Promise<CompletedTrade[]> {
-  const [txRes, rosterRes] = await Promise.all([
-    fetch(`${ESPN_LEAGUE_BASE_URL}?view=mTransactions2`, { headers: { Accept: "application/json" } }),
-    fetch(`${ESPN_LEAGUE_BASE_URL}?view=mRoster&view=mTeam`, { headers: { Accept: "application/json" } }),
-  ]);
-  if (!txRes.ok) throw new Error(`ESPN transactions request failed (${txRes.status})`);
+  const rosterRes = await fetch(`${ESPN_LEAGUE_BASE_URL}?view=mRoster&view=mTeam`, { headers: { Accept: "application/json" } });
   if (!rosterRes.ok) throw new Error(`ESPN roster request failed (${rosterRes.status})`);
-
-  const txData = (await txRes.json()) as EspnTransactionsResponse;
   const rosterData = (await rosterRes.json()) as EspnLeagueResponse;
+  const currentWeek = rosterData.scoringPeriodId ?? 1;
+
+  // view=mTransactions2 with no explicit scoringPeriodId only returns the
+  // CURRENT week's transactions -- not the whole season. That silently broke
+  // this reconstruction entirely: with no draft results in the replay, there
+  // was no "expected owner" baseline for almost any player to diff against,
+  // so nothing ever looked like a trade. Fetch every week from 1 through now
+  // and merge, so the draft, every waiver/FA move, and any trade from an
+  // earlier week are all actually in the replay.
+  const weeks = Array.from({ length: currentWeek }, (_, i) => i + 1);
+  const txResponses = await Promise.all(
+    weeks.map((w) => fetch(`${ESPN_LEAGUE_BASE_URL}?view=mTransactions2&scoringPeriodId=${w}`, { headers: { Accept: "application/json" } }))
+  );
+  if (txResponses.some((r) => !r.ok)) throw new Error("ESPN transactions request failed");
+  const txPayloads = (await Promise.all(txResponses.map((r) => r.json()))) as EspnTransactionsResponse[];
+  const seenIds = new Set<string>();
+  const allTransactions: EspnTransaction[] = [];
+  txPayloads.forEach((payload) => {
+    (payload.transactions || []).forEach((t) => {
+      if (t.id && seenIds.has(t.id)) return;
+      if (t.id) seenIds.add(t.id);
+      allTransactions.push(t);
+    });
+  });
 
   const currentOwner = new Map<number, number>();
   (rosterData.teams || []).forEach((t) => {
@@ -272,7 +291,7 @@ export async function fetchEspnCompletedTrades(): Promise<CompletedTrade[]> {
   // Replay draft/waiver/free-agent moves in chronological order to compute
   // each player's expected owner if no trade had ever touched them.
   const expectedOwner = new Map<number, number>();
-  const transactions = (txData.transactions || []).slice().sort((a, b) => a.proposedDate - b.proposedDate);
+  const transactions = allTransactions.slice().sort((a, b) => a.proposedDate - b.proposedDate);
   transactions.forEach((t) => {
     if (!["DRAFT", "WAIVER", "FREEAGENT", "FUTURE_ROSTER"].includes(t.type)) return;
     (t.items || []).forEach((i) => {

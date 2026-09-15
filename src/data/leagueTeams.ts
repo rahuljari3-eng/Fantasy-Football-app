@@ -75,7 +75,8 @@ export const LEAGUE_TEAMS: LeagueTeam[] = [
     { id: -16033, name: "Ravens D/ST", pos: "DST", team: "BAL", proj: 6.8, tier: 1, status: "Healthy", bye: 13, starter: true, slot: "DST" },
     { id: 2971573, name: "Ka'imi Fairbairn", pos: "K", team: "HOU", proj: 9.8, tier: 1, status: "Healthy", bye: 8, starter: true, slot: "K" },
     { id: 4832800, name: "Denzel Boston", pos: "WR", team: "CLE", proj: 8.3, tier: 3, status: "Healthy", bye: 11, starter: false, slot: "BE" },
-    { id: 4360516, name: "Tyrone Tracy Jr.", pos: "RB", team: "NYG", proj: 2.4, tier: 3, status: "Questionable", bye: 8, starter: false, slot: "BE" },
+    { id: 3046779, name: "Jared Goff", pos: "QB", team: "DET", proj: 17.0, tier: 2, status: "Healthy", bye: 6, starter: false, slot: "BE" },
+    { id: 4241457, name: "Najee Harris", pos: "RB", team: "NYG", proj: 0.0, tier: 3, status: "Healthy", bye: 8, starter: false, slot: "BE" },
   ]},
   { id: 5, name: "I Chase Brown Kids", owner: "Sachit Sinha / Sachit Sinha", roster: [
     { id: 4262921, name: "Justin Jefferson", pos: "WR", team: "MIN", proj: 17.1, tier: 1, status: "Healthy", bye: 6, starter: true, slot: "WR" },
@@ -91,9 +92,9 @@ export const LEAGUE_TEAMS: LeagueTeam[] = [
     { id: 4361050, name: "Isaiah Likely", pos: "TE", team: "NYG", proj: 9.4, tier: 1, status: "Healthy", bye: 8, starter: false, slot: "BE" },
     { id: 4360234, name: "Evan McPherson", pos: "K", team: "CIN", proj: 8.5, tier: 3, status: "Healthy", bye: 6, starter: true, slot: "K" },
     { id: -16008, name: "Lions D/ST", pos: "DST", team: "DET", proj: 7.4, tier: 2, status: "Healthy", bye: 6, starter: true, slot: "DST" },
-    { id: 4912218, name: "Cyrus Allen", pos: "WR", team: "KC", proj: 2.9, tier: 3, status: "Healthy", bye: 5, starter: false, slot: "BE" },
     { id: 4360310, name: "Trevor Lawrence", pos: "QB", team: "JAX", proj: 17.0, tier: 1, status: "Healthy", bye: 7, starter: true, slot: "QB" },
-    { id: 4240603, name: "Malik Davis", pos: "RB", team: "DAL", proj: 3.4, tier: 3, status: "Healthy", bye: 14, starter: false, slot: "BE" },
+    { id: 4869961, name: "Chris Bell", pos: "WR", team: "MIA", proj: 7.0, tier: 3, status: "Healthy", bye: 6, starter: false, slot: "BE" },
+    { id: 4832955, name: "Emmett Johnson", pos: "RB", team: "KC", proj: 5.4, tier: 3, status: "Healthy", bye: 5, starter: false, slot: "BE" },
   ]},
   { id: 6, name: "Kareem Pies", owner: "Anish Deshpande", roster: [
     { id: 4430878, name: "Jaxon Smith-Njigba", pos: "WR", team: "SEA", proj: 18.9, tier: 1, status: "Healthy", bye: 11, starter: true, slot: "WR" },
@@ -183,6 +184,7 @@ export const LEAGUE_TEAMS: LeagueTeam[] = [
     { id: 3953687, name: "Brandon Aubrey", pos: "K", team: "DAL", proj: 9.9, tier: 1, status: "Healthy", bye: 14, starter: true, slot: "K" },
     { id: -16030, name: "Jaguars D/ST", pos: "DST", team: "JAX", proj: 8.2, tier: 2, status: "Healthy", bye: 7, starter: true, slot: "DST" },
     { id: 4239993, name: "Tee Higgins", pos: "WR", team: "CIN", proj: 13.0, tier: 1, status: "Questionable", bye: 6, starter: true, slot: "WR" },
+    { id: 4036378, name: "Jordan Love", pos: "QB", team: "GB", proj: 15.8, tier: 2, status: "Healthy", bye: 11, starter: false, slot: "BE" },
   ]},
   { id: 13, name: "BiBo Samuels", owner: "Aryan Dua", roster: [
     { id: 4430807, name: "Bijan Robinson", pos: "RB", team: "ATL", proj: 19.3, tier: 1, status: "Healthy", bye: 11, starter: true, slot: "RB" },

@@ -26,6 +26,7 @@ import { useToasts } from "./useToasts";
 import { useDragAndDrop } from "./useDragAndDrop";
 import { useMatchupCenter } from "./useMatchupCenter";
 import { gradeMatchup } from "../lib/matchup";
+import { fetchPlayerPerformance, fetchLeagueWeekScores, type PlayerPerformanceResult, type LeagueWeekScoreRow } from "../lib/playerPerformance";
 import { computePlayoffOutlook } from "../lib/playoffOdds";
 import { buildHeadToHeadMatchup, type MatchupSideInput } from "../lib/matchupCenter";
 import type {
@@ -54,6 +55,10 @@ const MATCHUP_GRADE_RANK: Record<string, number> = { A: 5, B: 4, C: 3, D: 2, F: 
 // week's Vegas-implied scoring environment on top of that.
 const MATCHUP_GRADE_POINTS: Record<string, number> = { A: 2, B: 0.75, C: 0, D: -0.75, F: -2 };
 const MIN_ADJUSTED_EDGE = 1.5;
+// Display order for a browsed week's historical starters -- see
+// weekTeamRoster. LeagueWeekScoreRow.slot collapses RB1/RB2 (etc.) down to
+// one label per position, same as ESPN_LINEUP_SLOT_LABEL.
+const WEEK_STARTER_SLOT_ORDER = ["QB", "RB", "WR", "TE", "FLEX", "DST", "K"];
 
 function adjustedProjection(p: Player, matchup: { grade: string | null }): number {
   return p.proj + (matchup.grade ? MATCHUP_GRADE_POINTS[matchup.grade] : 0);
@@ -213,7 +218,7 @@ export function useFantasyApp() {
   const { matchupData, refreshMatchups } = matchupsState;
 
   const standingsState = useStandings();
-  const { leagueSchedule } = standingsState;
+  const { leagueSchedule, refreshStandings } = standingsState;
 
   const matchupCenterState = useMatchupCenter();
   const { liveLineups, refreshLiveLineups } = matchupCenterState;
@@ -246,9 +251,127 @@ export function useFantasyApp() {
   const projectionRefresh = useProjectionRefresh();
   const { projectionOverrides } = projectionRefresh;
 
+  // Projections and the league schedule (which carries the current week)
+  // used to only refresh when someone pressed "Refresh from ESPN" -- so once
+  // an NFL week finished, projections/matchups/the header's "Week N" stayed
+  // pinned to whatever was last manually pulled until someone clicked again,
+  // even though ESPN itself had already rolled over to the next week's
+  // numbers (Tuesday, after Monday Night Football). Pulling both on load
+  // means the moment you actually open the app after that rollover, you get
+  // the new week for free -- same "only runs once, on load" pattern as the
+  // syncRosterFromEspn effect above.
+  useEffect(() => {
+    projectionRefresh.refreshProjections();
+    refreshStandings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Once the league schedule above loads, compare its current week against
+  // the last one this browser saw. A live app has no way to run something on
+  // an actual Tuesday-morning schedule -- there's no server process backing
+  // this SPA -- so "the week rolled over" can only ever be detected the next
+  // time someone opens the app after it happens, which the refresh above
+  // already handles data-wise. This just makes that transition visible
+  // instead of silent, so a new week's numbers don't look like an
+  // unexplained jump.
+  useEffect(() => {
+    if (!leagueSchedule) return;
+    const key = "gridiron.lastSeenWeek";
+    let lastSeen: number | null = null;
+    try {
+      const raw = window.localStorage.getItem(key);
+      lastSeen = raw ? Number(raw) : null;
+    } catch {
+      // Non-fatal -- just skip the "new week" notification this time.
+    }
+    if (lastSeen != null && lastSeen !== leagueSchedule.currentWeek) {
+      notify(`Week ${leagueSchedule.currentWeek} is here — projections, matchups, and lineups are refreshed.`, "info");
+    }
+    try {
+      window.localStorage.setItem(key, String(leagueSchedule.currentWeek));
+    } catch {
+      // Non-fatal.
+    }
+  }, [leagueSchedule, notify]);
+
+  // ---------- Week browsing (the header's "WEEK N" control) ----------
+  // null = "whatever ESPN currently has as the live week" -- the lineup page
+  // keeps behaving exactly as it always has (live scores, lock state, the
+  // rest) in that case. Only set to an explicit number when someone actually
+  // picks a different week to look at. setViewedWeek snaps picking the real
+  // current week back to null instead of pinning that literal number, so it
+  // keeps tracking "current" automatically as the season moves on rather
+  // than silently going stale itself.
+  const [viewedWeek, setViewedWeekRaw] = useState<number | null>(null);
+  const setViewedWeek = useCallback(
+    (week: number | null) => {
+      setViewedWeekRaw(week != null && leagueSchedule && week === leagueSchedule.currentWeek ? null : week);
+    },
+    [leagueSchedule]
+  );
+  const displayWeek = viewedWeek ?? leagueSchedule?.currentWeek ?? null;
+  const isViewingCurrentWeek = viewedWeek == null;
+
+  // Every rostered player's real actual/projected line for whichever week is
+  // being browsed -- only fetched when actually browsing a non-current week
+  // (the current week already has its own live pipeline: effectivePoints,
+  // isPlayerLocked, etc., unaffected by any of this). ESPN only carries a
+  // real per-player projection for the CURRENT week -- ask for anything
+  // further out and every projectedPoints comes back null, which the lineup
+  // page has to say plainly rather than showing a misleading blank/zero.
+  const [weekPlayerScores, setWeekPlayerScores] = useState<LeagueWeekScoreRow[] | null>(null);
+  const [weekScoresLoading, setWeekScoresLoading] = useState(false);
+  useEffect(() => {
+    if (viewedWeek == null) {
+      setWeekPlayerScores(null);
+      return;
+    }
+    let cancelled = false;
+    setWeekScoresLoading(true);
+    fetchLeagueWeekScores(viewedWeek)
+      .then((result) => {
+        if (!cancelled) setWeekPlayerScores(result.players);
+      })
+      .catch(() => {
+        if (!cancelled) setWeekPlayerScores(null);
+      })
+      .finally(() => {
+        if (!cancelled) setWeekScoresLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewedWeek]);
+
+  const weekPlayerPointsById = useMemo(() => {
+    if (!weekPlayerScores) return null;
+    return new Map(weekPlayerScores.map((row) => [row.playerId, row]));
+  }, [weekPlayerScores]);
+
+  // The team's REAL historical lineup for the browsed week -- who was
+  // actually started vs. benched THEN, from ESPN's own scoringPeriodId-
+  // scoped roster snapshot (see fetchLeagueWeekScores), not today's roster
+  // structure with old scores swapped in. A team's current lineup can be
+  // completely different from what it was that week (players started who
+  // are now benched or gone, and vice versa), so this can't be reconstructed
+  // from the live `roster`/`bench` state at all -- it has to come from the
+  // week-scoped data directly.
+  const weekTeamRoster = useMemo(() => {
+    if (!weekPlayerScores) return null;
+    const mine = weekPlayerScores.filter((row) => row.fantasyTeamId === selectedTeamId);
+    const starters = mine
+      .filter((row) => row.isStarter)
+      .sort((a, b) => WEEK_STARTER_SLOT_ORDER.indexOf(a.slot) - WEEK_STARTER_SLOT_ORDER.indexOf(b.slot));
+    const bench = mine
+      .filter((row) => !row.isStarter)
+      .sort((a, b) => (b.actualPoints ?? b.projectedPoints ?? -1) - (a.actualPoints ?? a.projectedPoints ?? -1));
+    return { starters, bench };
+  }, [weekPlayerScores, selectedTeamId]);
+
   const refreshFromEspn = useCallback(async () => {
     await Promise.all([
       projectionRefresh.refreshProjections(),
+      refreshStandings(),
       syncRosterFromEspn(),
       syncFreeAgentsFromEspn(),
       refreshNews(),
@@ -256,7 +379,7 @@ export function useFantasyApp() {
       refreshLiveLineups(),
     ]);
     notify("Synced projections, lineup, free agents, and news/matchups from ESPN.", "success");
-  }, [projectionRefresh, syncRosterFromEspn, syncFreeAgentsFromEspn, refreshNews, refreshMatchups, refreshLiveLineups, notify]);
+  }, [projectionRefresh, refreshStandings, syncRosterFromEspn, syncFreeAgentsFromEspn, refreshNews, refreshMatchups, refreshLiveLineups, notify]);
 
   // A player's opponent + Vegas-graded matchup quality for the current week --
   // see lib/matchup.ts. DST is graded off the opponent's implied total
@@ -313,7 +436,24 @@ export function useFantasyApp() {
   const newsForPlayer = useCallback((id: number) => newsByPlayer.get(id) ?? [], [newsByPlayer]);
 
   const [playerNewsOpenId, setPlayerNewsOpenId] = useState<number | null>(null);
-  const openPlayerNews = useCallback((id: number) => setPlayerNewsOpenId(id), []);
+  // This week's live/final line plus a recent game log, fetched live from
+  // ESPN's actuals (statSourceId 0, as opposed to the projections --
+  // statSourceId 1 -- the rest of the app reads) the moment someone opens a
+  // player's card. Previously unused by any page despite already being fully
+  // built (see lib/playerPerformance.ts, written for the Sensei chat tool) --
+  // this is what makes "click a player, see how they actually did last week"
+  // possible alongside their news/injury feed instead of needing to ask chat.
+  const [playerPerformance, setPlayerPerformance] = useState<PlayerPerformanceResult | null>(null);
+  const [playerPerformanceLoading, setPlayerPerformanceLoading] = useState(false);
+  const openPlayerNews = useCallback((id: number) => {
+    setPlayerNewsOpenId(id);
+    setPlayerPerformance(null);
+    setPlayerPerformanceLoading(true);
+    fetchPlayerPerformance(id)
+      .then((result) => setPlayerPerformance(result))
+      .catch(() => setPlayerPerformance(null))
+      .finally(() => setPlayerPerformanceLoading(false));
+  }, []);
   const closePlayerNews = useCallback(() => setPlayerNewsOpenId(null), []);
 
   // ---------- Effective data: base data with live overrides applied ----------
@@ -1489,6 +1629,15 @@ export function useFantasyApp() {
     ...standingsState,
     playoffOutlook,
 
+    // week browsing (the header's "WEEK N" control)
+    viewedWeek,
+    setViewedWeek,
+    displayWeek,
+    isViewingCurrentWeek,
+    weekPlayerPointsById,
+    weekScoresLoading,
+    weekTeamRoster,
+
     // live news/injury feed, and the click-a-player's-name-or-status popover
     ...newsFeedState,
     playerHasNews,
@@ -1496,6 +1645,8 @@ export function useFantasyApp() {
     playerNewsOpenId,
     openPlayerNews,
     closePlayerNews,
+    playerPerformance,
+    playerPerformanceLoading,
 
     // weekly matchups (opponent + Vegas-graded matchup quality)
     ...matchupsState,

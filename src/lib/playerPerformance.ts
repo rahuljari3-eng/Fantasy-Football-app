@@ -355,27 +355,7 @@ function buildWeekPerformance(
   };
 }
 
-let cache: {
-  at: number;
-  scoringPeriodId: number;
-  byId: Map<number, RosterIndexEntry>;
-  entries: RosterIndexEntry[];
-} | null = null;
-const CACHE_TTL_MS = 45_000;
-
-async function loadRosterIndex(): Promise<{
-  scoringPeriodId: number;
-  byId: Map<number, RosterIndexEntry>;
-  entries: RosterIndexEntry[];
-}> {
-  if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
-    return { scoringPeriodId: cache.scoringPeriodId, byId: cache.byId, entries: cache.entries };
-  }
-  const res = await fetch(`${ESPN_LEAGUE_BASE_URL}?view=mRoster&view=mTeam&view=mStatus`, {
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error(`ESPN roster request failed (${res.status})`);
-  const data = (await res.json()) as EspnLeagueResponse;
+function indexRoster(data: EspnLeagueResponse): { byId: Map<number, RosterIndexEntry>; entries: RosterIndexEntry[] } {
   const byId = new Map<number, RosterIndexEntry>();
   const entries: RosterIndexEntry[] = [];
   for (const t of data.teams || []) {
@@ -393,8 +373,74 @@ async function loadRosterIndex(): Promise<{
       entries.push(row);
     }
   }
+  return { byId, entries };
+}
+
+let cache: {
+  at: number;
+  scoringPeriodId: number;
+  byId: Map<number, RosterIndexEntry>;
+  entries: RosterIndexEntry[];
+} | null = null;
+const CACHE_TTL_MS = 45_000;
+
+/** Today's roster -- current lineup slots, changes as managers make moves,
+ * so short-TTL cached. Also the sole source of the TRUE current week, used
+ * below even when loading a past week's roster. */
+async function loadCurrentRosterIndex(): Promise<{
+  scoringPeriodId: number;
+  byId: Map<number, RosterIndexEntry>;
+  entries: RosterIndexEntry[];
+}> {
+  if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
+    return { scoringPeriodId: cache.scoringPeriodId, byId: cache.byId, entries: cache.entries };
+  }
+  const res = await fetch(`${ESPN_LEAGUE_BASE_URL}?view=mRoster&view=mTeam&view=mStatus`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`ESPN roster request failed (${res.status})`);
+  const data = (await res.json()) as EspnLeagueResponse;
+  const { byId, entries } = indexRoster(data);
   cache = { at: Date.now(), scoringPeriodId: data.scoringPeriodId ?? 1, byId, entries };
   return { scoringPeriodId: cache.scoringPeriodId, byId: cache.byId, entries: cache.entries };
+}
+
+// A past week's real lineup (who was actually started/benched THAT week) is
+// final once the week's over -- cache it forever rather than re-fetching.
+const historicalCache = new Map<number, { byId: Map<number, RosterIndexEntry>; entries: RosterIndexEntry[] }>();
+
+async function loadHistoricalRosterIndex(week: number): Promise<{ byId: Map<number, RosterIndexEntry>; entries: RosterIndexEntry[] }> {
+  const hit = historicalCache.get(week);
+  if (hit) return hit;
+  // ESPN's mRoster view accepts scoringPeriodId to return each team's REAL
+  // lineup slots as of that scoring period -- a manager's current lineup can
+  // differ completely from what it was back then (who they started, who was
+  // on their bench at all), so this can't be reconstructed from today's
+  // roster structure plus old stat lines.
+  const res = await fetch(`${ESPN_LEAGUE_BASE_URL}?view=mRoster&view=mTeam&view=mStatus&scoringPeriodId=${week}`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`ESPN roster request failed (${res.status})`);
+  const data = (await res.json()) as EspnLeagueResponse;
+  const indexed = indexRoster(data);
+  historicalCache.set(week, indexed);
+  return indexed;
+}
+
+/** `week` omitted (or matching the true current week) uses today's live
+ * roster -- unchanged, cached, cheap. A different week loads THAT week's
+ * real lineup slots instead, so "who started" reflects what actually
+ * happened, not today's lineup relabeled with old scores. Either way,
+ * `scoringPeriodId` in the result is always the TRUE current week. */
+async function loadRosterIndex(week?: number): Promise<{
+  scoringPeriodId: number;
+  byId: Map<number, RosterIndexEntry>;
+  entries: RosterIndexEntry[];
+}> {
+  const current = await loadCurrentRosterIndex();
+  if (week == null || week === current.scoringPeriodId) return current;
+  const historical = await loadHistoricalRosterIndex(week);
+  return { scoringPeriodId: current.scoringPeriodId, byId: historical.byId, entries: historical.entries };
 }
 
 function slotLabel(lineupSlotId: number | null): string {
@@ -433,7 +479,7 @@ export async function fetchLeagueWeekScores(week?: number): Promise<{
   currentWeek: number;
   players: LeagueWeekScoreRow[];
 }> {
-  const { scoringPeriodId, entries } = await loadRosterIndex();
+  const { scoringPeriodId, entries } = await loadRosterIndex(week);
   const targetWeek = week ?? scoringPeriodId;
   const events = await fetchScoreboardEvents();
   const players = entries

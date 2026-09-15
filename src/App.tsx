@@ -45,6 +45,10 @@ export default function App() {
         refreshError={app.refreshError}
         lastRefreshed={app.lastRefreshed}
         onRefresh={app.refreshProjections}
+        currentWeek={app.leagueSchedule?.currentWeek ?? null}
+        displayWeek={app.displayWeek}
+        regularSeasonWeeks={app.leagueSchedule?.regularSeasonWeeks ?? null}
+        onSelectWeek={app.setViewedWeek}
       />
 
       <div className="max-w-6xl mx-auto px-4 py-6">
@@ -58,6 +62,8 @@ export default function App() {
       <PlayerNewsModal
         playerName={app.playerNewsOpenId != null ? app.playerById(app.playerNewsOpenId)?.name ?? "" : null}
         items={app.playerNewsOpenId != null ? app.newsForPlayer(app.playerNewsOpenId) : []}
+        performance={app.playerPerformance}
+        performanceLoading={app.playerPerformanceLoading}
         onClose={app.closePlayerNews}
       />
 

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Lightbulb, X } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, ChevronLeft, Lightbulb, X } from "lucide-react";
 import { SLOTS, SLOT_ELIGIBILITY } from "../config/league";
 import { LEAGUE_CONFIG } from "../config/league";
 import { PosBadge } from "../components/PosBadge";
@@ -48,9 +48,19 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
     handleDragStart,
     refreshMatchups,
     refreshLiveLineups,
+    displayWeek,
+    isViewingCurrentWeek,
+    weekScoresLoading,
+    weekTeamRoster,
+    setViewedWeek,
+    leagueSchedule,
   } = app;
 
   useEffect(() => {
+    // Only the live game-state poll -- pointless (and just extra ESPN
+    // traffic) while browsing a past/future week, since that data doesn't
+    // change and isn't what's being shown anyway.
+    if (!isViewingCurrentWeek) return;
     refreshMatchups();
     refreshLiveLineups();
     const interval = setInterval(() => {
@@ -58,7 +68,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
       refreshLiveLineups();
     }, GAME_STATE_POLL_MS);
     return () => clearInterval(interval);
-  }, [refreshMatchups, refreshLiveLineups]);
+  }, [isViewingCurrentWeek, refreshMatchups, refreshLiveLineups]);
 
   const dragStartIfUnlocked = (e: ReactPointerEvent, p: Player) => {
     if (isPlayerLocked(p)) return;
@@ -74,6 +84,21 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
           {LEAGUE_CONFIG.espnLeagueId}. Switch teams from the picker in the header.
         </span>
       </div>
+
+      {!isViewingCurrentWeek && (
+        <div className="lg:col-span-5 -mb-2 bg-[#1C1C1E] border border-[#38383A] rounded-lg px-3 py-2.5 text-xs text-[#98989D] flex items-center justify-between gap-2 flex-wrap">
+          <span>
+            Showing your real starting lineup and bench from <strong className="text-[#C9A227] font-semibold">Week {displayWeek}</strong> as it actually was
+            {weekScoresLoading ? " — loading…" : ""} — not today's lineup. Read-only; switch back to the current week to make roster changes.
+          </span>
+          <button
+            onClick={() => leagueSchedule && setViewedWeek(leagueSchedule.currentWeek)}
+            className="shrink-0 flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-[#38383A] text-[#98989D] hover:text-[#C9A227] hover:border-[#C9A227]/50"
+          >
+            <ChevronLeft size={12} /> Back to current week
+          </button>
+        </div>
+      )}
 
       {benchUpgradeSuggestions.length > 0 && (
         <div className="lg:col-span-5 space-y-2">
@@ -106,10 +131,87 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
         <div className="flex items-center justify-between">
           <h2 className="display-font text-xl">Your roster</h2>
           <span className="text-xs mono-font text-[#98989D]">
-            {filledCount}/{SLOTS.length} starters · {bench.length} bench
+            {isViewingCurrentWeek
+              ? `${filledCount}/${SLOTS.length} starters · ${bench.length} bench`
+              : `${weekTeamRoster?.starters.length ?? 0} starters · ${weekTeamRoster?.bench.length ?? 0} bench`}
           </span>
         </div>
 
+        {!isViewingCurrentWeek ? (
+          <>
+            <div className="space-y-1.5">
+              {weekTeamRoster?.starters.map((row) => {
+                const p = playerById(row.playerId);
+                return (
+                  <div key={row.playerId} className="flex items-center gap-2 border rounded-xl pl-2.5 pr-3 py-2 bg-[#1C1C1E] border-[#38383A]">
+                    <div className="w-11 shrink-0 mono-font text-[11px] text-[#C9A227] font-semibold">{row.slot}</div>
+                    <div className="flex-1 flex items-center justify-between min-w-0 gap-2">
+                      <div className="min-w-0">
+                        <PlayerNameLink
+                          name={row.name}
+                          hasNews={playerHasNews(row.playerId)}
+                          onOpen={() => openPlayerNews(row.playerId)}
+                          className="text-sm font-medium truncate"
+                        />
+                        <div className="text-[11px] text-[#98989D] flex items-center gap-1.5 flex-wrap">
+                          {p && <PosBadge pos={p.pos} className="rounded" />}
+                          {row.game ? (
+                            <span>
+                              {row.game.score ?? row.game.name} · {row.game.status}
+                            </span>
+                          ) : p ? (
+                            <span>{p.team}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <span className="mono-font text-sm font-medium text-[#C9A227] shrink-0">
+                        {row.actualPoints ?? row.projectedPoints ?? "—"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+              {!weekScoresLoading && (!weekTeamRoster || weekTeamRoster.starters.length === 0) && (
+                <div className="text-sm text-[#636366] italic px-1.5">No starters found for Week {displayWeek}.</div>
+              )}
+            </div>
+
+            <div className="pt-2">
+              <div className="text-xs text-[#98989D] mb-1.5 mono-font">BENCH</div>
+              <div className="space-y-1.5">
+                {weekTeamRoster?.bench.map((row) => {
+                  const p = playerById(row.playerId);
+                  return (
+                    <div key={row.playerId} className="flex items-center justify-between bg-[#1C1C1E]/60 border border-[#38383A]/60 rounded-lg px-3 py-1.5">
+                      <div className="min-w-0">
+                        <div className="text-sm flex items-center gap-1">
+                          <PlayerNameLink name={row.name} hasNews={playerHasNews(row.playerId)} onOpen={() => openPlayerNews(row.playerId)} />
+                          {p && <PosBadge pos={p.pos} className="rounded" />}
+                        </div>
+                        <div className="text-[11px] text-[#98989D] flex items-center gap-1.5 flex-wrap mt-0.5">
+                          {row.game ? (
+                            <span>
+                              {row.game.score ?? row.game.name} · {row.game.status}
+                            </span>
+                          ) : p ? (
+                            <span>{p.team}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <span className="mono-font text-sm font-medium text-[#C9A227] shrink-0">
+                        {row.actualPoints ?? row.projectedPoints ?? "—"}
+                      </span>
+                    </div>
+                  );
+                })}
+                {!weekScoresLoading && (!weekTeamRoster || weekTeamRoster.bench.length === 0) && (
+                  <div className="text-sm text-[#636366] italic px-1.5">No bench players found for Week {displayWeek}.</div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+        <>
         <div className="space-y-1.5">
           {SLOTS.map((slot) => {
             const id = roster[slot];
@@ -229,6 +331,8 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
             {bench.length === 0 && <div className="text-sm text-[#636366] italic px-1.5 pointer-events-none">Drag players here for your bench</div>}
           </div>
         </div>
+        </>
+        )}
       </div>
 
       <div className="lg:col-span-3 space-y-3">
