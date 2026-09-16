@@ -115,10 +115,16 @@ User message + leagueContext
   → Research loop: call tools until checklist satisfied
        or ask ONE clarifying question if blocked
   → Evidence gate: final answer must include Recommendation + Data & Reasoning
-  → Final answer (no more tools)
+  → Discriminator (cheap JSON judge on draft + tool digest):
+       pass → Final answer
+       need_more_research → nudge + force tools, continue loop
+       rewrite → nudge (no force-tools unless checklist open), continue loop
+  → Final answer (after pass or discriminator / round caps)
 ```
 
 **Evidence contract:** suggestions / predictions / rankings always quote concrete tool fields (`proj`, `weekValue`, `rosValue`, ratios, bye, matchup grade, headlines, standings). Tool payloads include `citeHints` the model should lean on. Unsupported claims are nudged and rewritten.
+
+**Discriminator:** after the evidence-format gate, a second cheap model (`discriminateSenseiAnswer`) checks grounding and completeness against a truncated tool digest. Clarifying-question exits skip the discriminator. Cap shared research/rewrite nudges so the turn stays bounded.
 
 **Multi-intent:** e.g. “Start Puka or Diggs given the injury news?” → `["start_sit", "news"]`. Tool allowlists and checklists are **unioned**, not winner-take-all. Cap at **3** intents so the loop stays bounded.
 
@@ -135,11 +141,12 @@ server/
   index.ts
   app.ts
   agent/
-    runSenseiTurn.ts       # classify → research loop → answer
-    classifyIntent.ts      # cheap JSON intent classification
-    intents.ts             # allowlists + checklists + merge
+    runSenseiTurn.ts              # classify → research loop → evidence → discriminator → answer
+    classifyIntent.ts             # cheap JSON intent classification
+    discriminateSenseiAnswer.ts   # post-answer judge + digest/nudge helpers
+    intents.ts                    # allowlists + checklists + merge
     systemPrompt.ts
-    tools/registry.ts      # optional allowlist filter
+    tools/registry.ts             # optional allowlist filter
 ```
 
 
@@ -222,13 +229,13 @@ Public/cookie-less GETs work for this league today from the browser; **agent too
 | Start / sit, flex | `compare_players`, `optimize_lineup`, `get_player_schedule`, `get_news_for_player` |
 | “Is X on bye?” / bye coverage | `get_bye_calendar`, `get_my_roster`, `search_free_agents` |
 | Waivers / must-adds | `analyze_roster_needs`, `recommend_pickups`, `get_schedule_outlook`, `search_free_agents` |
-| Is this trade fair? (week *and* ROS) | `evaluate_trade` (both horizons), `get_schedule_outlook`, `get_player` |
-| Suggest a trade | `suggest_trades`, `analyze_roster_needs`, `get_bye_calendar` |
+| Is this trade fair? (week *and* ROS) | `evaluate_trade` (both horizons), `get_player_projection_outlook`, `get_schedule_outlook`, `get_player` |
+| Suggest a trade | `suggest_trades`, `analyze_roster_needs`, `get_bye_calendar`, `get_player_projection_outlook` |
 | Where am I weak? | `analyze_roster_needs`, `get_my_roster`, `get_bye_calendar` |
 | Injury / news | `get_news_feed`, `get_news_for_player`, `get_player` |
 | Fantasy matchup / standings | `get_matchup`, `get_standings` |
-| “Who do they play the next few weeks?” | `get_player_schedule`, `get_nfl_schedule` |
-| Playoff stash / schedule smash | `get_schedule_outlook`, `get_playoff_weeks`, `get_standings` |
+| “Who do they play the next few weeks?” | `get_player_schedule`, `get_player_projection_outlook`, `get_nfl_schedule` |
+| Playoff stash / schedule smash | `get_schedule_outlook`, `get_player_projection_outlook`, `get_playoff_weeks`, `get_standings` |
 | What moved in the league? | `get_completed_trades`, `sync_rosters` |
 | Scout an opponent | `list_teams`, `get_team_roster` |
 | League rules / format | `get_league_context` |
@@ -265,6 +272,7 @@ Promote schedule tools early — this is what makes Sensei versatile beyond a pr
 |------|---------|--------|---------|--------|
 | `get_nfl_schedule` | Full NFL week or team slate | `week?`, `nflTeam?` | Games: home/away, opponent, date | **New** ESPN `proTeamSchedules_wl` (or site API) |
 | `get_player_schedule` | One player’s remaining games | `playerId` or `query`, `fromWeek?` | Bye + **all remaining** opponents (H/A) through season end | Player.team + NFL schedule cache |
+| `get_player_projection_outlook` | Week-by-week proj outlook | `query` and/or `players[]`, `fromWeek?`, `throughWeek?`, `weeksAhead?` | Current week: real ESPN `projectedPoints`; later weeks: schedule + labeled `baselinePoints` (season PPG / current proj fallback) — **not** inventing future ESPN weekly projs | Schedule + `Player.proj` / `seasonProj` + optional matchup grade |
 | `get_schedule_outlook` | Soft/hard stretch summary | `playerIds[]` or `teamId`, `fromWeek?`, `throughWeek?` | Per-player **remaining** opponents (default through season / playoffs); optional “ease” tags later | Schedule + optional rankings |
 | `get_playoff_weeks` | League playoff window | — | Scoring periods treated as playoffs (settings or config e.g. 15–17) | **New** `mSettings` or `LEAGUE_CONFIG` |
 | `suggest_trades` | Coach-style proposals | `teamId?`, `max?` | `TradeSuggestion[]` | `src/lib/coachTrades.ts` (**done**) |

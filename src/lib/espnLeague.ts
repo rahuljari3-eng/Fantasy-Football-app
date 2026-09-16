@@ -2,7 +2,12 @@
 // and full roster / free-agent ownership sync.
 import { ESPN_LEAGUE_BASE_URL } from "../config/league.js";
 import type { LeagueTeam, Player, Position, RosterPlayer, Tier } from "../types.js";
-import { ESPN_INJURY_LABEL_MAP, ESPN_LINEUP_SLOT_LABEL, extractEspnProjection } from "./espn.js";
+import {
+  ESPN_INJURY_LABEL_MAP,
+  ESPN_LINEUP_SLOT_LABEL,
+  extractEspnProjection,
+  extractEspnSeasonProjection,
+} from "./espn.js";
 import { getNflSchedule } from "./nflSchedule.js";
 
 const ESPN_POS: Record<number, Position> = {
@@ -17,7 +22,9 @@ const ESPN_POS: Record<number, Position> = {
 interface EspnStatLine {
   statSourceId: number;
   scoringPeriodId: number;
+  statSplitTypeId?: number;
   appliedTotal?: number;
+  appliedAverage?: number;
 }
 
 interface EspnPlayer {
@@ -169,6 +176,7 @@ function enrichPlayer(
   const nfl = espn.proTeamId != null ? teamsById[espn.proTeamId] : undefined;
   const prev = known.get(espn.id);
   const proj = extractEspnProjection(espn.stats, scoringPeriodId) ?? prev?.proj ?? 0;
+  const seasonProj = extractEspnSeasonProjection(espn.stats) ?? prev?.seasonProj;
   const status =
     ESPN_INJURY_LABEL_MAP[espn.injuryStatus ?? ""] ||
     espn.injuryStatus ||
@@ -182,6 +190,7 @@ function enrichPlayer(
     team: nfl?.abbrev || prev?.team || "FA",
     bye: nfl?.byeWeek ?? prev?.bye ?? 0,
     proj,
+    ...(seasonProj != null ? { seasonProj } : {}),
     tier: prev?.tier ?? tierFromProj(proj, pos),
     status,
   };

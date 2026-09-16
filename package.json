@@ -8,7 +8,8 @@
     "dev:web": "vite",
     "dev:api": "node --import tsx --watch server/index.ts",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "verify:discriminator": "tsx scripts/verify-discriminator-normalize.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",

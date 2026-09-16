@@ -1,4 +1,5 @@
 import { LEAGUE_CONFIG, ESPN_LEAGUE_BASE_URL } from "../../../src/config/league.js";
+import { fetchWeeklyMatchups, gradeMatchup } from "../../../src/lib/matchup.js";
 import {
   gamesForWeek,
   getNflSchedule,
@@ -198,4 +199,180 @@ export const getPlayoffWeeksTool: ToolDefinition = {
     playoffWeeks: DEFAULT_PLAYOFF_WEEKS,
     note: "Hardcoded default until mSettings playoff config is wired. Override later if the league differs.",
   }),
+};
+
+/**
+ * Honest week-by-week outlook: ESPN only publishes a real fantasy projection
+ * for the *current* scoring week. Future weeks use season PPG (or current
+ * week proj as fallback) labeled as baselines — never invent weekly ESPN projs.
+ */
+export const getPlayerProjectionOutlookTool: ToolDefinition = {
+  name: "get_player_projection_outlook",
+  description:
+    "Week-by-week projection outlook for one or more players: real ESPN proj for the current week, then schedule (opponent/bye) for remaining weeks with a clearly labeled season-PPG baseline (ESPN does NOT publish true future weekly fantasy projections). Use for trades, playoff stash, or 'how's their schedule the next few weeks?' — never treat baselinePoints as ESPN weekly proj.",
+  parameters: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "Single player name or ESPN id" },
+      players: {
+        type: "array",
+        items: { type: "string" },
+        description: "Multiple player names/ids (e.g. both sides of a trade). Prefer over repeating the tool.",
+      },
+      fromWeek: { type: "number", description: "Start week (defaults to current scoring period)" },
+      throughWeek: { type: "number", description: "End week (default: season end)" },
+      weeksAhead: {
+        type: "number",
+        description: "If set, outlook covers fromWeek .. fromWeek+weeksAhead-1 (overrides throughWeek)",
+      },
+    },
+    additionalProperties: false,
+  },
+  handler: async (ctx, args) => {
+    const queries: string[] = [];
+    if (Array.isArray(args.players)) {
+      for (const q of args.players) {
+        if (typeof q === "string" || typeof q === "number") queries.push(String(q));
+      }
+    }
+    if (typeof args.query === "string" || typeof args.query === "number") {
+      queries.push(String(args.query));
+    }
+    if (!queries.length) {
+      return { ok: false, error: "query_or_players_required" };
+    }
+
+    const snap = await getNflSchedule();
+    const fromWeek = typeof args.fromWeek === "number" ? args.fromWeek : await resolveFromWeek(ctx.scoringPeriodId);
+    let throughWeek =
+      typeof args.throughWeek === "number" ? args.throughWeek : snap.maxWeek;
+    if (typeof args.weeksAhead === "number" && args.weeksAhead > 0) {
+      throughWeek = fromWeek + Math.floor(args.weeksAhead) - 1;
+    }
+
+    let matchups: Awaited<ReturnType<typeof fetchWeeklyMatchups>> | null = null;
+    try {
+      matchups = await fetchWeeklyMatchups();
+    } catch {
+      matchups = null;
+    }
+
+    const outlooks = [];
+    const notFound: string[] = [];
+
+    for (const q of queries.slice(0, 8)) {
+      const hits = findPlayers(q, 1);
+      if (!hits.length) {
+        notFound.push(q);
+        continue;
+      }
+      const player = hits[0];
+      const seasonPpg = player.seasonProj ?? null;
+      const baselineSource =
+        seasonPpg != null ? ("season_ppg_baseline" as const) : ("current_week_proj_fallback" as const);
+      const baselinePoints = Math.round((seasonPpg ?? player.proj) * 10) / 10;
+
+      const remaining = teamScheduleRemaining(snap, player.team, fromWeek).filter(
+        (s) => s.week <= throughWeek
+      );
+
+      const weeks = remaining.map((slot) => {
+        if ("bye" in slot && slot.bye) {
+          return {
+            week: slot.week,
+            bye: true as const,
+            projectedPoints: 0,
+            source: "bye" as const,
+          };
+        }
+        const game = slot as { week: number; opponent: string; home: boolean; date: string | null };
+        if (game.week === fromWeek) {
+          const m = matchups ? gradeMatchup(player, matchups) : null;
+          return {
+            week: game.week,
+            bye: false as const,
+            opponent: game.opponent,
+            home: game.home,
+            date: game.date,
+            projectedPoints: player.proj,
+            source: "espn_weekly" as const,
+            thisWeekMatchup: m
+              ? {
+                  opponent: m.opponent,
+                  homeAway: m.homeAway,
+                  isBye: m.isBye,
+                  grade: m.grade,
+                  impliedTotal: m.impliedTotal,
+                  label: m.label,
+                }
+              : null,
+          };
+        }
+        return {
+          week: game.week,
+          bye: false as const,
+          opponent: game.opponent,
+          home: game.home,
+          date: game.date,
+          baselinePoints,
+          source: baselineSource,
+          note: "Not an ESPN weekly fantasy projection — season PPG (or current-week proj) baseline for schedule planning only.",
+        };
+      });
+
+      const games = weeks.filter((w) => !w.bye);
+      const byeWeeks = weeks.filter((w) => w.bye).map((w) => w.week);
+      const thisWeekRow = weeks.find((w) => w.week === fromWeek && !w.bye);
+      const futureBaselines = weeks.filter(
+        (w) => !w.bye && w.week !== fromWeek && "baselinePoints" in w
+      ) as { baselinePoints: number }[];
+      const baselineSum = Math.round(
+        futureBaselines.reduce((s, w) => s + w.baselinePoints, 0) * 10
+      ) / 10;
+
+      outlooks.push({
+        player: serializePlayer(player),
+        currentWeek: fromWeek,
+        thisWeek: {
+          source: "espn_weekly" as const,
+          projectedPoints: player.proj,
+          seasonPpg,
+          matchup:
+            thisWeekRow && "thisWeekMatchup" in thisWeekRow ? thisWeekRow.thisWeekMatchup : null,
+        },
+        weeks,
+        summary: {
+          gamesInWindow: games.length,
+          byeWeeks,
+          thisWeekEspnProj: player.proj,
+          futureWeeksBaselineSum: baselineSum,
+          baselineSource,
+        },
+        citeHints: [
+          `${player.name}: week ${fromWeek} ESPN proj ${player.proj}` +
+            (seasonPpg != null ? `; season PPG ${seasonPpg}` : " (no season PPG — future baselines use this-week proj)"),
+          byeWeeks.length
+            ? `Bye week(s) in window: ${byeWeeks.join(", ")} → 0.`
+            : "No bye in this window.",
+          `Weeks after ${fromWeek}: baselinePoints are ${baselineSource.replace(/_/g, " ")}, NOT ESPN weekly projections.`,
+        ],
+      });
+    }
+
+    if (!outlooks.length) {
+      return { ok: false, error: "no_players_resolved", notFound };
+    }
+
+    return {
+      ok: true,
+      season: snap.season,
+      fromWeek,
+      throughWeek,
+      playoffWeeks: DEFAULT_PLAYOFF_WEEKS,
+      disclaimer:
+        "ESPN publishes a real fantasy projection only for the current scoring week. Future weeks use season PPG (preferred) or current-week proj as a labeled baseline — do not present baselinePoints as ESPN weekly projections.",
+      outlooks,
+      notFound: notFound.length ? notFound : undefined,
+    };
+  },
 };

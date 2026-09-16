@@ -314,8 +314,8 @@ export const evaluateTradeTool: ToolDefinition = {
         `Week: give ${weekBlock.giveValue} vs get ${weekBlock.getValue} (ratio ${weekBlock.ratio}, verdict ${weekBlock.verdict}).`,
         `ROS: give ${seasonBlock.giveValue} vs get ${seasonBlock.getValue} (ratio ${seasonBlock.ratio}, verdict ${seasonBlock.verdict}).`,
         `Star gate OK: ${gateOk}. Fair ratio window ${FAIR_RATIO_MIN}–${FAIR_RATIO_MAX}.`,
-        `Give: ${giveSerialized.map((p) => `${p.name} (proj ${p.proj}, weekValue ${p.weekValue})${matchupLine(p)}`).join("; ")}.`,
-        `Get: ${getSerialized.map((p) => `${p.name} (proj ${p.proj}, weekValue ${p.weekValue})${matchupLine(p)}`).join("; ")}.`,
+        `Give: ${giveSerialized.map((p) => `${p.name} (proj ${p.proj}, weekValue ${p.weekValue}, bye ${p.bye}, status ${p.status})${matchupLine(p)}`).join("; ")}.`,
+        `Get: ${getSerialized.map((p) => `${p.name} (proj ${p.proj}, weekValue ${p.weekValue}, bye ${p.bye}, status ${p.status})${matchupLine(p)}`).join("; ")}.`,
       ],
       note: "Each player carries thisWeekMatchup (opponent, grade, implied total/workload label) -- weave this real football context into your reasoning (game script, opponent strength, role), not just the bare value numbers.",
     };

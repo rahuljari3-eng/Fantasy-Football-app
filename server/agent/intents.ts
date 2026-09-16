@@ -37,6 +37,7 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "get_bye_calendar",
     "get_player_schedule",
     "get_schedule_outlook",
+    "get_player_projection_outlook",
     "get_news_for_player",
   ],
   trades: [
@@ -48,6 +49,11 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "compare_players",
     "get_standings",
     "get_news_for_player",
+    "get_bye_calendar",
+    "get_schedule_outlook",
+    "get_player_schedule",
+    "get_player_projection_outlook",
+    "get_playoff_odds",
   ],
   waivers: [
     "analyze_roster_needs",
@@ -55,6 +61,7 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "search_free_agents",
     "get_news_feed",
     "get_news_for_player",
+    "get_player_projection_outlook",
   ],
   news: ["get_news_feed", "get_news_for_player", "get_player"],
   matchup: [
@@ -64,12 +71,14 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "get_standings",
     "get_playoff_odds",
     "get_player_schedule",
+    "get_player_projection_outlook",
     "get_bye_calendar",
   ],
   schedule: [
     "get_nfl_schedule",
     "get_player_schedule",
     "get_schedule_outlook",
+    "get_player_projection_outlook",
     "get_playoff_weeks",
     "get_bye_calendar",
   ],
@@ -141,11 +150,12 @@ const INTENT_CHECKLISTS: Record<SenseiIntent, ChecklistItem[]> = {
   schedule: [
     {
       id: "schedule_data",
-      description: "Load NFL schedule / outlook / byes",
+      description: "Load NFL schedule / outlook / byes / projection outlook",
       satisfiedBy: [
         "get_nfl_schedule",
         "get_player_schedule",
         "get_schedule_outlook",
+        "get_player_projection_outlook",
         "get_bye_calendar",
         "get_playoff_weeks",
       ],

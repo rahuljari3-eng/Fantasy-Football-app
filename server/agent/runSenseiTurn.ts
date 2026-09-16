@@ -6,6 +6,11 @@ import { FREE_AGENTS } from "../../src/data/freeAgents.js";
 import { ensureLiveRosters, getLiveLeagueCache } from "../../src/lib/espnLeague.js";
 import type { Player } from "../../src/types.js";
 import { classifySenseiIntents } from "./classifyIntent.js";
+import {
+  buildDiscriminatorNudge,
+  buildToolDigest,
+  discriminateSenseiAnswer,
+} from "./discriminateSenseiAnswer.js";
 import { evidenceNudgeMessage, looksLikeEvidenceAnswer } from "./evidence.js";
 import {
   checklistForIntents,
@@ -26,6 +31,7 @@ const MAX_HISTORY_MESSAGES = 20;
 const MAX_TOOL_ROUNDS = 8;
 const MAX_RESEARCH_NUDGES = 3;
 const MAX_EVIDENCE_NUDGES = 2;
+const MAX_DISCRIMINATOR_NUDGES = 2;
 
 export interface ChatTurnMessage {
   role: "user" | "assistant";
@@ -128,14 +134,18 @@ export async function runSenseiTurn(input: {
 
   let nudges = 0;
   let evidenceNudges = 0;
+  let discriminatorNudges = 0;
+  let forceToolsAfterDiscriminator = false;
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const missing = missingChecklistItems(checklist, toolsUsed);
     const researchDone = missing.length === 0;
-    // Force tool calls while checklist is incomplete so the model can't
-    // skip research and invent "I don't have news" after only auto-sync.
+    // Force tool calls while checklist is incomplete (or after a discriminator
+    // research nudge) so the model can't skip research and invent gaps.
     const forceTools =
-      !researchDone && openAiTools.length > 0 && nudges < MAX_RESEARCH_NUDGES && round < MAX_TOOL_ROUNDS - 1;
+      openAiTools.length > 0 &&
+      round < MAX_TOOL_ROUNDS - 1 &&
+      ((!researchDone && nudges < MAX_RESEARCH_NUDGES) || forceToolsAfterDiscriminator);
 
     const completion = await client.chat.completions.create({
       model,
@@ -177,6 +187,7 @@ export async function runSenseiTurn(input: {
           content: JSON.stringify(result),
         });
       }
+      forceToolsAfterDiscriminator = false;
       continue;
     }
 
@@ -225,13 +236,53 @@ export async function runSenseiTurn(input: {
       continue;
     }
 
-    return {
-      message: text,
-      toolsUsed: dedupe(toolsUsed),
-      model,
+    if (
+      discriminatorNudges >= MAX_DISCRIMINATOR_NUDGES ||
+      round >= MAX_TOOL_ROUNDS - 1
+    ) {
+      return {
+        message: text,
+        toolsUsed: dedupe(toolsUsed),
+        model,
+        intents,
+        researchComplete: missingChecklistItems(checklist, toolsUsed).length === 0,
+      };
+    }
+
+    const discrimination = await discriminateSenseiAnswer(client, {
+      userQuestion: latestUser,
+      draftAnswer: text,
       intents,
-      researchComplete: missingChecklistItems(checklist, toolsUsed).length === 0,
-    };
+      toolsUsed: dedupe(toolsUsed),
+      allowedTools: allowlist,
+      toolDigest: buildToolDigest(messages),
+    });
+    console.info("[sensei] discriminator", {
+      verdict: discrimination.verdict,
+      reasons: discrimination.reasons,
+      missingDimensions: discrimination.missingDimensions,
+      suggestedTools: discrimination.suggestedTools,
+    });
+
+    if (discrimination.verdict === "pass") {
+      return {
+        message: text,
+        toolsUsed: dedupe(toolsUsed),
+        model,
+        intents,
+        researchComplete: missingChecklistItems(checklist, toolsUsed).length === 0,
+      };
+    }
+
+    discriminatorNudges++;
+    messages.push({
+      role: "user",
+      content: buildDiscriminatorNudge(discrimination),
+    });
+    if (discrimination.verdict === "need_more_research") {
+      forceToolsAfterDiscriminator = true;
+    }
+    continue;
   }
 
   return {

@@ -189,6 +189,8 @@ export function serializePlayer(p: Player) {
     nflTeam: p.team,
     bye: p.bye,
     proj: p.proj,
+    /** ESPN rest-of-season PPG when available (scoringPeriodId 0). */
+    seasonProj: p.seasonProj ?? null,
     tier: p.tier,
     status: p.status,
     posRank: p.posRank ?? null,

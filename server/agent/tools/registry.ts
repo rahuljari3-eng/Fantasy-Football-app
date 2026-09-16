@@ -24,6 +24,7 @@ import {
 import { getByeCalendarTool, getLeagueContextTool, getMyRosterTool, listTeamsTool } from "./localTools.js";
 import {
   getNflScheduleTool,
+  getPlayerProjectionOutlookTool,
   getPlayerScheduleTool,
   getPlayoffWeeksTool,
   getScheduleOutlookTool,
@@ -47,6 +48,7 @@ const TOOLS: ToolDefinition[] = [
   getNflScheduleTool,
   getPlayerScheduleTool,
   getScheduleOutlookTool,
+  getPlayerProjectionOutlookTool,
   getPlayoffWeeksTool,
   getStandingsTool,
   getPlayoffOddsTool,
