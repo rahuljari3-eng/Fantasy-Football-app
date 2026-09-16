@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, Plus, TrendingDown, TrendingUp, X } from "lucide-react";
 import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX } from "../config/trade";
 import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
+import { SearchInput } from "../components/SearchInput";
 import { CompletedTradesPanel } from "../components/CompletedTradesPanel";
 import { WhatWouldItTakePanel } from "../components/WhatWouldItTakePanel";
 import type { FantasyApp } from "../hooks/useFantasyApp";
@@ -24,6 +25,124 @@ const SUB_TABS: { id: "build" | "wwit" | "completed"; label: string }[] = [
 // "Completed trades" sub-tab is actually open -- no push/webhook from ESPN,
 // so this is what "updates live" means in practice.
 const COMPLETED_TRADES_POLL_MS = 20_000;
+
+function TradeSidePanel({
+  label,
+  list,
+  val,
+  pool,
+  playerById,
+  tradeValueOf,
+  toggleTradeList,
+  setList,
+  playerHasNews,
+  openPlayerNews,
+  searchPlaceholder,
+}: {
+  label: string;
+  list: number[];
+  val: number;
+  pool: Player[];
+  playerById: (id: number) => Player | undefined;
+  tradeValueOf: (p: Player) => number;
+  toggleTradeList: (setter: (fn: (prev: number[]) => number[]) => void, id: number) => void;
+  setList: (fn: (prev: number[]) => number[]) => void;
+  playerHasNews: (id: number) => boolean;
+  openPlayerNews: (id: number) => void;
+  searchPlaceholder: string;
+}) {
+  const [search, setSearch] = useState("");
+  const q = search.trim().toLowerCase();
+
+  const available = useMemo(() => {
+    return pool
+      .filter((p) => !list.includes(p.id))
+      .filter(
+        (p) =>
+          !q ||
+          p.name.toLowerCase().includes(q) ||
+          p.team.toLowerCase().includes(q) ||
+          p.pos.toLowerCase() === q
+      )
+      .sort((a, b) => b.proj - a.proj);
+  }, [pool, list, q]);
+
+  return (
+    <div className="bg-[#1C1C1E] border border-[#38383A] rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-medium">{label}</h3>
+        <span className="mono-font text-[#C9A227]">{val.toFixed(1)} val</span>
+      </div>
+      <div className="space-y-1.5 mb-3 min-h-[40px]">
+        {list.map((id) => {
+          const p = playerById(id);
+          if (!p) return null;
+          return (
+            <div key={id} className="flex items-center justify-between bg-[#000000] rounded-lg px-2.5 py-1.5">
+              <span className="text-sm flex items-center gap-1">
+                <PlayerNameLink name={p.name} hasNews={playerHasNews(p.id)} onOpen={() => openPlayerNews(p.id)} />
+                <PosBadge pos={p.pos} className="rounded" />
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="mono-font text-xs text-[#C9A227]">{tradeValueOf(p).toFixed(1)}</span>
+                <button
+                  onClick={() => toggleTradeList(setList, id)}
+                  aria-label={`Remove ${p.name}`}
+                  className="text-[#98989D] hover:text-red-400 hover:bg-red-500/10 rounded p-0.5"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+        {list.length === 0 && (
+          <div className="text-xs text-[#636366] italic py-1">
+            {pool.length === 0 ? "Pick a team above to see their roster" : "No players selected yet"}
+          </div>
+        )}
+      </div>
+      <details className="text-sm group">
+        <summary className="cursor-pointer text-[#C9A227] hover:text-[#e0b82e] font-medium flex items-center gap-1 select-none">
+          <Plus size={14} className="group-open:rotate-45 transition-transform" /> Add a player
+        </summary>
+        <div className="mt-2 space-y-2">
+          <SearchInput value={search} onChange={setSearch} placeholder={searchPlaceholder} />
+          <div className="max-h-48 overflow-y-auto border border-[#38383A] rounded-lg">
+            {available.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => {
+                  toggleTradeList(setList, p.id);
+                  setSearch("");
+                }}
+                className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-[#000000] text-left border-b border-[#38383A]/50 last:border-0"
+              >
+                <span className="text-sm">
+                  {p.name}{" "}
+                  <span className="text-[11px] text-[#98989D]">
+                    ({p.pos}
+                    {p.team ? `, ${p.team}` : ""})
+                  </span>
+                </span>
+                <span className="mono-font text-xs text-[#C9A227]">{tradeValueOf(p).toFixed(1)}</span>
+              </button>
+            ))}
+            {available.length === 0 && (
+              <div className="px-2.5 py-3 text-xs text-[#636366] text-center">
+                {pool.filter((p) => !list.includes(p.id)).length === 0
+                  ? "No more players to add"
+                  : q
+                    ? `No players match "${search.trim()}"`
+                    : "No more players to add"}
+              </div>
+            )}
+          </div>
+        </div>
+      </details>
+    </div>
+  );
+}
 
 export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
   const {
@@ -93,17 +212,6 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
     setTradeGet([target.id]);
     setSubTab("build");
   };
-
-  const sides = [
-    { label: "You give up", list: tradeGive, setList: setTradeGive, val: giveVal, pool: effectivePlayers },
-    {
-      label: opponent ? `You receive (from ${opponent.name})` : "You receive",
-      list: tradeGet,
-      setList: setTradeGet,
-      val: getVal,
-      pool: opponent ? opponent.roster : effectiveAllLeaguePlayers,
-    },
-  ] as const;
 
   return (
     <div className="space-y-4">
@@ -191,60 +299,33 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
-          {sides.map((side) => (
-            <div key={side.label} className="bg-[#1C1C1E] border border-[#38383A] rounded-xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium">{side.label}</h3>
-                <span className="mono-font text-[#C9A227]">{side.val.toFixed(1)} val</span>
-              </div>
-              <div className="space-y-1.5 mb-3 min-h-[40px]">
-                {side.list.map((id) => {
-                  const p = playerById(id);
-                  if (!p) return null;
-                  return (
-                    <div key={id} className="flex items-center justify-between bg-[#000000] rounded-lg px-2.5 py-1.5">
-                      <span className="text-sm flex items-center gap-1">
-                        <PlayerNameLink name={p.name} hasNews={playerHasNews(p.id)} onOpen={() => openPlayerNews(p.id)} />
-                        <PosBadge pos={p.pos} className="rounded" />
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="mono-font text-xs text-[#C9A227]">{tradeValueOf(p).toFixed(1)}</span>
-                        <button onClick={() => toggleTradeList(side.setList, id)} aria-label={`Remove ${p.name}`} className="text-[#98989D] hover:text-red-400 hover:bg-red-500/10 rounded p-0.5">
-                          <X size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-                {side.list.length === 0 && (
-                  <div className="text-xs text-[#636366] italic py-1">{side.pool.length === 0 ? "Pick a team above to see their roster" : "No players selected yet"}</div>
-                )}
-              </div>
-              <details className="text-sm group">
-                <summary className="cursor-pointer text-[#C9A227] hover:text-[#e0b82e] font-medium flex items-center gap-1 select-none">
-                  <Plus size={14} className="group-open:rotate-45 transition-transform" /> Add a player
-                </summary>
-                <div className="mt-2 max-h-48 overflow-y-auto border border-[#38383A] rounded-lg">
-                  {(side.pool as Player[])
-                    .filter((p) => !side.list.includes(p.id))
-                    .sort((a, b) => b.proj - a.proj)
-                    .map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => toggleTradeList(side.setList, p.id)}
-                        className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-[#000000] text-left border-b border-[#38383A]/50 last:border-0"
-                      >
-                        <span className="text-sm">
-                          {p.name} <span className="text-[11px] text-[#98989D]">({p.pos}{p.team ? `, ${p.team}` : ""})</span>
-                        </span>
-                        <span className="mono-font text-xs text-[#C9A227]">{tradeValueOf(p).toFixed(1)}</span>
-                      </button>
-                    ))}
-                  {side.pool.filter((p) => !side.list.includes(p.id)).length === 0 && <div className="px-2.5 py-3 text-xs text-[#636366] text-center">No more players to add</div>}
-                </div>
-              </details>
-            </div>
-          ))}
+          <TradeSidePanel
+            label="You give up"
+            list={tradeGive}
+            setList={setTradeGive}
+            val={giveVal}
+            pool={effectivePlayers}
+            playerById={playerById}
+            tradeValueOf={tradeValueOf}
+            toggleTradeList={toggleTradeList}
+            playerHasNews={playerHasNews}
+            openPlayerNews={openPlayerNews}
+            searchPlaceholder="Search your roster…"
+          />
+          <TradeSidePanel
+            key={tradeOpponentId ?? "all"}
+            label={opponent ? `You receive (from ${opponent.name})` : "You receive"}
+            list={tradeGet}
+            setList={setTradeGet}
+            val={getVal}
+            pool={opponent ? opponent.roster : effectiveAllLeaguePlayers}
+            playerById={playerById}
+            tradeValueOf={tradeValueOf}
+            toggleTradeList={toggleTradeList}
+            playerHasNews={playerHasNews}
+            openPlayerNews={openPlayerNews}
+            searchPlaceholder={opponent ? `Search ${opponent.name}'s roster…` : "Search league players…"}
+          />
         </div>
 
         {(tradeGive.length > 0 || tradeGet.length > 0) && (() => {
