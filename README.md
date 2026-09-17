@@ -52,7 +52,7 @@ The **Refresh from ESPN** button updates, live from ESPN’s public APIs:
 - Current lineup slot assignments (starter / bench / IR)
 - News and injury headlines
 
-It does **not** yet rebuild *who owns whom*. Roster membership and the FA pool still come from the bundled snapshot under `src/data/`. After mid-season adds, drops, or trades, re-export/update that data (or the lists will drift until live membership sync lands).
+It does **not** rebuild *who owns whom*. Roster membership and the FA pool still come from the bundled snapshot under `src/data/`. A scheduled GitHub Action (`.github/workflows/sync-snapshot.yml`) runs `npm run sync:snapshot` every 6 hours and auto-commits + pushes to `main` when it changes, which triggers the normal Vercel deploy — so this should stay in sync on its own. Run `npm run sync:snapshot` by hand if you need it sooner than that, or if the Action's push access is disabled (see below).
 
 Refresh calls ESPN from the browser. ESPN’s CORS headers currently allow this for the configured league; if that changes, the button surfaces an error instead of failing silently.
 
@@ -86,4 +86,5 @@ src/
 - Local roster edits are stored per team in localStorage; if ESPN’s lineup snapshot changes on refresh, ESPN wins for slot sync.
 - The "Refresh from ESPN" button calls ESPN from the browser; Roster Sensei keeps **`OPENAI_API_KEY` on the server only**. See `docs/roster-sensei-agent-tools.md`.
 - Ownership tiers in the snapshot are derived from ESPN ownership % at export time and are not refreshed live.
+- The sync-snapshot Action needs the repo's Actions setting **Workflow permissions → Read and write permissions** enabled (Settings → Actions → General) or its push step will fail with a permissions error.
 - Sensei tools today: league/roster/byes, player lookup, needs, compare, trade grading (week+ROS), FA search/recommendations, news, **and NFL remaining schedules**. Live standings / ownership sync come next.

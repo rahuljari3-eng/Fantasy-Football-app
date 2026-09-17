@@ -1,0 +1,44 @@
+name: Sync league snapshot
+
+# Keeps src/data/{leagueTeams,myTeam,freeAgents}.ts from drifting from ESPN --
+# see scripts/syncLeagueSnapshot.ts. Runs on a schedule so waiver adds/drops,
+# streamed defenses, and trades show up in the app without anyone having to
+# remember to run the script by hand. A push to main here triggers the
+# existing Vercel auto-deploy, so the live site picks it up too.
+
+on:
+  schedule:
+    # Every 6 hours. GitHub may delay scheduled runs slightly under load;
+    # that's fine for this use case.
+    - cron: "0 */6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run sync:snapshot
+
+      - name: Commit and push if the roster data changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- src/data; then
+            echo "No roster changes since last sync."
+            exit 0
+          fi
+          git add src/data/leagueTeams.ts src/data/myTeam.ts src/data/freeAgents.ts
+          git commit -m "Sync league snapshot from ESPN [automated]"
+          git push

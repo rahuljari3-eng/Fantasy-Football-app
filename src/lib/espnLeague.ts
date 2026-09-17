@@ -139,9 +139,11 @@ function memberLabel(members: EspnMember[], primaryOwner?: string): string {
   if (!primaryOwner) return "Unknown";
   const m = members.find((x) => x.id === primaryOwner);
   if (!m) return "Unknown";
-  if (m.displayName) return m.displayName;
+  // Prefer the real name (firstName/lastName) over displayName -- ESPN's
+  // displayName is the member's account username (e.g. "rishpish",
+  // "ESPNFAN4620094966"), not anything meant to be shown as a person's name.
   const name = [m.firstName, m.lastName].filter(Boolean).join(" ").trim();
-  return name || "Unknown";
+  return name || m.displayName || "Unknown";
 }
 
 function teamIndex(teams: EspnTeam[], members: EspnMember[]) {

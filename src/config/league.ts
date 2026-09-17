@@ -11,6 +11,9 @@ export const LEAGUE_CONFIG = {
   scoringFormatLabel: "PPR · 1QB/2RB/2WR/1TE/1FLEX/1DST/1K",
   myTeamName: "Tush Pushers",
   myOwnerName: "Rahul Jariwala",
+  /** ESPN's own numeric id for your team -- scripts/syncLeagueSnapshot.ts and
+   * data/myTeam.ts both key off this to find "you" in live ESPN responses. */
+  myTeamId: 10,
 };
 
 // ESPN's read host reflects the request's Origin in its CORS headers for this
