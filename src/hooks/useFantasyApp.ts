@@ -977,20 +977,35 @@ export function useFantasyApp() {
     return movable;
   }, [myNeeds, isTradeablePos]);
 
+  // Genuine bench-caliber spare depth (tier 1-2 bench, not a starter) --
+  // the only pool the "what would it take?" solver is allowed to draw
+  // ADDITIONAL package pieces from beyond its single core piece, so a
+  // multi-piece package can never mean "three of your actual starters" --
+  // see the comment on buildCandidatePackages in lib/whatWouldItTake.ts.
+  const myTradeableDepth = useMemo(() => {
+    const depth: Player[] = [];
+    POSITIONS.forEach((pos) => {
+      if (!isTradeablePos(pos)) return;
+      depth.push(...myNeeds[pos].tradeableDepth);
+    });
+    return depth;
+  }, [myNeeds, isTradeablePos]);
+
   // ---------- "What would it take?" solver ----------
   // Reverse of the analyzer: pick anyone on someone else's roster and find the
   // smallest, cheapest package from YOUR roster that clears the exact same
   // fairness bar the analyzer/coach use -- see lib/whatWouldItTake.ts. Draws
-  // from the same myMovablePlayers pool as the rest of the trade engine, so it
-  // never offers up a player you actually need to keep.
+  // its core piece from the same myMovablePlayers pool as the rest of the
+  // trade engine, so it never offers up a player you actually need to keep,
+  // and any additional pieces from myTradeableDepth only.
   const findWhatItWouldTake = useCallback(
     (target: LeaguePlayer): WhatWouldItTakeOption[] | null => {
       const theirTeam = effectiveLeagueTeams.find((t) => t.id === target.fantasyTeamId);
       if (!theirTeam) return null;
       const theirNeeds = analyzeRosterNeeds(theirTeam.roster);
-      return solveWhatItWouldTake(target, myMovablePlayers, theirNeeds, myNeeds, leagueBaseline);
+      return solveWhatItWouldTake(target, myMovablePlayers, myTradeableDepth, theirNeeds, myNeeds, leagueBaseline);
     },
-    [effectiveLeagueTeams, myMovablePlayers, myNeeds, leagueBaseline]
+    [effectiveLeagueTeams, myMovablePlayers, myTradeableDepth, myNeeds, leagueBaseline]
   );
 
   // Which player id (if any) the "What would it take?" panel should open

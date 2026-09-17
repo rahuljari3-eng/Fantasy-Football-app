@@ -1,4 +1,4 @@
-import { REQUIRED_STARTERS } from "../../../src/config/league.js";
+import { POSITIONS, REQUIRED_STARTERS } from "../../../src/config/league.js";
 import { EXTRA_PIECE_DISCOUNT, FAIR_RATIO_MAX, FAIR_RATIO_MIN, LOPSIDED_RATIO_MAX, LOPSIDED_RATIO_MIN } from "../../../src/config/trade.js";
 import { ROS_WEEKS, VOR_BASELINE } from "../../../src/config/scoring.js";
 import { fetchWeeklyMatchups, gradeMatchup } from "../../../src/lib/matchup.js";
@@ -585,8 +585,15 @@ export const whatWouldItTakeTool: ToolDefinition = {
       if (p.pos === "QB" && !needy.includes("QB")) return false;
       return true;
     });
+    // Additional package pieces beyond the single core one may only be true
+    // spare bench depth -- same restriction the Trade Analyzer's solver
+    // applies (see buildCandidatePackages in lib/whatWouldItTake.ts) -- so a
+    // multi-piece answer here never means "give up three real starters".
+    const depthCandidates = POSITIONS.filter((pos) => pos !== "K" && pos !== "DST").flatMap(
+      (pos) => myNeeds[pos].tradeableDepth
+    );
 
-    const options = findWhatItWouldTake(target, giveCandidates, theirNeeds, myNeeds, baseline);
+    const options = findWhatItWouldTake(target, giveCandidates, depthCandidates, theirNeeds, myNeeds, baseline);
 
     return {
       ok: true,
