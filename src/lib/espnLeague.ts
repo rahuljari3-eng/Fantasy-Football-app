@@ -10,7 +10,7 @@ import {
 } from "./espn.js";
 import { getNflSchedule } from "./nflSchedule.js";
 
-const ESPN_POS: Record<number, Position> = {
+export const ESPN_POS: Record<number, Position> = {
   1: "QB",
   2: "RB",
   3: "WR",

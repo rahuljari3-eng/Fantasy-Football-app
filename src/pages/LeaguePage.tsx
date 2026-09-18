@@ -5,14 +5,19 @@ import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
 import { StandingsPanel } from "../components/StandingsPanel";
 import { PlayoffRacePanel } from "../components/PlayoffRacePanel";
+import { WeeklyRecapPanel } from "../components/WeeklyRecapPanel";
 import { statusDot } from "../lib/format";
+import { useWeeklyRecap } from "../hooks/useWeeklyRecap";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 import type { RosterPlayer } from "../types";
 
-const SUB_TABS: { id: "teams" | "standings" | "playoffs"; label: string }[] = [
+type LeagueSubTab = "teams" | "standings" | "playoffs" | "recap";
+
+const SUB_TABS: { id: LeagueSubTab; label: string }[] = [
   { id: "teams", label: "Teams" },
   { id: "standings", label: "Standings" },
   { id: "playoffs", label: "Playoff race" },
+  { id: "recap", label: "Recap" },
 ];
 
 // No push/webhook from ESPN, so this is what "updates live" means while a
@@ -38,9 +43,11 @@ export function LeaguePage({ app }: { app: FantasyApp }) {
     standingsError,
     refreshStandings,
     playoffOutlook,
+    newsFeed,
   } = app;
 
-  const [subTab, setSubTab] = useState<"teams" | "standings" | "playoffs">("teams");
+  const [subTab, setSubTab] = useState<LeagueSubTab>("teams");
+  const weeklyRecap = useWeeklyRecap({ leagueSchedule, allTeams, newsFeed });
 
   // Standings/schedule are only ever fetched once one of these sub-tabs is
   // actually open -- not on page load, not from the global "Refresh from
@@ -69,13 +76,29 @@ export function LeaguePage({ app }: { app: FantasyApp }) {
   if (!selectedLeagueTeam && subTab !== "teams") {
     const outlookByTeam = new Map((playoffOutlook ?? []).map((o) => [o.teamId, o]));
     const teamsById = new Map(allTeams.map((t) => [t.id, t]));
+    const subTitle = subTab === "standings" ? "— standings" : subTab === "playoffs" ? "— playoff race" : "— weekly recap";
     return (
-      <div className="space-y-4">
-        <h2 className="display-font text-xl">{LEAGUE_CONFIG.leagueName} {subTab === "standings" ? "— standings" : "— playoff race"}</h2>
+      <div key={subTab} className="space-y-4 animate-fade-slide-up">
+        <h2 className="display-font text-xl">{LEAGUE_CONFIG.leagueName} {subTitle}</h2>
         {subTabBar}
         {standingsError && <div className="text-xs text-red-400">{standingsError}</div>}
         {!leagueSchedule && standingsRefreshing && <div className="text-xs text-[#636366] italic">Pulling standings from ESPN…</div>}
-        {leagueSchedule && (
+        {leagueSchedule && subTab === "recap" && (
+          <>
+            <p className="text-sm text-[#98989D] max-w-2xl">
+              An AI-written blurb per team for any completed week — their result, news for their players, who they could've/should've started instead, and
+              a look ahead to next week. Generated on demand and cached locally afterward.
+            </p>
+            <WeeklyRecapPanel
+              leagueSchedule={leagueSchedule}
+              recap={weeklyRecap}
+              myTeamId={selectedTeamId}
+              playerHasNews={playerHasNews}
+              openPlayerNews={openPlayerNews}
+            />
+          </>
+        )}
+        {leagueSchedule && subTab !== "recap" && (
           <>
             <p className="text-sm text-[#98989D] max-w-2xl">
               Week {Math.min(leagueSchedule.currentWeek, leagueSchedule.regularSeasonWeeks)} of {leagueSchedule.regularSeasonWeeks} regular-season weeks · top{" "}
@@ -100,7 +123,7 @@ export function LeaguePage({ app }: { app: FantasyApp }) {
 
   if (!selectedLeagueTeam) {
     return (
-      <div className="space-y-4">
+      <div key="teams" className="space-y-4 animate-fade-slide-up">
         <h2 className="display-font text-xl">{LEAGUE_CONFIG.leagueName} — all 12 teams</h2>
         {subTabBar}
         <p className="text-sm text-[#98989D] max-w-2xl">
@@ -182,7 +205,7 @@ export function LeaguePage({ app }: { app: FantasyApp }) {
   );
 
   return (
-    <div>
+    <div key={selectedLeagueTeam.id} className="animate-fade-slide-up">
       <button onClick={() => setSelectedLeagueTeam(null)} className="text-sm text-[#C9A227] hover:text-[#e0b82e] mb-3 flex items-center gap-1">
         <ChevronRight size={14} className="rotate-180" /> Back to all teams
       </button>

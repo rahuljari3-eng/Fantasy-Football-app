@@ -7,8 +7,14 @@
 
 body {
   margin: 0;
-  background: #000000;
+  min-height: 100vh;
+  background-color: #000000;
+  background-image: radial-gradient(ellipse 1100px 700px at 50% -8%, rgba(201, 162, 39, 0.07), transparent 60%);
+  background-attachment: fixed;
   font-family: "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .display-font {
@@ -17,6 +23,54 @@ body {
 }
 .mono-font {
   font-family: "JetBrains Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Every card/panel surface shares this exact dark gray -- a single rule
+   gives them all a faint glass-like top highlight instead of a flat fill,
+   without threading a new class through every callsite. */
+[class*="bg-[#1C1C1E]"] {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 55%);
+}
+
+/* Soften every hard gray border into a translucent hairline so edges read
+   as glass separation instead of drawn outlines. Opacity variants of this
+   same color (border-[#38383A]/60 etc.) are already soft and left alone. */
+[class~="border-[#38383A]"] {
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+/* Round every corner a bit more than Tailwind's defaults so cards, rows,
+   and pills feel softer rather than boxy. */
+.rounded-md {
+  border-radius: 0.5rem;
+}
+.rounded-lg {
+  border-radius: 0.625rem;
+}
+.rounded-xl {
+  border-radius: 1rem;
+}
+
+/* The solid gold accent (primary buttons, the active tab pill, drag ghost)
+   gets a richer gradient + soft glow instead of a flat fill, brightening
+   further on hover. Translucent tints (bg-[#C9A227]/10 etc.) are a
+   different literal class and are untouched. */
+[class~="bg-[#C9A227]"] {
+  background-image: linear-gradient(155deg, #ddb84a, #b8891c);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 3px 12px -4px rgba(201, 162, 39, 0.5);
+}
+[class~="bg-[#C9A227]"]:hover {
+  background-image: linear-gradient(155deg, #e8c65e, #c79624);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.3) inset, 0 5px 18px -4px rgba(201, 162, 39, 0.65);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+[class*="overflow-y-auto"],
+[class*="overflow-auto"] {
+  scroll-behavior: smooth;
 }
 
 * {
@@ -120,5 +174,10 @@ button:active {
   }
   .hover-lift:hover {
     transform: none;
+  }
+  html,
+  [class*="overflow-y-auto"],
+  [class*="overflow-auto"] {
+    scroll-behavior: auto;
   }
 }

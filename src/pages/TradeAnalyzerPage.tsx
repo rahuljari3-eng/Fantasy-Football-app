@@ -230,7 +230,7 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
       </div>
 
       {subTab === "completed" ? (
-        <div className="space-y-2.5">
+        <div key="completed" className="space-y-2.5 animate-fade-slide-up">
           <p className="text-sm text-[#98989D] max-w-2xl">
             Every trade completed in the league so far, graded for both sides -- regardless of who made it. Reconstructed from public ESPN data, so it
             checks for new ones automatically while this tab is open.
@@ -242,17 +242,19 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
           <CompletedTradesPanel trades={completedEspnTrades} allTeams={allTeams} playerById={playerById} tradeSideValue={tradeSideValue} />
         </div>
       ) : subTab === "wwit" ? (
-        <WhatWouldItTakePanel
-          players={effectiveAllLeaguePlayers}
-          findWhatItWouldTake={findWhatItWouldTake}
-          playerHasNews={playerHasNews}
-          openPlayerNews={openPlayerNews}
-          onLoadPackage={loadWwitPackage}
-          targetId={wwitTargetId}
-          setTargetId={setWwitTargetId}
-        />
+        <div key="wwit" className="animate-fade-slide-up">
+          <WhatWouldItTakePanel
+            players={effectiveAllLeaguePlayers}
+            findWhatItWouldTake={findWhatItWouldTake}
+            playerHasNews={playerHasNews}
+            openPlayerNews={openPlayerNews}
+            onLoadPackage={loadWwitPackage}
+            targetId={wwitTargetId}
+            setTargetId={setWwitTargetId}
+          />
+        </div>
       ) : (
-        <>
+        <div key="build" className="space-y-4 animate-fade-slide-up">
         <p className="text-sm text-[#98989D] max-w-2xl">
           Pick the players you'd send and receive. Value is <span className="text-[#C9A227]">points over replacement</span>, run through a convex curve so
           elite tiers outweigh their raw points, and each extra player in a package is discounted.{" "}
@@ -374,7 +376,7 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
           </div>
           );
         })()}
-        </>
+        </div>
       )}
     </div>
   );

@@ -50,7 +50,7 @@ export function WhatWouldItTakePanel({
 
   if (target) {
     return (
-      <div className="space-y-4">
+      <div key={target.id} className="space-y-4 animate-fade-slide-up">
         <button onClick={() => setTargetId(null)} className="text-sm text-[#C9A227] hover:text-[#e0b82e] flex items-center gap-1">
           <ChevronLeft size={14} /> Pick a different player
         </button>
@@ -123,7 +123,7 @@ export function WhatWouldItTakePanel({
   }
 
   return (
-    <div className="space-y-3">
+    <div key="picker" className="space-y-3 animate-fade-slide-up">
       <p className="text-sm text-[#98989D] max-w-2xl">
         Pick anyone on another team's roster and this searches your roster for the smallest package that would actually clear their fairness bar -- the
         reverse of guessing and checking combos yourself.

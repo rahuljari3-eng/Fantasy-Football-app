@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { runSenseiTurn, type ChatTurnMessage, type LeagueContext } from "./agent/runSenseiTurn.js";
+import { generateWeeklyRecap } from "./weeklyRecap.js";
+import type { TeamWeekRecapInput } from "../src/lib/weeklyRecap.js";
 
 /** Shared Hono app used by local `server/index.ts` and the Vercel `api/` adapter. */
 export function createApp() {
@@ -55,6 +57,38 @@ export function createApp() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Chat request failed";
       console.error("[api/chat]", err);
+      return c.json({ error: message }, 500);
+    }
+  });
+
+  app.post("/api/weekly-recap", async (c) => {
+    if (!process.env.OPENAI_API_KEY) {
+      return c.json(
+        { error: "OPENAI_API_KEY is not set on the server. Add it in Vercel env vars or your local .env file." },
+        500
+      );
+    }
+
+    let body: { week?: number; teams?: TeamWeekRecapInput[]; model?: string };
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON body" }, 400);
+    }
+
+    if (typeof body.week !== "number") {
+      return c.json({ error: "week is required" }, 400);
+    }
+    if (!Array.isArray(body.teams) || body.teams.length === 0) {
+      return c.json({ error: "teams must be a non-empty array" }, 400);
+    }
+
+    try {
+      const result = await generateWeeklyRecap({ week: body.week, teams: body.teams, model: body.model });
+      return c.json(result);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Weekly recap request failed";
+      console.error("[api/weekly-recap]", err);
       return c.json({ error: message }, 500);
     }
   });

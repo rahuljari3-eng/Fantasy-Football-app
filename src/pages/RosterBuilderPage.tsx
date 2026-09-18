@@ -362,7 +362,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
             <div
               key={p.id}
               onPointerDown={(e) => handleDragStart(e, p)}
-              className="flex items-center justify-between px-3 py-2 border-b border-[#38383A]/60 last:border-0 transition-colors duration-150 hover:bg-[#1C1C1E] cursor-grab active:cursor-grabbing touch-none"
+              className="hover-lift flex items-center justify-between px-3 py-2 border-b border-[#38383A]/60 last:border-0 hover:bg-[#1C1C1E] cursor-grab active:cursor-grabbing touch-none"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <PosBadge pos={p.pos} className="w-10 text-center shrink-0 pointer-events-none" />

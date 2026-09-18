@@ -3,7 +3,9 @@
 // statSourceId === 0 (projections are 1) -- the rest of the app only ever
 // read projections, so this module is the missing half.
 import { ESPN_LEAGUE_BASE_URL, LEAGUE_CONFIG } from "../config/league.js";
+import type { Position } from "../types.js";
 import { ESPN_LINEUP_SLOT_LABEL } from "./espn.js";
+import { ESPN_POS } from "./espnLeague.js";
 
 interface EspnStatLine {
   statSourceId?: number;
@@ -54,6 +56,9 @@ interface RosterIndexEntry {
 export interface LeagueWeekScoreRow {
   playerId: number;
   name: string;
+  /** The player's real NFL position (QB/RB/WR/TE/DST/K), independent of
+   * `slot` below -- null only if ESPN sends an unmapped position id. */
+  pos: Position | null;
   fantasyTeamId: number | null;
   fantasyTeamName: string | null;
   slot: string;
@@ -462,6 +467,7 @@ function toWeekScoreRow(
   return {
     playerId: entry.player.id,
     name: entry.player.fullName || `Player ${entry.player.id}`,
+    pos: ESPN_POS[entry.player.defaultPositionId ?? -1] ?? null,
     fantasyTeamId: entry.teamId,
     fantasyTeamName: entry.teamName,
     slot,
