@@ -400,7 +400,7 @@ export function useFantasyApp() {
   );
 
   // A locked-in player's real live score for the team you're currently
-  // managing (ESPN's own per-player appliedStatTotal -- see
+  // managing (this week's own actual/projected line -- see
   // lib/espn.ts's fetchEspnLiveLineups). Null if the live-lineup fetch
   // hasn't loaded yet or this player isn't on the managed team's roster;
   // callers should fall back to the player's static projection in that case.

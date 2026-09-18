@@ -32,10 +32,6 @@ interface EspnPlayer {
 interface EspnRosterEntry {
   playerPoolEntry?: {
     player?: EspnPlayer;
-    /** ESPN's own live/current total for this player this scoring period --
-     * equals their projection before kickoff, then their real accumulating
-     * score once the game has started. */
-    appliedStatTotal?: number;
   };
   lineupSlotId?: number;
 }
@@ -68,6 +64,17 @@ export const ESPN_LINEUP_SLOT_LABEL: Record<number, string> = {
 
 export function extractEspnProjection(stats: EspnStatLine[] | undefined, scoringPeriodId: number): number | null {
   const match = (stats || []).find((s) => s.statSourceId === 1 && s.scoringPeriodId === scoringPeriodId);
+  return match ? Math.round((match.appliedTotal ?? 0) * 10) / 10 : null;
+}
+
+/** This one week's real actual score (statSourceId 0 = actual, scoped to
+ * scoringPeriodId so it never picks up the season-level roll-up entry ESPN
+ * also sends with scoringPeriodId 0). Null until that player's game for the
+ * week has actually started. */
+export function extractEspnWeekActual(stats: EspnStatLine[] | undefined, scoringPeriodId: number): number | null {
+  const match = (stats || []).find(
+    (s) => s.statSourceId === 0 && s.scoringPeriodId === scoringPeriodId && (s.statSplitTypeId ?? 1) === 1
+  );
   return match ? Math.round((match.appliedTotal ?? 0) * 10) / 10 : null;
 }
 
@@ -152,22 +159,29 @@ export async function fetchEspnLineups(): Promise<Record<number, Record<number, 
 
 export interface EspnLiveLineupEntry {
   slot: string;
-  /** ESPN's own live/current total for this player this scoring period --
-   * their projection before kickoff, their real accumulating score once the
-   * game has started. */
+  /** This one scoring period's total for the player -- their projection
+   * before kickoff, their real actual score once the game has started. */
   liveScore: number;
 }
 
 /** Same idea as fetchEspnLineups, but also carries each player's live score
- * (ESPN's own appliedStatTotal) -- what the Matchup tab needs to total up a
- * team's real starting lineup for the current week, including anyone who's
- * already locked in and racking up actual points. */
+ * for the CURRENT week -- what the Matchup tab needs to total up a team's
+ * real starting lineup for the current week, including anyone who's already
+ * locked in and racking up actual points.
+ *
+ * Deliberately NOT `playerPoolEntry.appliedStatTotal`: that field is ESPN's
+ * season-to-date actual total, not a single week's score (it silently sums
+ * every completed week plus whatever's live right now) -- using it here was
+ * showing a player's week-1 + week-2 total as if it were just this week's
+ * score once more than one week had actuals. Each player's own per-week stat
+ * line (scoped by scoringPeriodId) is the only reliable single-week number. */
 export async function fetchEspnLiveLineups(): Promise<Record<number, Record<number, EspnLiveLineupEntry>>> {
   const res = await fetch(`${ESPN_LEAGUE_BASE_URL}?view=mRoster&view=mTeam`, {
     headers: { Accept: "application/json" },
   });
   if (!res.ok) throw new Error(`ESPN request failed (${res.status})`);
   const data = (await res.json()) as EspnLeagueResponse;
+  const period = data.scoringPeriodId;
   const lineups: Record<number, Record<number, EspnLiveLineupEntry>> = {};
 
   (data.teams || []).forEach((t) => {
@@ -175,9 +189,10 @@ export async function fetchEspnLiveLineups(): Promise<Record<number, Record<numb
     (t.roster?.entries || []).forEach((e) => {
       const player = e.playerPoolEntry?.player;
       if (!player || e.lineupSlotId == null) return;
+      const weekScore = extractEspnWeekActual(player.stats, period) ?? extractEspnProjection(player.stats, period) ?? 0;
       entries[player.id] = {
         slot: ESPN_LINEUP_SLOT_LABEL[e.lineupSlotId] ?? "BE",
-        liveScore: Math.round((e.playerPoolEntry?.appliedStatTotal ?? 0) * 10) / 10,
+        liveScore: weekScore,
       };
     });
     lineups[t.id] = entries;

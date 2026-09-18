@@ -18,8 +18,8 @@ export interface MatchupSideInput {
   owner: string;
   /** This team's real starting lineup for the week. */
   starters: Player[];
-  /** Each starter's live score (ESPN's own per-player appliedStatTotal),
-   * keyed by player id -- their projection before kickoff, their real
+  /** Each starter's live score for this week, keyed by player id -- their
+   * projection before kickoff, their real
    * accumulating score once the game has started. Used for starters who've
    * already locked in; a missing entry falls back to their static
    * projection so the total is never short a player just because this
