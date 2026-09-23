@@ -38,7 +38,7 @@ import {
 import type { EspnPlayerSnapshot } from "./espn.js";
 import { seasonModelValue } from "./scoring.js";
 import type { PlayerPropLines } from "./matchup.js";
-import type { ModelYards, Player, Position, ProjectionOverrides } from "../types.js";
+import type { ModelYards, Player, Position, ProjectionOverrides, ValueSources } from "../types.js";
 
 const FANTASYCALC_URL = "https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=1&numTeams=12&ppr=1";
 const SLEEPER_PROJ_BASE = "https://api.sleeper.app/projections/nfl";
@@ -245,6 +245,7 @@ export interface ConsensusFields {
   marketPosRank?: number;
   marketValue?: number;
   modelYards?: ModelYards;
+  valueSources?: ValueSources;
 }
 
 export function consensusFor(
@@ -272,8 +273,17 @@ export function consensusFor(
     actualAvg: espn.actualAvg,
     gamesPlayed: espn.gamesPlayed,
   });
+  const valueSources: ValueSources = { espnWeek: espn.proj };
+  if (week?.pts != null) valueSources.sleeperWeek = Math.round(week.pts * 10) / 10;
+  if (espn.seasonProj != null) valueSources.espnSeason = espn.seasonProj;
+  if (ros != null) valueSources.sleeperRos = Math.round(ros * 10) / 10;
+  if (espn.actualAvg != null && espn.gamesPlayed) {
+    valueSources.actualAvg = espn.actualAvg;
+    valueSources.gamesPlayed = espn.gamesPlayed;
+  }
   return {
     proj: blendWeeklyProj(espn.proj, week?.pts),
+    valueSources,
     ...(seasonProj != null ? { seasonProj } : {}),
     ...(market ? { marketPosRank: market.posRank, marketValue: market.value } : {}),
     ...(week ? { modelYards: { pass: week.pass, rush: week.rush, rec: week.rec } } : {}),
@@ -359,6 +369,7 @@ export function applyConsensusToOverrides(
       ...(c.seasonProj != null ? { seasonProj: c.seasonProj } : {}),
       ...(c.marketPosRank != null ? { marketPosRank: c.marketPosRank, marketValue: c.marketValue } : {}),
       ...(c.modelYards ? { modelYards: c.modelYards } : {}),
+      ...(c.valueSources ? { valueSources: c.valueSources } : {}),
     };
   });
   return out;

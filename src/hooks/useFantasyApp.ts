@@ -13,11 +13,13 @@ import { DEFAULT_TAB } from "../config/pages";
 import { playerValue, qualityScore, rosValue } from "../lib/scoring";
 import { analyzeRosterNeeds } from "../lib/rosterNeeds";
 import { applyPropLines, rankPlayerPool } from "../lib/consensus";
+import { buildTradeOffer } from "../lib/tradeOffer";
 import {
   allPoolSuggestions,
   buildCoachContext,
   buildCoachPools,
   buildLeagueBaseline,
+  filterPools,
   computeMovablePlayers,
   computeNeedyPositions,
   computeStrengthPositions,
@@ -32,6 +34,7 @@ import { starGateOk, SEASON_PRICER, WEEK_PRICER } from "../lib/tradeEngine";
 import { findWhatItWouldTake as solveWhatItWouldTake, type WhatWouldItTakeOption } from "../lib/whatWouldItTake";
 import { optimizeLineup } from "../lib/optimizeLineup";
 import { useProjectionRefresh } from "./useProjectionRefresh";
+import { useTradeShortlist } from "./useTradeShortlist";
 import { useNewsFeed } from "./useNewsFeed";
 import { useMatchups } from "./useMatchups";
 import { useStandings } from "./useStandings";
@@ -491,6 +494,7 @@ export function useFantasyApp() {
         seasonProj: ov.seasonProj ?? player.seasonProj ?? ov.proj ?? player.proj,
         ...(ov.marketPosRank != null ? { marketPosRank: ov.marketPosRank, marketValue: ov.marketValue } : {}),
         ...(ov.modelYards ? { modelYards: ov.modelYards } : {}),
+        ...(ov.valueSources ? { valueSources: ov.valueSources } : {}),
       };
     },
     [projectionOverrides, matchupData]
@@ -875,13 +879,28 @@ export function useFantasyApp() {
     return s;
   }, [roster, bench]);
 
-  const availablePlayers = useMemo(() => {
-    return effectivePlayers
+  // Player lists hide "inactive" players (no projection this week OR for the
+  // season -- retired, unsigned, long-term out) unless you ask for them or
+  // search by name, so ~1,000 zero-point free agents don't bury the ~100
+  // that matter. Shared by the Build roster pool and the Free Agents browser.
+  const [showInactivePlayers, setShowInactivePlayers] = useState(false);
+  const splitInactive = useCallback(
+    <P extends Player>(list: P[], query: string): { shown: P[]; hiddenCount: number } => {
+      if (showInactivePlayers || query.trim()) return { shown: list, hiddenCount: 0 };
+      const shown = list.filter((p) => p.proj > 0 || (p.seasonProj ?? 0) > 0);
+      return { shown, hiddenCount: list.length - shown.length };
+    },
+    [showInactivePlayers]
+  );
+
+  const { shown: availablePlayers, hiddenCount: hiddenPoolCount } = useMemo(() => {
+    const list = effectivePlayers
       .filter((p) => !usedIds.has(p.id))
       .filter((p) => (posFilter === "ALL" ? true : p.pos === posFilter))
       .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => b.proj - a.proj);
-  }, [usedIds, posFilter, search, effectivePlayers]);
+    return splitInactive(list, search);
+  }, [usedIds, posFilter, search, effectivePlayers, splitInactive]);
 
   // Blends real live scores for anyone already locked in with static
   // projections for anyone who hasn't played yet, so this number (and every
@@ -1142,12 +1161,13 @@ export function useFantasyApp() {
     [freeAgentPool]
   );
 
-  const browsableFreeAgents = useMemo(() => {
-    return freeAgentPool
+  const { shown: browsableFreeAgents, hiddenCount: hiddenFreeAgentCount } = useMemo(() => {
+    const list = freeAgentPool
       .filter((p) => (faPosFilter === "ALL" ? true : p.pos === faPosFilter))
       .filter((p) => p.name.toLowerCase().includes(faSearch.toLowerCase()))
       .sort((a, b) => b.proj - a.proj);
-  }, [freeAgentPool, faPosFilter, faSearch]);
+    return splitInactive(list, faSearch);
+  }, [freeAgentPool, faPosFilter, faSearch, splitInactive]);
 
   // ---------- AI Coach: trade suggestion engine ----------
   // Keys of suggestions the user has already seen via "Get new recommendations",
@@ -1167,14 +1187,41 @@ export function useFantasyApp() {
   // Union of every suggestion this pipeline is capable of producing right now,
   // regardless of which ones happen to make the top-N cut. Lets "get new
   // recommendations" know whether a fresh batch actually exists.
-  const allCoachCandidateKeys = useMemo(() => new Set(allPoolSuggestions(coachPools).map(suggestionKey)), [coachPools]);
+  // Saved/dismissed trades for the managed team, and an optional "only this
+  // manager" filter. Both apply BEFORE the mix (filterPools), so the list is
+  // still a proper mix of whatever's left.
+  const tradeShortlist = useTradeShortlist(selectedTeamId);
+  const [coachTeamFilter, setCoachTeamFilter] = useState<number | null>(null);
+  useEffect(() => setCoachTeamFilter(null), [selectedTeamId]);
+  const visibleCoachPools = useMemo(
+    () =>
+      filterPools(
+        coachPools,
+        (s) => (coachTeamFilter == null || s.teamId === coachTeamFilter) && !tradeShortlist.dismissedKeys.has(suggestionKey(s))
+      ),
+    [coachPools, coachTeamFilter, tradeShortlist.dismissedKeys]
+  );
+
+  const copyTradeOffer = useCallback(
+    async (s: TradeSuggestion) => {
+      try {
+        await navigator.clipboard.writeText(buildTradeOffer(s));
+        notify(`Copied a trade offer for ${s.teamName} — paste it into ESPN chat or a text.`, "success");
+      } catch {
+        notify("Couldn't copy to the clipboard in this browser.", "error");
+      }
+    },
+    [notify]
+  );
+
+  const allCoachCandidateKeys = useMemo(() => new Set(allPoolSuggestions(visibleCoachPools).map(suggestionKey)), [visibleCoachPools]);
 
   const hasFreshCoachSuggestions = useMemo(
     () => Array.from(allCoachCandidateKeys).some((k) => !excludedCoachKeys.has(k)),
     [allCoachCandidateKeys, excludedCoachKeys]
   );
 
-  const coachSuggestions = useMemo(() => mixCoachSuggestions(coachPools, excludedCoachKeys), [coachPools, excludedCoachKeys]);
+  const coachSuggestions = useMemo(() => mixCoachSuggestions(visibleCoachPools, excludedCoachKeys), [visibleCoachPools, excludedCoachKeys]);
 
   // Swap the current batch out for the next-best one. Once every reasonable
   // trade has been cycled through, it loops back to the top rather than
@@ -1280,6 +1327,9 @@ export function useFantasyApp() {
     search,
     setSearch,
     availablePlayers,
+    hiddenPoolCount,
+    showInactivePlayers,
+    setShowInactivePlayers,
     filledCount,
     rosterTotal,
     moveToSlot,
@@ -1313,6 +1363,7 @@ export function useFantasyApp() {
     recommendedPickups,
     bestAvailableOverall,
     browsableFreeAgents,
+    hiddenFreeAgentCount,
 
     // AI coach
     myNeeds,
@@ -1320,6 +1371,15 @@ export function useFantasyApp() {
     needyPositions,
     strengthPositions,
     coachSuggestions,
+    coachTeamFilter,
+    setCoachTeamFilter,
+    savedTrades: tradeShortlist.savedTrades,
+    savedTradeKeys: tradeShortlist.savedKeys,
+    toggleSavedTrade: tradeShortlist.toggleSaved,
+    dismissTrade: tradeShortlist.dismiss,
+    dismissedTradeCount: tradeShortlist.dismissedKeys.size,
+    clearDismissedTrades: tradeShortlist.clearDismissed,
+    copyTradeOffer,
     proposeCoachTrade,
     regenerateCoachSuggestions,
     hasFreshCoachSuggestions,

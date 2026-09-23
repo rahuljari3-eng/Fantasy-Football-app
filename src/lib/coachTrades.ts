@@ -511,6 +511,19 @@ export function buildCoachPools(ctx: CoachContext): CoachPools {
   };
 }
 
+/** The same pools with `keep` applied to every one of them -- filtering
+ * BEFORE the mix, so the mix's shape minimums and reserved slots still hold
+ * for whatever survives. */
+export function filterPools(pools: CoachPools, keep: (s: TradeSuggestion) => boolean): CoachPools {
+  return {
+    mutual: pools.mutual.filter(keep),
+    need: pools.need.filter(keep),
+    general: pools.general.filter(keep),
+    fallback: pools.fallback.filter(keep),
+    twoForTwoFallback: pools.twoForTwoFallback.filter(keep),
+  };
+}
+
 export function allPoolSuggestions(pools: CoachPools): TradeSuggestion[] {
   return [...pools.mutual, ...pools.need, ...pools.general, ...pools.fallback, ...pools.twoForTwoFallback];
 }
@@ -616,16 +629,7 @@ export function suggestTrades(input: {
 } {
   const ctx = buildCoachContext(input);
   const pools = buildCoachPools(ctx);
-  const keep = input.filter;
-  const filtered: CoachPools = keep
-    ? {
-        mutual: pools.mutual.filter(keep),
-        need: pools.need.filter(keep),
-        general: pools.general.filter(keep),
-        fallback: pools.fallback.filter(keep),
-        twoForTwoFallback: pools.twoForTwoFallback.filter(keep),
-      }
-    : pools;
+  const filtered = input.filter ? filterPools(pools, input.filter) : pools;
   return {
     suggestions: mixCoachSuggestions(filtered, new Set(), input.max ?? COACH_MAX_SUGGESTIONS),
     candidateCount: allPoolSuggestions(pools).length,

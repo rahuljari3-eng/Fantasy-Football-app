@@ -18,17 +18,20 @@ export function StandingsPanel({
 }) {
   return (
     <div className="overflow-x-auto bg-[#1C1C1E] border border-[#38383A] rounded-xl">
-      <table className="w-full text-sm border-collapse min-w-[680px]">
+      <table className="w-full text-sm border-collapse sm:min-w-[680px]">
         <thead>
           <tr className="text-left text-[11px] uppercase tracking-wide text-[#98989D] border-b border-[#38383A]">
             <th className="py-2.5 pl-4 pr-2">#</th>
             <th className="py-2.5 pr-3">Team</th>
             <th className="py-2.5 pr-3 text-center">Record</th>
             <th className="py-2.5 pr-3 text-right">PF</th>
-            <th className="py-2.5 pr-3 text-right">PA</th>
-            <th className="py-2.5 pr-3 text-center">Streak</th>
-            <th className="py-2.5 pr-3 text-right">Playoff odds</th>
-            <th className="py-2.5 pr-4">Status</th>
+            <th className="py-2.5 pr-3 text-right hidden sm:table-cell">PA</th>
+            <th className="py-2.5 pr-3 text-center hidden sm:table-cell">Streak</th>
+            <th className="py-2.5 pr-3 text-right">
+              <span className="hidden sm:inline">Playoff odds</span>
+              <span className="sm:hidden">Odds</span>
+            </th>
+            <th className="py-2.5 pr-4 hidden sm:table-cell">Status</th>
           </tr>
         </thead>
         <tbody>
@@ -38,7 +41,7 @@ export function StandingsPanel({
             const row = (
               <tr key={s.teamId} className={`border-b border-[#38383A]/60 last:border-0 ${isMe ? "bg-[#C9A227]/10" : ""}`}>
                 <td className="py-2.5 pl-4 pr-2 mono-font text-[#98989D]">{i + 1}</td>
-                <td className="py-2.5 pr-3">
+                <td className="py-2.5 pr-3 max-w-[140px] sm:max-w-none">
                   <div className={`font-medium truncate ${isMe ? "text-[#C9A227]" : ""}`}>
                     {s.name}
                     {isMe ? " (You)" : ""}
@@ -50,8 +53,8 @@ export function StandingsPanel({
                   {s.ties ? `-${s.ties}` : ""}
                 </td>
                 <td className="py-2.5 pr-3 text-right mono-font">{s.pointsFor.toFixed(1)}</td>
-                <td className="py-2.5 pr-3 text-right mono-font text-[#98989D]">{s.pointsAgainst.toFixed(1)}</td>
-                <td className="py-2.5 pr-3 text-center">
+                <td className="py-2.5 pr-3 text-right mono-font text-[#98989D] hidden sm:table-cell">{s.pointsAgainst.toFixed(1)}</td>
+                <td className="py-2.5 pr-3 text-center hidden sm:table-cell">
                   {s.streak ? (
                     <span
                       className={`inline-flex items-center gap-1 text-xs font-medium ${
@@ -77,7 +80,7 @@ export function StandingsPanel({
                     <span className="text-[#636366]">—</span>
                   )}
                 </td>
-                <td className="py-2.5 pr-4">
+                <td className="py-2.5 pr-4 hidden sm:table-cell">
                   {outlook?.status === "clinched" && <span className="text-[11px] font-medium text-emerald-400">Clinched</span>}
                   {outlook?.status === "eliminated" && <span className="text-[11px] font-medium text-red-400">Eliminated</span>}
                   {outlook?.status === "alive" && <span className="text-[11px] text-[#98989D]">In the hunt</span>}

@@ -1,8 +1,12 @@
 import { useEffect } from "react";
 import { ExternalLink, X } from "lucide-react";
+import { MARKET_VALUE_WEIGHT } from "../config/scoring";
+import { blendWeeklyProj } from "../lib/consensus";
 import { newsTypeColor, newsTypeIcon } from "../lib/format";
-import type { NewsItem } from "../types";
+import { qualityScore, seasonModelValue } from "../lib/scoring";
+import type { NewsItem, Player } from "../types";
 import type { PlayerPerformanceResult, WeekPerformance } from "../lib/playerPerformance";
+import { WeeklyChart } from "./WeeklyChart";
 
 /** One game-log row: this week's live/final line, or a prior week's. */
 function ScoreRow({ perf }: { perf: WeekPerformance }) {
@@ -24,18 +28,94 @@ function ScoreRow({ perf }: { perf: WeekPerformance }) {
   );
 }
 
+function SourceRow({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-1 border-t border-[#38383A]/60 first:border-0">
+      <span className="text-[#98989D]">{label}</span>
+      <span className="text-right">
+        <span className="mono-font text-[#E5E5EA]">{value}</span>
+        {detail && <span className="block text-[10px] text-[#636366]">{detail}</span>}
+      </span>
+    </div>
+  );
+}
+
+/** Where this player's numbers come from -- the consensus inputs stamped by
+ * lib/consensus.ts, and how much of his season value is model vs market. */
+function ValueBreakdown({ player }: { player: Player }) {
+  const src = player.valueSources;
+  const quality = qualityScore(player);
+  const model = seasonModelValue(player) * (player.positionScale ?? 1);
+  const hasMarket = player.marketQuality != null;
+  const weekFromProjections = src ? blendWeeklyProj(src.espnWeek, src.sleeperWeek) : null;
+  const propsApplied = weekFromProjections != null && Math.abs(weekFromProjections - player.proj) >= 0.05;
+  const fmt = (v: number | undefined) => (v == null ? null : v.toFixed(1));
+  const parts = (items: [string, string | null][]) =>
+    items
+      .filter(([, v]) => v != null)
+      .map(([k, v]) => `${k} ${v}`)
+      .join(" · ");
+
+  return (
+    <div className="mb-4">
+      <div className="text-xs font-medium text-[#98989D] mb-1.5">How this value is built</div>
+      <div className="bg-[#000000]/40 border border-[#38383A]/60 rounded-lg px-2.5 py-1 text-xs">
+        <SourceRow
+          label="Season value"
+          value={quality.toFixed(0)}
+          detail={
+            hasMarket
+              ? `${Math.round(MARKET_VALUE_WEIGHT * 100)}% trade market (${player.marketQuality!.toFixed(0)}) · ${Math.round((1 - MARKET_VALUE_WEIGHT) * 100)}% projections (${model.toFixed(0)})`
+              : "Projections only — no trade-market value for this player"
+          }
+        />
+        <SourceRow
+          label="Season pts/game"
+          value={(player.seasonProj ?? player.proj).toFixed(1)}
+          detail={
+            src
+              ? parts([
+                  ["ESPN", fmt(src.espnSeason)],
+                  ["Sleeper", fmt(src.sleeperRos)],
+                  ["Actual", src.actualAvg != null ? `${src.actualAvg.toFixed(1)} (${src.gamesPlayed}g)` : null],
+                ]) || undefined
+              : undefined
+          }
+        />
+        <SourceRow
+          label="This week"
+          value={player.proj.toFixed(1)}
+          detail={
+            src
+              ? [parts([["ESPN", fmt(src.espnWeek)], ["Sleeper", fmt(src.sleeperWeek)]]), propsApplied ? "adjusted to DraftKings yardage props" : null]
+                  .filter(Boolean)
+                  .join(" · ")
+              : undefined
+          }
+        />
+        {player.marketPosRank != null && (
+          <SourceRow label="Trade market" value={`${player.pos}${player.marketPosRank}`} detail="FantasyCalc redraft value, from real trades" />
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** Popped open by clicking a player's name or injury status anywhere in the
  * app -- shows this week's live/final line plus a recent game log (pulled
  * live from ESPN's actuals, not projections), and every news/injury item
  * ESPN has tagged to them, each linking straight out to the real article. */
 export function PlayerNewsModal({
   playerName,
+  player,
   items,
   performance,
   performanceLoading,
   onClose,
 }: {
   playerName: string | null;
+  /** The effective (consensus-valued) player, for the value breakdown. */
+  player: Player | null;
   items: NewsItem[];
   performance: PlayerPerformanceResult | null;
   performanceLoading: boolean;
@@ -65,10 +145,24 @@ export function PlayerNewsModal({
           </button>
         </div>
 
+        {player && <ValueBreakdown player={player} />}
+
         {performanceLoading ? (
           <div className="text-xs text-[#636366] italic mb-3">Loading recent scores…</div>
         ) : performance ? (
           <div className="mb-4">
+            {performance.gameLog.length > 0 && (
+              <div className="mb-3">
+                <WeeklyChart
+                  title="Actual vs. projected, by week"
+                  primaryLabel="Actual"
+                  referenceLabel="ESPN projection"
+                  points={[...performance.gameLog]
+                    .sort((a, b) => a.week - b.week)
+                    .map((g) => ({ week: g.week, primary: g.actualPoints, reference: g.projectedPoints }))}
+                />
+              </div>
+            )}
             <div className="text-xs font-medium text-[#98989D] mb-1.5">Recent scores</div>
             <div className="space-y-1.5">
               <ScoreRow perf={performance.thisWeek} />
@@ -77,7 +171,9 @@ export function PlayerNewsModal({
               ))}
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="text-xs text-[#636366] mb-3">Couldn't load recent scores from ESPN right now — try again in a minute.</div>
+        )}
 
         {performance && <div className="text-xs font-medium text-[#98989D] mb-1.5">News &amp; injuries</div>}
         {items.length === 0 ? (

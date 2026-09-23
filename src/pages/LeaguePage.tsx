@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ChevronRight, Repeat, Shield, Trophy, Users } from "lucide-react";
 import { LEAGUE_CONFIG } from "../config/league";
 import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
+import { WeeklyChart } from "../components/WeeklyChart";
 import { StandingsPanel } from "../components/StandingsPanel";
 import { PlayoffRacePanel } from "../components/PlayoffRacePanel";
 import { WeeklyRecapPanel } from "../components/WeeklyRecapPanel";
@@ -47,6 +48,28 @@ export function LeaguePage({ app }: { app: FantasyApp }) {
   } = app;
 
   const [subTab, setSubTab] = useState<LeagueSubTab>("teams");
+
+  // Your score each finished week next to the league-wide average that week.
+  const weeklyTrend = useMemo(() => {
+    if (!leagueSchedule) return [];
+    const byWeek = new Map<number, { mine: number | null; all: number[] }>();
+    leagueSchedule.schedule
+      .filter((m) => m.decided)
+      .forEach((m) => {
+        const w = byWeek.get(m.week) ?? { mine: null, all: [] };
+        w.all.push(m.homePoints, m.awayPoints);
+        if (m.homeId === selectedTeamId) w.mine = m.homePoints;
+        if (m.awayId === selectedTeamId) w.mine = m.awayPoints;
+        byWeek.set(m.week, w);
+      });
+    return [...byWeek.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([week, w]) => ({
+        week,
+        primary: w.mine,
+        reference: Math.round((w.all.reduce((a, b) => a + b, 0) / w.all.length) * 10) / 10,
+      }));
+  }, [leagueSchedule, selectedTeamId]);
   const weeklyRecap = useWeeklyRecap({ leagueSchedule, allTeams, newsFeed });
 
   // Standings/schedule are only ever fetched once one of these sub-tabs is
@@ -105,6 +128,16 @@ export function LeaguePage({ app }: { app: FantasyApp }) {
               {leagueSchedule.playoffTeamCount} make the playoffs. Odds come from simulating the rest of the season thousands of times using each team's
               record so far and their projected weekly scoring.
             </p>
+            {subTab === "standings" && weeklyTrend.length > 0 && (
+              <div className="bg-[#1C1C1E] border border-[#38383A] rounded-xl p-4 max-w-xl">
+                <WeeklyChart
+                  title={`${selectedTeam.name}: points by week`}
+                  primaryLabel="Your points"
+                  referenceLabel="League average"
+                  points={weeklyTrend}
+                />
+              </div>
+            )}
             {subTab === "standings" ? (
               <StandingsPanel
                 standings={leagueSchedule.standings}

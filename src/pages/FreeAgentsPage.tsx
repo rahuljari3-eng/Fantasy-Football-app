@@ -4,6 +4,7 @@ import { PosBadge } from "../components/PosBadge";
 import { StatusIndicator } from "../components/StatusIndicator";
 import { PlayerNameLink } from "../components/PlayerNameLink";
 import { AddPlayerActions } from "../components/AddPlayerActions";
+import { InactiveToggle } from "../components/InactiveToggle";
 import { SearchInput } from "../components/SearchInput";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 
@@ -17,6 +18,9 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
     faPosFilter,
     setFaPosFilter,
     browsableFreeAgents,
+    hiddenFreeAgentCount,
+    showInactivePlayers,
+    setShowInactivePlayers,
     roster,
     addToSlot,
     addToBench,
@@ -127,6 +131,9 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
               </option>
             ))}
           </select>
+        </div>
+        <div className="mb-2">
+          <InactiveToggle hiddenCount={hiddenFreeAgentCount} showing={showInactivePlayers} onToggle={setShowInactivePlayers} />
         </div>
         <div className="border border-[#38383A] rounded-xl overflow-hidden max-h-[480px] overflow-y-auto">
           {browsableFreeAgents.map((p) => (

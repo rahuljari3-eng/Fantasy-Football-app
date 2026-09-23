@@ -78,3 +78,15 @@ export function newsTypeIcon(type: NewsType): LucideIcon {
       return Newspaper;
   }
 }
+
+/** "just now" / "12 min ago" / "3h ago" / "2d ago" relative to `now` (ms). */
+export function timeAgo(iso: string, now: number): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const minutes = Math.floor((now - then) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}

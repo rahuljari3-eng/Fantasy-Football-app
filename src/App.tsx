@@ -61,6 +61,7 @@ export default function App() {
 
       <PlayerNewsModal
         playerName={app.playerNewsOpenId != null ? app.playerById(app.playerNewsOpenId)?.name ?? "" : null}
+        player={app.playerNewsOpenId != null ? app.playerById(app.playerNewsOpenId) ?? null : null}
         items={app.playerNewsOpenId != null ? app.newsForPlayer(app.playerNewsOpenId) : []}
         performance={app.playerPerformance}
         performanceLoading={app.playerPerformanceLoading}

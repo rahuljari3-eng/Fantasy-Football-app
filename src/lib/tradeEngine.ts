@@ -340,3 +340,30 @@ export function evaluateTradeFit(
 export function compareTradeFit(a: TradeFit, b: TradeFit): number {
   return b.tier - a.tier || b.myGain + 0.5 * b.theirGain - (a.myGain + 0.5 * a.theirGain);
 }
+
+/** The trade market's opinion alone: each player priced by marketQuality
+ * (FantasyCalc redraft value mapped onto this app's value scale -- see
+ * lib/consensus.ts rankPlayerPool), falling back to qualityScore for
+ * players the market doesn't value. Same scale and package math as
+ * SEASON_PRICER, so its ratio reads against the same fair window. */
+export const MARKET_PRICER: Pricer = { value: (p) => p.marketQuality ?? qualityScore(p), rank: (p) => p.seasonPosRank ?? p.posRank };
+
+export interface MarketCheck {
+  /** getVal / giveVal with every player priced by the market. */
+  ratio: number;
+  label: string;
+  tone: "fair" | "you_overpay" | "you_win";
+}
+
+/** "Would the trade market call this fair?" -- shown next to the app's own
+ * ratio so a disagreement is visible at a glance. Null when the market
+ * doesn't value anyone on one of the sides (nothing to compare). */
+export function marketCheck(give: Player[], get: Player[]): MarketCheck | null {
+  if (!give.some((p) => p.marketQuality != null) || !get.some((p) => p.marketQuality != null)) return null;
+  const ratio = fairnessRatio(packageValue(give, MARKET_PRICER), packageValue(get, MARKET_PRICER));
+  if (ratioIsFair(ratio)) return { ratio, label: "Market: fair", tone: "fair" };
+  const pct = Math.round(Math.abs(1 - ratio) * 100);
+  return ratio < 1
+    ? { ratio, label: `Market: you overpay ~${pct}%`, tone: "you_overpay" }
+    : { ratio, label: `Market: you win by ~${pct}%`, tone: "you_win" };
+}

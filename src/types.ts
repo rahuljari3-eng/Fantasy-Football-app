@@ -4,6 +4,17 @@
 
 export type Position = "QB" | "RB" | "WR" | "TE" | "DST" | "K";
 
+/** The raw inputs behind a player's consensus numbers, kept so the app can
+ * show where a value came from (lib/consensus.ts). */
+export interface ValueSources {
+  espnWeek: number;
+  sleeperWeek?: number;
+  espnSeason?: number;
+  sleeperRos?: number;
+  actualAvg?: number;
+  gamesPlayed?: number;
+}
+
 /** A projection model's expected yardage for one week -- what a posted
  * sportsbook prop line is compared against (lib/consensus.ts). */
 export interface ModelYards {
@@ -66,6 +77,8 @@ export interface Player {
   /** Sleeper's projected yardage this week -- what a posted sportsbook prop
    * line is compared against (lib/consensus.ts applyPropLines). */
   modelYards?: ModelYards;
+  /** See ValueSources. */
+  valueSources?: ValueSources;
 }
 
 /** A player entry inside a league team's roster (ESPN also tells us slot/starter). */
@@ -136,6 +149,8 @@ export interface ProjectionOverride {
   marketPosRank?: number;
   marketValue?: number;
   modelYards?: ModelYards;
+  /** See ValueSources. */
+  valueSources?: ValueSources;
 }
 
 export type ProjectionOverrides = Record<number, ProjectionOverride>;

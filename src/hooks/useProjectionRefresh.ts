@@ -2,7 +2,7 @@
 // from ESPN, blended with Sleeper's projections, actual production so far,
 // and FantasyCalc trade-market values (lib/consensus.ts). Self-contained -- it only produces an id-keyed
 // overrides map, and doesn't know anything about rosters, trades, etc.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LEAGUE_CONFIG } from "../config/league";
 import { applyConsensusToOverrides, fetchConsensusSources } from "../lib/consensus";
 import { fetchEspnRosteredProjections, fetchEspnFreeAgentProjections } from "../lib/espn";
@@ -41,7 +41,13 @@ export function useProjectionRefresh() {
     })();
   }, []);
 
-  const refreshProjections = useCallback(async () => {
+  // A refresh already in flight. The load-time refresh and the "Refresh from
+  // ESPN" button (or React StrictMode's dev-only double effect) would
+  // otherwise each start a full ~12s pull of every source; later callers just
+  // wait on the one already running.
+  const inFlight = useRef<Promise<void> | null>(null);
+
+  const runRefresh = useCallback(async () => {
     setRefreshing(true);
     setRefreshError(null);
     setRefreshProgress({ done: 0, total: 2 });
@@ -96,6 +102,15 @@ export function useProjectionRefresh() {
     setRefreshing(false);
     setRefreshProgress(null);
   }, [projectionOverrides]);
+
+  const refreshProjections = useCallback(() => {
+    if (!inFlight.current) {
+      inFlight.current = runRefresh().finally(() => {
+        inFlight.current = null;
+      });
+    }
+    return inFlight.current;
+  }, [runRefresh]);
 
   return { projectionOverrides, refreshing, refreshError, lastRefreshed, refreshProgress, refreshProjections };
 }

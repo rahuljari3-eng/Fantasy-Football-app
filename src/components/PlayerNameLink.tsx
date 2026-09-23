@@ -1,6 +1,6 @@
-/** A player's name, rendered as a click-to-open-news button whenever the live
- * feed actually has something on them -- otherwise plain text, so rows don't
- * turn into dead-looking buttons for the many players with no current news. */
+/** A player's name, clickable to open his details (how his value is built,
+ * recent scores, and any news). A dotted underline marks players the live
+ * feed has news on. */
 export function PlayerNameLink({
   name,
   hasNews,
@@ -12,7 +12,6 @@ export function PlayerNameLink({
   onOpen: () => void;
   className?: string;
 }) {
-  if (!hasNews) return <span className={className}>{name}</span>;
   return (
     <button
       type="button"
@@ -20,8 +19,10 @@ export function PlayerNameLink({
         e.stopPropagation();
         onOpen();
       }}
-      title="View related news"
-      className={`block text-left bg-transparent border-0 p-0 m-0 font-inherit hover:underline decoration-dotted underline-offset-2 ${className ?? ""}`}
+      title={hasNews ? "Player details and news" : "Player details"}
+      className={`block text-left bg-transparent border-0 p-0 m-0 font-inherit hover:underline underline-offset-2 ${
+        hasNews ? "underline decoration-dotted decoration-[#636366]" : ""
+      } ${className ?? ""}`}
     >
       {name}
     </button>

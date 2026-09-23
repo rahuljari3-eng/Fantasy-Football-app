@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { AlertTriangle, RefreshCw, Trophy } from "lucide-react";
 import { LEAGUE_CONFIG } from "../config/league";
+import { timeAgo } from "../lib/format";
 import { NavTabs } from "./NavTabs";
 import type { LeagueTeam, RefreshProgress, TabId } from "../types";
 
@@ -42,6 +44,13 @@ export function AppHeader({
   regularSeasonWeeks: number | null;
   onSelectWeek: (week: number) => void;
 }) {
+  // Re-render once a minute so "updated 3 min ago" stays true.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <div className="border-b border-[#C9A227]/25 bg-[#1C1C1E]/95 backdrop-blur sticky top-0 z-20 shadow-[0_2px_16px_rgba(0,0,0,0.25)]">
       <div className="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between gap-4">
@@ -49,7 +58,7 @@ export function AppHeader({
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#C9A227] to-[#8a6f1b] flex items-center justify-center shrink-0 shadow-[0_0_0_1px_rgba(201,162,39,0.3)]">
             <Trophy size={19} className="text-[#000000]" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 hidden sm:block">
             <div className="display-font text-lg font-semibold leading-none truncate">{LEAGUE_CONFIG.appName}</div>
             <div className="text-[11px] text-[#98989D] mono-font tracking-wide truncate">{LEAGUE_CONFIG.scoringFormatLabel}</div>
           </div>
@@ -110,13 +119,19 @@ export function AppHeader({
       {(lastRefreshed || refreshError || refreshProgress) && (
         <div className="animate-fade-in max-w-6xl mx-auto px-4 pb-1.5 -mt-1">
           {refreshProgress ? (
-            <span className="text-[11px] text-[#98989D]">Pulling current projections from ESPN — step {refreshProgress.done}/{refreshProgress.total}…</span>
+            <span className="text-[11px] text-[#98989D]">
+              {lastRefreshed ? `Showing projections from ${timeAgo(lastRefreshed, now)} — ` : ""}
+              updating in the background (step {refreshProgress.done}/{refreshProgress.total})…
+            </span>
           ) : refreshError ? (
             <span className="text-[11px] text-red-400 flex items-center gap-1">
               <AlertTriangle size={11} /> {refreshError}
             </span>
           ) : (
-            <span className="text-[11px] text-[#636366]">Projections last refreshed from ESPN {new Date(lastRefreshed!).toLocaleString()}</span>
+            <span className="text-[11px] text-[#636366]" title={new Date(lastRefreshed!).toLocaleString()}>
+              Projections updated {timeAgo(lastRefreshed!, now)}
+              <span className="hidden sm:inline"> · ESPN, Sleeper, FantasyCalc, DraftKings props</span>
+            </span>
           )}
         </div>
       )}

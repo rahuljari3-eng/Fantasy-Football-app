@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, Plus, TrendingDown, TrendingUp, X } from "lucide-react";
 import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX } from "../config/trade";
+import { HowItWorks } from "../components/HowItWorks";
+import { MarketCheckBadge } from "../components/MarketCheckBadge";
 import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
 import { SearchInput } from "../components/SearchInput";
@@ -262,13 +264,21 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
         </div>
       ) : (
         <div key="build" className="space-y-4 animate-fade-slide-up">
-        <p className="text-sm text-[#98989D] max-w-2xl">
-          Pick the players you'd send and receive. Value is <span className="text-[#C9A227]">points over replacement</span>, run through a convex curve so
-          elite tiers outweigh their raw points, and each extra player in a package is discounted.{" "}
-          {tradeHorizon === "season"
-            ? "Season mode projects it across the remaining 16 games, adjusted for tier trajectory and injury risk."
-            : "Week mode prices a single week."}
-        </p>
+        <div>
+          <p className="text-sm text-[#98989D] max-w-2xl">Pick the players you'd send and receive to see who comes out ahead.</p>
+          <div className="mt-1">
+            <HowItWorks summary="How trades are valued">
+              <p>
+                {tradeHorizon === "season"
+                  ? "Rest of season: each player's season value — ESPN and Sleeper projections plus actual points so far, blended with the FantasyCalc trade market — across the remaining games, adjusted for injury risk."
+                  : "This week: each player's value for this week only, from consensus projections (ESPN, Sleeper, and DraftKings yardage props when posted)."}{" "}
+                Elite players are worth more than their raw points suggest, and each extra player in a package is discounted — you can't out-total a stud
+                with role players.
+              </p>
+              <p>The market badge shows what the trade market alone thinks of the deal.</p>
+            </HowItWorks>
+          </div>
+        </div>
 
         <div className="inline-flex bg-[#1C1C1E] border border-[#38383A] rounded-lg p-1">
           {HORIZONS.map((h) => (
@@ -354,6 +364,12 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
                     ? "This trade favors the other side"
                     : "This trade is roughly even"}
                   {tradeRatio != null && <span className="mono-font text-[#C9A227] ml-2">ratio {tradeRatio.toFixed(2)}</span>}
+                </div>
+                <div className="mt-1">
+                  <MarketCheckBadge
+                    give={tradeGive.map(playerById).filter((p): p is NonNullable<typeof p> => !!p)}
+                    get={tradeGet.map(playerById).filter((p): p is NonNullable<typeof p> => !!p)}
+                  />
                 </div>
                 <div className="text-sm text-[#98989D]">
                   {tradeStarGateViolation && (

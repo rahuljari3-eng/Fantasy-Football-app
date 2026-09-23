@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, ChevronLeft, Lightbulb, X } from "lucide-react";
 import { SLOTS, SLOT_ELIGIBILITY } from "../config/league";
@@ -9,6 +9,7 @@ import { PlayerNameLink } from "../components/PlayerNameLink";
 import { AddPlayerActions } from "../components/AddPlayerActions";
 import { MatchupBadge } from "../components/MatchupBadge";
 import { LockBadge } from "../components/LockBadge";
+import { InactiveToggle } from "../components/InactiveToggle";
 import { SearchInput } from "../components/SearchInput";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 import type { Player } from "../types";
@@ -31,6 +32,9 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
     quickStart,
     removeFromBench,
     availablePlayers,
+    hiddenPoolCount,
+    showInactivePlayers,
+    setShowInactivePlayers,
     posFilter,
     setPosFilter,
     search,
@@ -55,6 +59,19 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
     setViewedWeek,
     leagueSchedule,
   } = app;
+
+  // One card per starter worth replacing (e.g. a player on bye), best
+  // replacement first -- instead of a separate card for every bench player
+  // who could fill the same spot.
+  const suggestionGroups = useMemo(() => {
+    const byStarter = new Map<number, { starter: (typeof benchUpgradeSuggestions)[number]["starter"]; options: typeof benchUpgradeSuggestions }>();
+    benchUpgradeSuggestions.forEach((sug) => {
+      const g = byStarter.get(sug.starter.id) ?? { starter: sug.starter, options: [] };
+      g.options.push(sug);
+      byStarter.set(sug.starter.id, g);
+    });
+    return [...byStarter.values()].map((g) => ({ ...g, options: [...g.options].sort((a, b) => b.benchPlayer.proj - a.benchPlayer.proj) }));
+  }, [benchUpgradeSuggestions]);
 
   useEffect(() => {
     // Only the live game-state poll -- pointless (and just extra ESPN
@@ -100,30 +117,50 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
         </div>
       )}
 
-      {benchUpgradeSuggestions.length > 0 && (
+      {suggestionGroups.length > 0 && (
         <div className="lg:col-span-5 space-y-2">
-          {benchUpgradeSuggestions.map((s) => (
-            <div
-              key={s.benchPlayer.id}
-              className="animate-fade-slide-up hover-lift flex items-start justify-between gap-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2.5 text-xs text-emerald-200"
-            >
-              <div className="flex items-start gap-2 min-w-0">
-                <Lightbulb size={14} className="shrink-0 mt-0.5 text-emerald-300" />
-                <span>
-                  <strong className="font-semibold">
-                    Start {s.benchPlayer.name} over {s.starter.name}?
-                  </strong>{" "}
-                  {s.reason}
-                </span>
-              </div>
-              <button
-                onClick={() => quickStart(s.benchPlayer)}
-                className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/30 hover:shadow-[0_0_0_1px_rgba(16,185,129,0.4)]"
+          {suggestionGroups.map(({ starter, options }) => {
+            const [best, ...others] = options;
+            return (
+              <div
+                key={starter.id}
+                className="animate-fade-slide-up bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2.5 text-xs text-emerald-200"
               >
-                Start {s.benchPlayer.name}
-              </button>
-            </div>
-          ))}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <Lightbulb size={14} className="shrink-0 mt-0.5 text-emerald-300" />
+                    <span>
+                      <strong className="font-semibold">
+                        Start {best.benchPlayer.name} over {starter.name}?
+                      </strong>{" "}
+                      {best.reason}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => quickStart(best.benchPlayer)}
+                    className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/30"
+                  >
+                    Start
+                  </button>
+                </div>
+                {others.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap mt-2 pl-6">
+                    <span className="text-emerald-300/70">Or start:</span>
+                    {others.map((o) => (
+                      <button
+                        key={o.benchPlayer.id}
+                        onClick={() => quickStart(o.benchPlayer)}
+                        title={o.reason}
+                        className="text-[11px] px-2 py-0.5 rounded-full border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/20"
+                      >
+                        {o.benchPlayer.name} <span className="mono-font opacity-70">{o.benchPlayer.proj}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -357,6 +394,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
           </div>
         </div>
 
+        <InactiveToggle hiddenCount={hiddenPoolCount} showing={showInactivePlayers} onToggle={setShowInactivePlayers} />
         <div className="border border-[#38383A] rounded-xl overflow-hidden max-h-[560px] overflow-y-auto">
           {availablePlayers.map((p) => (
             <div

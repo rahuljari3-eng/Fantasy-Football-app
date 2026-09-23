@@ -212,6 +212,7 @@ function enrichPlayer(
     ...(seasonProj != null ? { seasonProj } : {}),
     ...(blended?.marketPosRank != null ? { marketPosRank: blended.marketPosRank, marketValue: blended.marketValue } : {}),
     ...(blended?.modelYards ? { modelYards: blended.modelYards } : {}),
+    ...(blended?.valueSources ? { valueSources: blended.valueSources } : {}),
     tier: prev?.tier ?? tierFromProj(proj, pos),
     status,
   };
