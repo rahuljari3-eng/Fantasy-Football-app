@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "verify:discriminator": "tsx scripts/verify-discriminator-normalize.ts",
     "sync:snapshot": "node --import tsx scripts/syncLeagueSnapshot.ts",
-    "smoke:sensei": "node --import tsx scripts/smoke-sensei.ts"
+    "smoke:sensei": "node --import tsx scripts/smoke-sensei.ts",
+    "record:projections": "node --import tsx scripts/recordProjections.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",

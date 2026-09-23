@@ -15,6 +15,9 @@ export function MatchupBadge({ matchup }: { matchup: PlayerMatchup }) {
     );
   }
 
+  // Schedule didn't load (see gradeMatchup) -- nothing to show.
+  if (!matchup.opponent) return null;
+
   const oppText = matchup.homeAway === "home" ? `vs ${matchup.opponent}` : `@ ${matchup.opponent}`;
   return (
     <span className="flex items-center gap-1 shrink-0">

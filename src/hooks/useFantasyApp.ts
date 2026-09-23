@@ -13,6 +13,7 @@ import { DEFAULT_TAB } from "../config/pages";
 import { playerValue, qualityScore, rosValue } from "../lib/scoring";
 import { analyzeRosterNeeds } from "../lib/rosterNeeds";
 import { applyPropLines, rankPlayerPool } from "../lib/consensus";
+import { getStoredValue, setStoredValue } from "../lib/storage";
 import { buildTradeOffer } from "../lib/tradeOffer";
 import {
   allPoolSuggestions,
@@ -55,6 +56,7 @@ import type {
   RosterAssignments,
   RosterPlayer,
   RosterSlotId,
+  ProjectionSource,
   TabId,
   TradeHorizon,
   TradeSuggestion,
@@ -430,9 +432,25 @@ export function useFantasyApp() {
   // The number actually worth showing for a player right now: their real
   // live score once their game has started, their static projection before
   // that.
+  // Which weekly projection the Build roster tab (and the header's lineup
+  // total) shows: the app's custom consensus (`proj`) or ESPN's own number
+  // (`espnProj`). Remembered per browser. Every other calculation -- lineup
+  // suggestions, trade values -- keeps using the custom projection.
+  const [projectionSource, setProjectionSourceState] = useState<ProjectionSource>("custom");
+  useEffect(() => {
+    getStoredValue("projection-source").then((v) => {
+      if (v === "espn" || v === "custom") setProjectionSourceState(v);
+    });
+  }, []);
+  const setProjectionSource = useCallback((src: ProjectionSource) => {
+    setProjectionSourceState(src);
+    void setStoredValue("projection-source", src);
+  }, []);
+  const projFor = useCallback((p: Player): number => (projectionSource === "espn" ? p.espnProj ?? p.proj : p.proj), [projectionSource]);
+
   const effectivePoints = useCallback(
-    (p: Player): number => (isPlayerLocked(p) ? liveScoreForPlayer(p.id) ?? p.proj : p.proj),
-    [isPlayerLocked, liveScoreForPlayer]
+    (p: Player): number => (isPlayerLocked(p) ? liveScoreForPlayer(p.id) ?? projFor(p) : projFor(p)),
+    [isPlayerLocked, liveScoreForPlayer, projFor]
   );
 
   // ---------- Live news/injury feed: player linkage + the popover state
@@ -486,6 +504,7 @@ export function useFantasyApp() {
         // yardage props have posted -- the market's yardage swapped in for the
         // projections' (lib/consensus.ts applyPropLines).
         proj: applyPropLines(proj, matchupData.playerProps[player.id], ov.modelYards),
+        ...(ov.espnProj != null ? { espnProj: ov.espnProj } : {}),
         status: ov.status || player.status,
         // Falls back to the live weekly proj (not the static bundled one)
         // when there's no season projection for this player, so it's never
@@ -898,9 +917,9 @@ export function useFantasyApp() {
       .filter((p) => !usedIds.has(p.id))
       .filter((p) => (posFilter === "ALL" ? true : p.pos === posFilter))
       .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
-      .sort((a, b) => b.proj - a.proj);
+      .sort((a, b) => projFor(b) - projFor(a));
     return splitInactive(list, search);
-  }, [usedIds, posFilter, search, effectivePlayers, splitInactive]);
+  }, [usedIds, posFilter, search, effectivePlayers, splitInactive, projFor]);
 
   // Blends real live scores for anyone already locked in with static
   // projections for anyone who hasn't played yet, so this number (and every
@@ -1327,6 +1346,9 @@ export function useFantasyApp() {
     search,
     setSearch,
     availablePlayers,
+    projectionSource,
+    setProjectionSource,
+    projFor,
     hiddenPoolCount,
     showInactivePlayers,
     setShowInactivePlayers,

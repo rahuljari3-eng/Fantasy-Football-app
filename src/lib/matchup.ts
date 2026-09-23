@@ -349,6 +349,12 @@ function gradePlayerProp(pos: Position, playerId: number, matchups: WeeklyMatchu
 export function gradeMatchup(player: Pick<Player, "id" | "pos" | "team">, matchups: WeeklyMatchups): PlayerMatchup {
   const t = matchups.teams[player.team];
   if (!t) {
+    // No schedule at all (ESPN's scoreboard didn't load) is NOT a bye --
+    // treating it as one flagged every player on bye and suggested benching
+    // real starters. Only a team missing from a loaded schedule is on bye.
+    if (Object.keys(matchups.teams).length === 0) {
+      return { opponent: null, homeAway: null, isBye: false, grade: null, impliedTotal: null, propLine: null, label: "Matchup unavailable", gameState: null };
+    }
     return { opponent: null, homeAway: null, isBye: true, grade: null, impliedTotal: null, propLine: null, label: "Bye week", gameState: null };
   }
 

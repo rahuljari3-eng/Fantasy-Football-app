@@ -365,6 +365,7 @@ export function applyConsensusToOverrides(
     const c = consensusFor(sources, snap);
     out[snap.id] = {
       ...base,
+      espnProj: snap.proj,
       proj: c.proj,
       ...(c.seasonProj != null ? { seasonProj: c.seasonProj } : {}),
       ...(c.marketPosRank != null ? { marketPosRank: c.marketPosRank, marketValue: c.marketValue } : {}),

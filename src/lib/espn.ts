@@ -139,6 +139,8 @@ export interface EspnPlayerSnapshot {
   seasonProj: number | null;
   actualAvg: number | null;
   gamesPlayed: number | null;
+  /** This week's actual points -- non-null once his game has kicked off. */
+  weekActual: number | null;
 }
 
 function toOverride(player: EspnPlayer, period: number): { override: ProjectionOverrides[number]; snapshot: EspnPlayerSnapshot | null } | null {
@@ -162,6 +164,7 @@ function toOverride(player: EspnPlayer, period: number): { override: ProjectionO
           seasonProj,
           actualAvg: actual?.avg ?? null,
           gamesPlayed: actual?.gamesPlayed ?? null,
+          weekActual: extractEspnWeekActual(player.stats, period),
         }
       : null,
   };

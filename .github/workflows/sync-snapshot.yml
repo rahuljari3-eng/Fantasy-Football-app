@@ -31,6 +31,12 @@ jobs:
 
       - run: npm run sync:snapshot
 
+      # Custom vs ESPN projection history for the Build roster tab's accuracy
+      # comparison -- see scripts/recordProjections.ts. Best-effort: a failed
+      # recording shouldn't block the roster sync.
+      - run: npm run record:projections
+        continue-on-error: true
+
       - name: Commit and push if the roster data changed
         run: |
           git config user.name "github-actions[bot]"
@@ -39,6 +45,6 @@ jobs:
             echo "No roster changes since last sync."
             exit 0
           fi
-          git add src/data/leagueTeams.ts src/data/myTeam.ts src/data/freeAgents.ts
-          git commit -m "Sync league snapshot from ESPN [automated]"
+          git add src/data/leagueTeams.ts src/data/myTeam.ts src/data/freeAgents.ts src/data/projectionHistory.json
+          git commit -m "Sync league snapshot and projection history from ESPN [automated]"
           git push

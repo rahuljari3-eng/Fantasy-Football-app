@@ -42,6 +42,10 @@ export interface Player {
   proj: number;
   tier: Tier;
   status: PlayerStatus;
+  /** ESPN's own weekly projection, untouched -- `proj` is the app's custom
+   * consensus (lib/consensus.ts), which can differ. Lets the user view either
+   * one (Build roster's projection toggle). Absent until a live refresh. */
+  espnProj?: number;
   /** 1-based rank among all known players at this position (by THIS WEEK's
    * projection), filled in at runtime. Drives the rank-chart component of
    * playerValue (week-priced trade value, live lineup scoring). Absent on
@@ -142,6 +146,8 @@ export interface NewsItem {
  * keyed by ESPN player id. */
 export interface ProjectionOverride {
   proj?: number;
+  /** See Player.espnProj. */
+  espnProj?: number;
   status?: PlayerStatus;
   /** See Player.seasonProj. */
   seasonProj?: number;
@@ -154,6 +160,10 @@ export interface ProjectionOverride {
 }
 
 export type ProjectionOverrides = Record<number, ProjectionOverride>;
+
+/** Which weekly projection the Build roster tab shows: the app's custom
+ * consensus or ESPN's own. */
+export type ProjectionSource = "custom" | "espn";
 
 /** How favorable a player's real-world matchup looks this week, from A
  * (plus matchup) to F (brutal) -- see gradeMatchup in lib/matchup.ts. */

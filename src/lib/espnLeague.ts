@@ -209,6 +209,7 @@ function enrichPlayer(
     team: nfl?.abbrev || prev?.team || "FA",
     bye: nfl?.byeWeek ?? prev?.bye ?? 0,
     proj,
+    espnProj,
     ...(seasonProj != null ? { seasonProj } : {}),
     ...(blended?.marketPosRank != null ? { marketPosRank: blended.marketPosRank, marketValue: blended.marketValue } : {}),
     ...(blended?.modelYards ? { modelYards: blended.modelYards } : {}),

@@ -10,6 +10,9 @@ import { AddPlayerActions } from "../components/AddPlayerActions";
 import { MatchupBadge } from "../components/MatchupBadge";
 import { LockBadge } from "../components/LockBadge";
 import { InactiveToggle } from "../components/InactiveToggle";
+import { ProjectionSourceToggle } from "../components/ProjectionSourceToggle";
+import PROJECTION_HISTORY from "../data/projectionHistory.json";
+import { computeProjectionAccuracy, type ProjectionHistory } from "../lib/projectionAccuracy";
 import { SearchInput } from "../components/SearchInput";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 import type { Player } from "../types";
@@ -49,6 +52,9 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
     benchUpgradeSuggestions,
     isPlayerLocked,
     effectivePoints,
+    projectionSource,
+    setProjectionSource,
+    projFor,
     handleDragStart,
     refreshMatchups,
     refreshLiveLineups,
@@ -72,6 +78,23 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
     });
     return [...byStarter.values()].map((g) => ({ ...g, options: [...g.options].sort((a, b) => b.benchPlayer.proj - a.benchPlayer.proj) }));
   }, [benchUpgradeSuggestions]);
+
+  const accuracy = useMemo(() => computeProjectionAccuracy(PROJECTION_HISTORY as ProjectionHistory), []);
+  // The projection NOT currently selected, shown small beside the selected
+  // one when the two actually differ -- so they can be compared at a glance.
+  const otherProj = (p: Player): number | null => {
+    const other = projectionSource === "espn" ? p.proj : p.espnProj;
+    return other != null && Math.abs(other - projFor(p)) >= 0.1 ? other : null;
+  };
+  const OtherProj = ({ p }: { p: Player }) => {
+    const other = otherProj(p);
+    if (other == null) return null;
+    return (
+      <span className="mono-font text-[10px] text-[#636366]" title={projectionSource === "espn" ? "Custom projection" : "ESPN projection"}>
+        {projectionSource === "espn" ? "C" : "E"} {other}
+      </span>
+    );
+  };
 
   useEffect(() => {
     // Only the live game-state poll -- pointless (and just extra ESPN
@@ -117,6 +140,12 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
         </div>
       )}
 
+      {isViewingCurrentWeek && (
+        <div className="lg:col-span-5">
+          <ProjectionSourceToggle source={projectionSource} onChange={setProjectionSource} accuracy={accuracy} />
+        </div>
+      )}
+
       {suggestionGroups.length > 0 && (
         <div className="lg:col-span-5 space-y-2">
           {suggestionGroups.map(({ starter, options }) => {
@@ -153,7 +182,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                         title={o.reason}
                         className="text-[11px] px-2 py-0.5 rounded-full border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/20"
                       >
-                        {o.benchPlayer.name} <span className="mono-font opacity-70">{o.benchPlayer.proj}</span>
+                        {o.benchPlayer.name} <span className="mono-font opacity-70">{projFor(o.benchPlayer)}</span>
                       </button>
                     ))}
                   </div>
@@ -288,6 +317,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0">
+                      {!locked && <OtherProj p={p} />}
                       <span className={`mono-font text-sm font-medium ${locked ? "text-emerald-400" : "text-[#C9A227]"}`}>
                         {effectivePoints(p)}
                       </span>
@@ -350,6 +380,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5 shrink-0">
+                    {!locked && <OtherProj p={p} />}
                     <span className={`mono-font text-sm font-medium ${locked ? "text-emerald-400" : "text-[#C9A227]"}`}>
                       {effectivePoints(p)}
                     </span>
@@ -420,7 +451,8 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <span className="mono-font text-sm text-[#C9A227] font-medium">{p.proj}</span>
+                <OtherProj p={p} />
+                <span className="mono-font text-sm text-[#C9A227] font-medium">{projFor(p)}</span>
                 <AddPlayerActions player={p} roster={roster} onAddToSlot={addToSlot} onAddToBench={addToBench} locked={isPlayerLocked(p)} />
               </div>
             </div>
