@@ -328,8 +328,18 @@ export async function fetchEspnCompletedTrades(): Promise<CompletedTrade[]> {
     groups.set(key, g);
   });
 
+  // A group only exists here at all because a specific player's current
+  // owner disagrees with their draft/waiver baseline -- and the replay never
+  // touches expectedOwner on a TRADE item, so that disagreement can ONLY be
+  // explained by a real trade having moved them. That holds even when just
+  // one side has entries: the other side either sent back a pick/FAAB this
+  // reconstruction doesn't track, or sent back a player who was later
+  // dropped and re-added, which silently erases that specific player's own
+  // diff (see the big comment above) without invalidating the rest of the
+  // trade. Previously this required BOTH sides non-empty, which dropped
+  // those real trades from the list entirely instead of showing what could
+  // still be reconstructed.
   return [...groups.values()]
-    .filter((g) => g.aToB.length > 0 && g.bToA.length > 0)
     .map((g) => ({
       id: g.teamAId + "-" + g.teamBId,
       teamAId: g.teamAId,
