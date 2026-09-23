@@ -241,6 +241,7 @@ interface EspnTransaction {
   id?: string;
   type: string;
   proposedDate: number;
+  teamId?: number;
   items?: EspnTransactionItem[];
 }
 interface EspnTransactionsResponse {
@@ -398,6 +399,23 @@ export async function fetchEspnCompletedTrades(): Promise<CompletedTrade[]> {
     }
   }
 
+  // ESPN never exposes an accepted trade's itemized contents (see above), but
+  // it DOES expose the bare TRADE_ACCEPT/TRADE_UPHOLD events that closed each
+  // one -- just the team and the date, no players. Use the most recent such
+  // event for either team in a group as a proxy for "when this trade
+  // happened," so the list can be sorted newest-first instead of in
+  // whatever arbitrary order the player diffs above happened to produce.
+  // Imprecise for a team that made multiple trades (there's no way to tell
+  // which accept belongs to which of its trades without the hidden item
+  // data), but still a good approximation for ordering purposes.
+  const latestEventByTeam = new Map<number, number>();
+  allTransactions.forEach((t) => {
+    if (t.type !== "TRADE_ACCEPT" && t.type !== "TRADE_UPHOLD") return;
+    if (t.teamId == null) return;
+    const prev = latestEventByTeam.get(t.teamId);
+    if (prev == null || t.proposedDate > prev) latestEventByTeam.set(t.teamId, t.proposedDate);
+  });
+
   return [...groups.entries()]
     .filter(([key]) => !removedKeys.has(key))
     .map(([, g]) => ({
@@ -406,5 +424,8 @@ export async function fetchEspnCompletedTrades(): Promise<CompletedTrade[]> {
       teamBId: g.teamBId,
       teamAReceived: g.bToA,
       teamBReceived: g.aToB,
-    }));
+      sortDate: Math.max(latestEventByTeam.get(g.teamAId) ?? 0, latestEventByTeam.get(g.teamBId) ?? 0),
+    }))
+    .sort((a, b) => b.sortDate - a.sortDate)
+    .map(({ sortDate, ...trade }) => trade);
 }
