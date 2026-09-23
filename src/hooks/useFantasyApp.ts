@@ -7,27 +7,27 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FREE_AGENTS } from "../data/freeAgents";
 import { ALL_TEAMS, DEFAULT_TEAM_ID } from "../data/allTeams";
 import { POSITIONS, REQUIRED_STARTERS, SLOTS, SLOT_ELIGIBILITY } from "../config/league";
-import { COACH_MAX_SUGGESTIONS, COACH_MIN_ONE_FOR_ONE, COACH_MIN_OTHER_TRADES, COACH_MIN_TWO_FOR_TWO, FAIR_RATIO_MIN, FAIR_RATIO_MAX, EXTRA_PIECE_DISCOUNT } from "../config/trade";
+import { EXTRA_PIECE_DISCOUNT } from "../config/trade";
 import { VOR_BASELINE, ROS_WEEKS } from "../config/scoring";
 import { DEFAULT_TAB } from "../config/pages";
 import { playerValue, qualityScore, rosValue } from "../lib/scoring";
 import { analyzeRosterNeeds } from "../lib/rosterNeeds";
+import {
+  allPoolSuggestions,
+  buildCoachContext,
+  buildCoachPools,
+  buildLeagueBaseline,
+  computeMovablePlayers,
+  computeNeedyPositions,
+  computeStrengthPositions,
+  isTradeablePosition,
+  mixCoachSuggestions,
+  suggestionKey,
+} from "../lib/coachTrades";
 import { deriveAssignments, deriveAssignmentsFromEspnSlots } from "../lib/teamRoster";
 import { fetchEspnCompletedTrades, fetchEspnLineups, type CompletedTrade } from "../lib/espn";
 import { fetchLiveFreeAgents } from "../lib/espnLeague";
-import {
-  balancePackage,
-  balanceTwoForTwo,
-  compareTradeFit,
-  evaluateTradeFit,
-  fairnessRatio,
-  isNeedPosition,
-  ratioIsFair,
-  needAdjustedPackageValue,
-  starGateOk,
-  SEASON_PRICER,
-  WEEK_PRICER,
-} from "../lib/tradeEngine";
+import { starGateOk, SEASON_PRICER, WEEK_PRICER } from "../lib/tradeEngine";
 import { findWhatItWouldTake as solveWhatItWouldTake, type WhatWouldItTakeOption } from "../lib/whatWouldItTake";
 import { optimizeLineup } from "../lib/optimizeLineup";
 import { useProjectionRefresh } from "./useProjectionRefresh";
@@ -51,10 +51,8 @@ import type {
   RosterAssignments,
   RosterPlayer,
   RosterSlotId,
-  ScoredPlayer,
   TabId,
   TradeHorizon,
-  TradeFit,
   TradeSuggestion,
   ViewedTeam,
 } from "../types";
@@ -926,52 +924,29 @@ export function useFantasyApp() {
   // across every team in the league (all opponents + you), so "need" and
   // "strength" are judged relative to what a typical starter actually looks
   // like this season.
-  const leagueBaseline = useMemo(() => {
-    const baseline = {} as Record<Position, number>;
-    const allRosters = [...effectiveLeagueTeams.map((t) => t.roster), myPlayers];
-    POSITIONS.forEach((pos) => {
-      const scores = allRosters.map((r) => analyzeRosterNeeds(r)[pos].starterScore).filter((s) => s > 0);
-      baseline[pos] = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-    });
-    return baseline;
-  }, [myPlayers, effectiveLeagueTeams]);
+  const leagueBaseline = useMemo(
+    () => buildLeagueBaseline([...effectiveLeagueTeams.map((t) => t.roster), myPlayers]),
+    [myPlayers, effectiveLeagueTeams]
+  );
 
   const myNeeds = useMemo(() => analyzeRosterNeeds(myPlayers), [myPlayers]);
 
   // A position is a "need" if you're missing a starter outright, or your
   // starter quality score sits meaningfully (15%+) below the league-average
   // starter there.
-  const needyPositions = useMemo(() => {
-    return POSITIONS.filter((pos) => {
-      const n = myNeeds[pos];
-      if (!n.hasEnoughBodies) return true;
-      if (!leagueBaseline[pos]) return false;
-      return n.starterScore < leagueBaseline[pos] * 0.85;
-    });
-  }, [myNeeds, leagueBaseline]);
+  const needyPositions = useMemo(() => computeNeedyPositions(myNeeds, leagueBaseline), [myNeeds, leagueBaseline]);
 
   // A position is a "strength" you can trade from if your starter score is
   // well above league average AND you actually have quality bench depth
   // sitting behind those starters.
-  const strengthPositions = useMemo(
-    () =>
-      POSITIONS.filter((pos) => {
-        const n = myNeeds[pos];
-        if (!leagueBaseline[pos]) return false;
-        return n.starterScore > leagueBaseline[pos] * 1.1 && n.tradeableDepth.length > 0;
-      }),
-    [myNeeds, leagueBaseline]
-  );
+  const strengthPositions = useMemo(() => computeStrengthPositions(myNeeds, leagueBaseline), [myNeeds, leagueBaseline]);
 
   // Which positions are worth putting in a trade at all: position players only
   // (QB/RB/WR/TE). Kickers and defenses are never traded -- values are
   // near-identical across the pool and managers just stream them. QBs only when
   // QB is a genuine need, since a QB-for-QB swap between two set starters in a
   // 1QB league is a pointless lateral move.
-  const isTradeablePos = useCallback(
-    (pos: Position) => pos !== "K" && pos !== "DST" && (pos !== "QB" || needyPositions.includes("QB")),
-    [needyPositions]
-  );
+  const isTradeablePos = useCallback((pos: Position) => isTradeablePosition(pos, needyPositions), [needyPositions]);
 
   // The give-side pool every trade-suggestion generator below draws from:
   // everyone at a tradeable position EXCEPT your single best player there
@@ -979,16 +954,7 @@ export function useFantasyApp() {
   // generalSuggestions, twoForTwoFallbackSuggestions, and the "what would it
   // take?" solver so none of them can suggest parting with a player the
   // others would consider untouchable.
-  const myMovablePlayers = useMemo(() => {
-    const movable: Player[] = [];
-    POSITIONS.forEach((pos) => {
-      if (!isTradeablePos(pos)) return;
-      myNeeds[pos].players.slice(1).forEach((p) => {
-        if (p.status !== "Out") movable.push(p);
-      });
-    });
-    return movable;
-  }, [myNeeds, isTradeablePos]);
+  const myMovablePlayers = useMemo(() => computeMovablePlayers(myNeeds, isTradeablePos), [myNeeds, isTradeablePos]);
 
   // Genuine bench-caliber spare depth (tier 1-2 bench, not a starter) --
   // the only pool the "what would it take?" solver is allowed to draw
@@ -1210,446 +1176,27 @@ export function useFantasyApp() {
   // so a regenerate swaps in the next-best batch instead of repeating itself.
   const [excludedCoachKeys, setExcludedCoachKeys] = useState<Set<string>>(() => new Set());
 
-  // Mutual fit of a candidate trade: does it make BOTH starting lineups better
-  // at a position each team actually needs? Fairness (the ratio window) still
-  // decides whether a trade is shown at all; fit decides which fair trades
-  // lead -- a WR-for-WR upgrade that just moves your hole onto their roster is
-  // fair on paper but a trade they have no reason to take.
-  const tradeFitFor = useCallback(
-    (theirRoster: Player[], give: Player[], get: Player[]) => evaluateTradeFit(myPlayers, theirRoster, give, get, leagueBaseline),
-    [myPlayers, leagueBaseline]
+  // Every generator's candidate pool -- see lib/coachTrades.ts, which Roster
+  // Sensei's suggest_trades tool runs too.
+  const coachPools = useMemo(
+    () =>
+      buildCoachPools(
+        buildCoachContext({ myPlayers, leagueTeams: effectiveLeagueTeams, myNeeds, leagueBaseline })
+      ),
+    [myPlayers, effectiveLeagueTeams, myNeeds, leagueBaseline]
   );
-
-  // Need-based suggestions: your real weakness matched to their real weakness.
-  // For each upgrade at one of your need positions, try paying from EVERY
-  // other position where that team is thin (not just the first one found, and
-  // not only from a declared "strength" of yours) -- evaluateTradeFit then
-  // judges whether losing that piece actually costs your lineup more than the
-  // upgrade gains.
-  const needBasedSuggestions = useMemo(() => {
-    const found: TradeSuggestion[] = [];
-    needyPositions.forEach((needPos) => {
-      if (!isTradeablePos(needPos)) return;
-      const myWeak = myNeeds[needPos].weakestStarter;
-      const myWeakQ = myWeak ? myWeak.qScore : 0;
-      // Candidates ranked by quality score, not raw proj, so an injured
-      // "star" doesn't outrank a healthy, reliable upgrade.
-      const candidates = effectiveAllLeaguePlayers
-        .filter((p) => p.pos === needPos && p.status !== "Out")
-        .map((p) => ({ ...p, qScore: qualityScore(p) }))
-        .filter((p) => p.qScore > myWeakQ * 1.1) // must be a clear upgrade, not a near-lateral move
-        .sort((a, b) => b.qScore - a.qScore)
-        .slice(0, 10);
-
-      candidates.forEach((cand) => {
-        const theirTeam = effectiveLeagueTeams.find((t) => t.id === cand.fantasyTeamId);
-        if (!theirTeam) return;
-        const theirNeeds = analyzeRosterNeeds(theirTeam.roster);
-        const candVal = SEASON_PRICER.value(cand);
-        const extraGetOptions: ScoredPlayer[] = POSITIONS.flatMap((pos) => theirNeeds[pos].tradeableDepth).filter((p) => p.id !== cand.id);
-
-        const overlapPositions = POSITIONS.filter(
-          (sp) => sp !== needPos && isTradeablePos(sp) && isNeedPosition(theirNeeds, leagueBaseline, sp)
-        );
-        overlapPositions.forEach((overlapPos) => {
-          const offerPool = myMovablePlayers.filter((p) => p.pos === overlapPos);
-          if (!offerPool.length) return;
-          const offerPlayer = offerPool.reduce((best, p) =>
-            Math.abs(SEASON_PRICER.value(p) - candVal) < Math.abs(SEASON_PRICER.value(best) - candVal) ? p : best
-          );
-          const offerVal = SEASON_PRICER.value(offerPlayer);
-          // Coarse pre-filter -- balancePackage does the real ratio check.
-          const preRatio = fairnessRatio(offerVal, candVal);
-          if (preRatio > 1.9 || preRatio < 0.5) return;
-
-          const extraGiveOptions: ScoredPlayer[] = POSITIONS.flatMap((pos) => myNeeds[pos].tradeableDepth).filter((p) => p.id !== offerPlayer.id);
-
-          const result = balancePackage([offerPlayer], [cand], theirNeeds, myNeeds, leagueBaseline, extraGiveOptions, extraGetOptions, SEASON_PRICER);
-          if (result) {
-            found.push({
-              id: `${theirTeam.id}-${result.get.map((p) => p.id).join(",")}-${result.give.map((p) => p.id).join(",")}`,
-              teamId: theirTeam.id,
-              teamName: theirTeam.name,
-              give: result.give,
-              get: result.get,
-              needPos,
-              overlapPos,
-              giveVal: result.giveVal,
-              getVal: result.getVal,
-              ratio: result.ratio,
-              upgrade: cand.qScore - myWeakQ,
-              reason: "need",
-              fit: tradeFitFor(theirTeam.roster, result.give, result.get),
-            });
-          }
-
-          // Also offer a genuine 2-for-2 built around the same core.
-          const twoResult = balanceTwoForTwo(offerPlayer, cand, theirNeeds, myNeeds, leagueBaseline, extraGiveOptions, extraGetOptions, SEASON_PRICER);
-          if (twoResult) {
-            found.push({
-              id: `2x2-${theirTeam.id}-${twoResult.get.map((p) => p.id).join(",")}-${twoResult.give.map((p) => p.id).join(",")}`,
-              teamId: theirTeam.id,
-              teamName: theirTeam.name,
-              give: twoResult.give,
-              get: twoResult.get,
-              needPos,
-              overlapPos,
-              giveVal: twoResult.giveVal,
-              getVal: twoResult.getVal,
-              ratio: twoResult.ratio,
-              upgrade: cand.qScore - myWeakQ,
-              reason: "need",
-              fit: tradeFitFor(theirTeam.roster, twoResult.give, twoResult.get),
-            });
-          }
-        });
-      });
-    });
-
-    return dedupeSuggestions(found.sort((a, b) => compareTradeFit(a.fit, b.fit)));
-  }, [needyPositions, isTradeablePos, myNeeds, myMovablePlayers, leagueBaseline, effectiveAllLeaguePlayers, effectiveLeagueTeams, tradeFitFor]);
-
-  // Mutual-fit suggestions: trades built deliberately so each side fills a
-  // need (or, failing a full two-way fit, fills yours while still leaving
-  // their starting lineup better -- tier 2). For every opponent, pair a player of yours who'd START at one of
-  // their need positions with one of theirs who'd upgrade one of yours, then
-  // try adding one more piece to either side (up to 2-for-2) to land inside
-  // the fair window. The other generators start from value and hope for fit;
-  // in practice a fair 1-for-1 almost never fills a need on both rosters (the
-  // player you want is usually their starter, and your surplus is usually a
-  // bench piece for them too), so without this the list collapses into
-  // same-position swaps. Capped per team so one well-matched opponent can't
-  // fill the list.
-  const mutualFitSuggestions = useMemo(() => {
-    const PER_TEAM = 3;
-    const MAX_EXTRA_GET = 8;
-    const found: TradeSuggestion[] = [];
-    const myNeedPositions = POSITIONS.filter((pos) => isTradeablePos(pos) && isNeedPosition(myNeeds, leagueBaseline, pos));
-    if (!myNeedPositions.length) return found;
-
-    const beats = (p: Player, starter: Player | null) => !starter || SEASON_PRICER.value(p) > SEASON_PRICER.value(starter);
-
-    effectiveLeagueTeams.forEach((team) => {
-      const theirNeeds = analyzeRosterNeeds(team.roster);
-      const theirNeedPositions = POSITIONS.filter((pos) => isTradeablePos(pos) && isNeedPosition(theirNeeds, leagueBaseline, pos));
-      const helpers = myMovablePlayers.filter((p) => theirNeedPositions.includes(p.pos) && beats(p, theirNeeds[p.pos].weakestStarter));
-      const targets = team.roster.filter(
-        (p) => p.status !== "Out" && myNeedPositions.includes(p.pos) && beats(p, myNeeds[p.pos].weakestStarter)
-      );
-      if (!helpers.length || !targets.length) return;
-
-      const theirExtras = team.roster
-        .filter((p) => p.status !== "Out" && isTradeablePos(p.pos))
-        .sort((a, b) => SEASON_PRICER.value(b) - SEASON_PRICER.value(a))
-        .slice(0, MAX_EXTRA_GET + targets.length);
-
-      const teamFound: TradeSuggestion[] = [];
-      helpers.forEach((helper) => {
-        targets.forEach((target) => {
-          const giveOptions: Player[][] = [[helper], ...myMovablePlayers.filter((p) => p.id !== helper.id).map((p) => [helper, p])];
-          const getOptions: Player[][] = [[target], ...theirExtras.filter((p) => p.id !== target.id).slice(0, MAX_EXTRA_GET).map((p) => [target, p])];
-          giveOptions.forEach((give) => {
-            const giveVal = needAdjustedPackageValue(give, theirNeeds, leagueBaseline, SEASON_PRICER);
-            getOptions.forEach((get) => {
-              const getVal = needAdjustedPackageValue(get, myNeeds, leagueBaseline, SEASON_PRICER);
-              const ratio = fairnessRatio(giveVal, getVal);
-              if (!ratioIsFair(ratio) || !starGateOk(give, get, SEASON_PRICER)) return;
-              const fit = tradeFitFor(team.roster, give, get);
-              if (fit.tier < 2) return;
-              teamFound.push({
-                id: `mut-${team.id}-${get.map((p) => p.id).join(",")}-${give.map((p) => p.id).join(",")}`,
-                teamId: team.id,
-                teamName: team.name,
-                give,
-                get,
-                needPos: target.pos,
-                overlapPos: helper.pos,
-                giveVal,
-                getVal,
-                ratio,
-                upgrade: fit.myGain,
-                reason: "need",
-                fit,
-              });
-            });
-          });
-        });
-      });
-      found.push(...dedupeSuggestions(teamFound.sort((a, b) => compareTradeFit(a.fit, b.fit))).slice(0, PER_TEAM));
-    });
-    return found.sort((a, b) => compareTradeFit(a.fit, b.fit));
-  }, [effectiveLeagueTeams, myMovablePlayers, myNeeds, leagueBaseline, isTradeablePos, tradeFitFor]);
-
-  // General value-based suggestions: run regardless of whether you have a
-  // clear need, so there's always something reasonable on the table.
-  const generalSuggestions = useMemo(() => {
-    const found: TradeSuggestion[] = [];
-    const movable = myMovablePlayers;
-
-    movable.forEach((offerPlayer) => {
-      const offerVal = SEASON_PRICER.value(offerPlayer);
-      const candidates = effectiveAllLeaguePlayers
-        .filter((p) => p.status !== "Out" && p.fantasyTeamId && isTradeablePos(p.pos))
-        .map((p) => ({ ...p, qScore: qualityScore(p) }))
-        .filter((p) => {
-          const myWorstAtPos = myNeeds[p.pos] ? myNeeds[p.pos].weakestStarter : null;
-          const myWorstQ = myWorstAtPos ? myWorstAtPos.qScore : -Infinity;
-          return p.qScore > myWorstQ * 1.06; // must actually be an upgrade somewhere on your roster
-        })
-        .sort((a, b) => SEASON_PRICER.value(b) - SEASON_PRICER.value(a))
-        .slice(0, 6);
-
-      candidates.forEach((cand) => {
-        const theirTeam = effectiveLeagueTeams.find((t) => t.id === cand.fantasyTeamId);
-        if (!theirTeam) return;
-        const theirNeeds = analyzeRosterNeeds(theirTeam.roster);
-        const candVal = SEASON_PRICER.value(cand);
-        const preRatio = fairnessRatio(offerVal, candVal);
-        if (preRatio > 1.9 || preRatio < 0.5) return;
-
-        const extraGiveOptions: ScoredPlayer[] = POSITIONS.flatMap((pos) => myNeeds[pos].tradeableDepth).filter((p) => p.id !== offerPlayer.id);
-        const extraGetOptions: ScoredPlayer[] = POSITIONS.flatMap((pos) => theirNeeds[pos].tradeableDepth).filter((p) => p.id !== cand.id);
-
-        const result = balancePackage([offerPlayer], [cand], theirNeeds, myNeeds, leagueBaseline, extraGiveOptions, extraGetOptions, SEASON_PRICER);
-        if (result) {
-          found.push({
-            id: `gen-${theirTeam.id}-${result.get.map((p) => p.id).join(",")}-${result.give.map((p) => p.id).join(",")}`,
-            teamId: theirTeam.id,
-            teamName: theirTeam.name,
-            give: result.give,
-            get: result.get,
-            needPos: cand.pos,
-            overlapPos: offerPlayer.pos,
-            giveVal: result.giveVal,
-            getVal: result.getVal,
-            ratio: result.ratio,
-            upgrade: result.getVal - result.giveVal,
-            reason: "value",
-            fit: tradeFitFor(theirTeam.roster, result.give, result.get),
-          });
-        }
-
-        const twoResult = balanceTwoForTwo(offerPlayer, cand, theirNeeds, myNeeds, leagueBaseline, extraGiveOptions, extraGetOptions, SEASON_PRICER);
-        if (twoResult) {
-          found.push({
-            id: `gen2x2-${theirTeam.id}-${twoResult.get.map((p) => p.id).join(",")}-${twoResult.give.map((p) => p.id).join(",")}`,
-            teamId: theirTeam.id,
-            teamName: theirTeam.name,
-            give: twoResult.give,
-            get: twoResult.get,
-            needPos: cand.pos,
-            overlapPos: offerPlayer.pos,
-            giveVal: twoResult.giveVal,
-            getVal: twoResult.getVal,
-            ratio: twoResult.ratio,
-            upgrade: twoResult.getVal - twoResult.giveVal,
-            reason: "value",
-            fit: tradeFitFor(theirTeam.roster, twoResult.give, twoResult.get),
-          });
-        }
-      });
-    });
-
-    return dedupeSuggestions(found.sort((a, b) => compareTradeFit(a.fit, b.fit)));
-  }, [myNeeds, leagueBaseline, effectiveAllLeaguePlayers, effectiveLeagueTeams, isTradeablePos, myMovablePlayers, tradeFitFor]);
-
-  // Guaranteed tier: simple, fair, same-position swaps so the AI Coach always
-  // has something on the table even when nothing clears the bar above.
-  const fallbackSuggestions = useMemo(() => {
-    const found: TradeSuggestion[] = [];
-    POSITIONS.forEach((pos) => {
-      if (!isTradeablePos(pos)) return;
-      const myPlayersAtPos = myNeeds[pos].players;
-      if (!myPlayersAtPos.length) return;
-      const candidateGive = myPlayersAtPos[myPlayersAtPos.length - 1];
-      if (candidateGive.status === "Out") return;
-      const giveVal = SEASON_PRICER.value(candidateGive);
-      const pool = effectiveAllLeaguePlayers.filter((p) => p.pos === pos && p.status !== "Out" && p.id !== candidateGive.id);
-      if (!pool.length) return;
-      const closest = pool.reduce((best, p) =>
-        Math.abs(SEASON_PRICER.value(p) - giveVal) < Math.abs(SEASON_PRICER.value(best) - giveVal) ? p : best
-      );
-      const theirTeam = effectiveLeagueTeams.find((t) => t.id === closest.fantasyTeamId);
-      if (!theirTeam) return;
-      const getVal = SEASON_PRICER.value(closest);
-      const ratio = fairnessRatio(giveVal, getVal);
-      if (ratio < FAIR_RATIO_MIN || ratio > FAIR_RATIO_MAX) return;
-      if (!starGateOk([candidateGive], [closest], SEASON_PRICER)) return;
-      found.push({
-        id: `fallback-${theirTeam.id}-${closest.id}-${candidateGive.id}`,
-        teamId: theirTeam.id,
-        teamName: theirTeam.name,
-        give: [candidateGive],
-        get: [closest],
-        needPos: pos,
-        overlapPos: pos,
-        giveVal,
-        getVal,
-        ratio,
-        upgrade: getVal - giveVal,
-        reason: "fallback",
-        fit: tradeFitFor(theirTeam.roster, [candidateGive], [closest]),
-      });
-    });
-    return found.sort((a, b) => compareTradeFit(a.fit, b.fit) || Math.abs(a.ratio - 1) - Math.abs(b.ratio - 1));
-  }, [myNeeds, effectiveAllLeaguePlayers, effectiveLeagueTeams, isTradeablePos, tradeFitFor]);
-
-  // Guaranteed 2-for-2 tier: pair two of your movable pieces with two of an
-  // opponent's, priced the same way, so the recommender always has real
-  // two-for-two options and never devolves into all 1-for-1s (or all 2-for-1s).
-  const twoForTwoFallbackSuggestions = useMemo(() => {
-    const found: TradeSuggestion[] = [];
-    const myMovable = [...myMovablePlayers].sort((a, b) => SEASON_PRICER.value(b) - SEASON_PRICER.value(a)).slice(0, 6);
-    if (myMovable.length < 2) return found;
-
-    const givePairs: Player[][] = [];
-    for (let i = 0; i < myMovable.length; i++) {
-      for (let j = i + 1; j < myMovable.length; j++) givePairs.push([myMovable[i], myMovable[j]]);
-    }
-
-    effectiveLeagueTeams.forEach((team) => {
-      const theirNeeds = analyzeRosterNeeds(team.roster);
-      const theirActive = team.roster
-        .filter((p) => p.status !== "Out" && isTradeablePos(p.pos))
-        .sort((a, b) => SEASON_PRICER.value(b) - SEASON_PRICER.value(a))
-        .slice(0, 12);
-      if (theirActive.length < 2) return;
-
-      // Best pair for this team = best mutual fit among the fair ones, then
-      // closest to an even ratio -- not just the closest ratio, which happily
-      // picks a same-position shuffle that helps neither lineup.
-      type Pick = { give: Player[]; get: Player[]; giveVal: number; getVal: number; ratio: number; fit: TradeFit };
-      let best: Pick | null = null;
-      givePairs.forEach((give) => {
-        const giveVal = needAdjustedPackageValue(give, theirNeeds, leagueBaseline, SEASON_PRICER);
-        for (let i = 0; i < theirActive.length; i++) {
-          for (let j = i + 1; j < theirActive.length; j++) {
-            const get = [theirActive[i], theirActive[j]];
-            const getVal = needAdjustedPackageValue(get, myNeeds, leagueBaseline, SEASON_PRICER);
-            const ratio = getVal / giveVal;
-            if (ratio < FAIR_RATIO_MIN || ratio > FAIR_RATIO_MAX || !starGateOk(give, get, SEASON_PRICER)) continue;
-            const fit = tradeFitFor(team.roster, give, get);
-            const cur = best as Pick | null;
-            if (!cur || compareTradeFit(fit, cur.fit) < 0 || (compareTradeFit(fit, cur.fit) === 0 && Math.abs(ratio - 1) < Math.abs(cur.ratio - 1))) {
-              best = { give, get, giveVal, getVal, ratio, fit };
-            }
-          }
-        }
-      });
-      if (!best) return;
-      const b = best as Pick;
-      found.push({
-        id: `2x2fb-${team.id}-${b.get.map((p) => p.id).join(",")}-${b.give.map((p) => p.id).join(",")}`,
-        teamId: team.id,
-        teamName: team.name,
-        give: b.give,
-        get: b.get,
-        needPos: b.get[0].pos,
-        overlapPos: b.give[0].pos,
-        giveVal: b.giveVal,
-        getVal: b.getVal,
-        ratio: b.ratio,
-        upgrade: b.getVal - b.giveVal,
-        reason: "fallback",
-        fit: b.fit,
-      });
-    });
-    return found.sort((a, b) => compareTradeFit(a.fit, b.fit) || Math.abs(a.ratio - 1) - Math.abs(b.ratio - 1));
-  }, [myNeeds, leagueBaseline, effectiveLeagueTeams, isTradeablePos, myMovablePlayers, tradeFitFor]);
 
   // Union of every suggestion this pipeline is capable of producing right now,
   // regardless of which ones happen to make the top-N cut. Lets "get new
   // recommendations" know whether a fresh batch actually exists.
-  const allCoachCandidateKeys = useMemo(() => {
-    const keys = new Set<string>();
-    [...mutualFitSuggestions, ...needBasedSuggestions, ...generalSuggestions, ...fallbackSuggestions, ...twoForTwoFallbackSuggestions].forEach((s) =>
-      keys.add(suggestionKey(s))
-    );
-    return keys;
-  }, [mutualFitSuggestions, needBasedSuggestions, generalSuggestions, fallbackSuggestions, twoForTwoFallbackSuggestions]);
+  const allCoachCandidateKeys = useMemo(() => new Set(allPoolSuggestions(coachPools).map(suggestionKey)), [coachPools]);
 
   const hasFreshCoachSuggestions = useMemo(
     () => Array.from(allCoachCandidateKeys).some((k) => !excludedCoachKeys.has(k)),
     [allCoachCandidateKeys, excludedCoachKeys]
   );
 
-  const coachSuggestions = useMemo(() => {
-    const notExcluded = (s: TradeSuggestion) => !excludedCoachKeys.has(suggestionKey(s));
-    const deduped = dedupeSuggestions([...mutualFitSuggestions, ...needBasedSuggestions, ...generalSuggestions].filter(notExcluded));
-    // Mutual fit leads (a trade that fills a need on BOTH rosters is the one
-    // the other manager actually wants), then need-driven over value-driven,
-    // then the biggest lift to your lineup.
-    const priority = (s: TradeSuggestion) => (s.reason === "need" ? 1 : 0);
-    const byRank = (a: TradeSuggestion, b: TradeSuggestion) =>
-      b.fit.tier - a.fit.tier || priority(b) - priority(a) || compareTradeFit(a.fit, b.fit);
-
-    const is1x1 = (s: TradeSuggestion) => s.give.length === 1 && s.get.length === 1;
-    const is2x2 = (s: TradeSuggestion) => s.give.length === 2 && s.get.length === 2;
-
-    const freshFallback = fallbackSuggestions.filter(notExcluded);
-    const freshTwoForTwoFallback = twoForTwoFallbackSuggestions.filter(notExcluded);
-
-    // Smart pools by shape, then the guaranteed fallback pools to top them up.
-    const oneForOne = [...deduped.filter(is1x1), ...freshFallback.filter(is1x1)].sort(byRank);
-    const twoForTwo = [...deduped.filter(is2x2), ...freshTwoForTwoFallback].sort(byRank);
-    const other = deduped.filter((s) => !is1x1(s) && !is2x2(s)).sort(byRank);
-
-    const combined: TradeSuggestion[] = [];
-    const usedKeys = new Set<string>();
-    const take = (list: TradeSuggestion[], limit: number) => {
-      for (const s of list) {
-        if (combined.length >= COACH_MAX_SUGGESTIONS || limit <= 0) return;
-        const key = suggestionKey(s);
-        if (usedKeys.has(key)) continue;
-        usedKeys.add(key);
-        combined.push(s);
-        limit--;
-      }
-    };
-
-    // Always lead with the required mix: >=2 one-for-ones and >=2 two-for-twos.
-    // Pools are rank-sorted, so these picks are already the best-fitting trades
-    // of each shape.
-    take(oneForOne, COACH_MIN_ONE_FOR_ONE);
-    take(twoForTwo, COACH_MIN_TWO_FOR_TWO);
-    // Fill the rest: as many good-fit trades (tier 2+: fills your need AND
-    // leaves them better off) as exist, but hold back COACH_MIN_OTHER_TRADES
-    // slots for the best of everything else -- fair trades that help you even
-    // if they're not an obvious fit for the other side are still worth
-    // pitching, and the list shouldn't be all one kind.
-    const isGoodFit = (s: TradeSuggestion) => s.fit.tier >= 2;
-    const rest = [...oneForOne, ...twoForTwo, ...other, ...freshFallback].sort(byRank);
-    const goodFitsTaken = combined.filter(isGoodFit).length;
-    take(rest.filter(isGoodFit), COACH_MAX_SUGGESTIONS - COACH_MIN_OTHER_TRADES - goodFitsTaken);
-    take(rest.filter((s) => !isGoodFit(s)), COACH_MAX_SUGGESTIONS);
-    // Not enough other trades to fill the reserve -> give it back to good fits.
-    take(rest, COACH_MAX_SUGGESTIONS);
-
-    // If excluding already-seen suggestions leaves the list short, top it off
-    // with the best previously-seen ones rather than showing an empty tab --
-    // still good, reasonable trades, just not brand new.
-    if (combined.length < COACH_MAX_SUGGESTIONS) {
-      const everything = [
-        ...mutualFitSuggestions,
-        ...needBasedSuggestions,
-        ...generalSuggestions,
-        ...fallbackSuggestions,
-        ...twoForTwoFallbackSuggestions,
-      ].sort(byRank);
-      for (const s of everything) {
-        if (combined.length >= COACH_MAX_SUGGESTIONS) break;
-        const key = suggestionKey(s);
-        if (usedKeys.has(key)) continue;
-        usedKeys.add(key);
-        combined.push(s);
-      }
-    }
-
-    // The shape minimums above decide WHICH trades make the cut; display
-    // order is pure rank, so a Win-win 2-for-2 isn't buried under a forced
-    // 1-for-1 that doesn't help the other side.
-    return combined.sort(byRank);
-  }, [mutualFitSuggestions, needBasedSuggestions, generalSuggestions, fallbackSuggestions, twoForTwoFallbackSuggestions, excludedCoachKeys]);
+  const coachSuggestions = useMemo(() => mixCoachSuggestions(coachPools, excludedCoachKeys), [coachPools, excludedCoachKeys]);
 
   // Swap the current batch out for the next-best one. Once every reasonable
   // trade has been cycled through, it loops back to the top rather than
@@ -1951,22 +1498,6 @@ function slotsEqual(a: Record<number, string>, b: Record<number, string>): boole
   const bKeys = Object.keys(b);
   if (aKeys.length !== bKeys.length) return false;
   return aKeys.every((k) => a[Number(k)] === b[Number(k)]);
-}
-
-function suggestionKey(s: TradeSuggestion): string {
-  return `${s.teamId}-${s.get.map((p) => p.id).sort().join(",")}`;
-}
-
-function dedupeSuggestions(suggestions: TradeSuggestion[]): TradeSuggestion[] {
-  const seen = new Set<string>();
-  const deduped: TradeSuggestion[] = [];
-  suggestions.forEach((s) => {
-    const key = suggestionKey(s);
-    if (seen.has(key)) return;
-    seen.add(key);
-    deduped.push(s);
-  });
-  return deduped;
 }
 
 export type FantasyApp = ReturnType<typeof useFantasyApp>;

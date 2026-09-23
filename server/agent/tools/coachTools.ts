@@ -57,7 +57,7 @@ function serializeSuggestionPlayer(p: Player, matchups: Awaited<ReturnType<typeo
   };
 }
 
-// coachTrades.ts's "fallback" tier exists to guarantee the Coach TAB always
+// lib/coachTrades.ts's "fallback" tier exists to guarantee the Coach TAB always
 // has *something* to display -- it's an intentional closest-value-match
 // lateral swap (ratio pinned near 1 by construction), not a real upgrade.
 // Surfacing that in a chat as if it were "a trade to make" reads as
@@ -274,15 +274,6 @@ export const suggestTradesTool: ToolDefinition = {
       .filter((t) => t.id !== team.id)
       .map((t) => ({ ...t, roster: rankGlobally(t.roster).filter((p) => !myIds.has(p.id)) }));
 
-    // Ask the engine for a wider pool than requested -- we're about to drop
-    // the trivial/fallback ones below, so we need headroom to still land on
-    // `max` genuinely worthwhile suggestions.
-    const { suggestions: rawSuggestions, needyPositions, strengthPositions } = suggestTrades({
-      myPlayers,
-      leagueTeams: opponents,
-      max: Math.max(max * 3, 12),
-    });
-
     // If nothing clears a real upgrade bar, return NOTHING rather than the
     // trivial closest-value-match fallback tier -- a list of lateral,
     // scrub-for-scrub swaps doesn't stop reading as "here are some trades"
@@ -291,9 +282,15 @@ export const suggestTradesTool: ToolDefinition = {
     // upgrade need-adjusts far above what a bench-depth package can match,
     // by design -- you can't manufacture a starter's worth of value by
     // stacking bench scrubs), and that's a fine, honest answer on its own.
-    const meaningful = rawSuggestions.filter(isMeaningfulSuggestion);
-    const hadOnlyFallback = meaningful.length === 0 && rawSuggestions.length > 0;
-    const suggestions = meaningful.slice(0, max);
+    // The filter runs inside the engine, before the mix, so what's left is
+    // still the Coach tab's mix of good-fit and other trades.
+    const { suggestions, candidateCount, needyPositions, strengthPositions } = suggestTrades({
+      myPlayers,
+      leagueTeams: opponents,
+      max,
+      filter: isMeaningfulSuggestion,
+    });
+    const hadOnlyFallback = suggestions.length === 0 && candidateCount > 0;
 
     let matchups: Awaited<ReturnType<typeof fetchWeeklyMatchups>> | null = null;
     try {
@@ -322,6 +319,15 @@ export const suggestTradesTool: ToolDefinition = {
         getVal: Math.round(s.getVal * 10) / 10,
         ratio: Math.round(s.ratio * 100) / 100,
         upgrade: Math.round(s.upgrade * 10) / 10,
+        // How both starting lineups change once the trade goes through --
+        // what makes the other manager actually want it.
+        fit: {
+          fillsYourNeeds: s.fit.myNeedsHelped,
+          fillsTheirNeeds: s.fit.theirNeedsHelped,
+          yourLineupChange: Math.round(s.fit.myGain * 10) / 10,
+          theirLineupChange: Math.round(s.fit.theirGain * 10) / 10,
+          winWin: s.fit.tier === 3,
+        },
       })),
       citeHints: [
         `Needs: ${needyPositions.join(", ") || "none"}; strengths: ${strengthPositions.join(", ") || "none"}.`,
@@ -335,10 +341,15 @@ export const suggestTradesTool: ToolDefinition = {
         ...suggestions.slice(0, 3).map((s) => {
           const give = s.give.map((p) => p.name).join(" + ");
           const get = s.get.map((p) => p.name).join(" + ");
-          return `vs ${s.teamName}: give ${give} (${Math.round(s.giveVal * 10) / 10}) for ${get} (${Math.round(s.getVal * 10) / 10}), ratio ${Math.round(s.ratio * 100) / 100}, upgrade ${Math.round(s.upgrade * 10) / 10}. Reason: ${s.reason}`;
+          const theirSide = s.fit.theirNeedsHelped.length
+            ? `fills their ${s.fit.theirNeedsHelped.join("/")} need`
+            : s.fit.theirGain > 0
+              ? "their lineup also improves"
+              : "weakens their lineup (harder sell)";
+          return `vs ${s.teamName}: give ${give} (${Math.round(s.giveVal * 10) / 10}) for ${get} (${Math.round(s.getVal * 10) / 10}), ratio ${Math.round(s.ratio * 100) / 100}, upgrade ${Math.round(s.upgrade * 10) / 10}. Reason: ${s.reason}; ${theirSide}.`;
         }),
       ],
-      note: "Values use the same coach/trade engine as the AI Coach tab (week VOR + need adjustment) -- quote giveVal/getVal/ratio EXACTLY as given, do not recompute them from raw proj or per-player weekValue sums (package values are discounted/need-adjusted, not a plain sum). Already filtered to a meaningful upgrade bar and a minimum relevant-player-value floor -- do not add back lateral or scrub-for-scrub swaps yourself. Each player carries thisWeekMatchup (opponent, grade, implied total/workload label) -- weave that real football context (matchup quality, role, game script) into why the trade makes sense, not just the raw numbers. For a specific package grade, call evaluate_trade.",
+      note: "Values use the same coach/trade engine as the AI Coach tab (rest-of-season value + need adjustment) -- quote giveVal/getVal/ratio EXACTLY as given, do not recompute them from raw proj or per-player weekValue sums (package values are discounted/need-adjusted, not a plain sum). Already filtered to a meaningful upgrade bar and a minimum relevant-player-value floor -- do not add back lateral or scrub-for-scrub swaps yourself. Suggestions are ranked mutual-fit first: fit.fillsTheirNeeds / theirLineupChange say why the other manager would (or wouldn't) accept -- use that to explain the pitch, and flag a negative theirLineupChange as a harder sell. Each player carries thisWeekMatchup (opponent, grade, implied total/workload label) -- weave that real football context (matchup quality, role, game script) into why the trade makes sense, not just the raw numbers. For a specific package grade, call evaluate_trade.",
     };
   },
 };
