@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FREE_AGENTS } from "../data/freeAgents";
 import { ALL_TEAMS, DEFAULT_TEAM_ID } from "../data/allTeams";
 import { POSITIONS, REQUIRED_STARTERS, SLOTS, SLOT_ELIGIBILITY } from "../config/league";
-import { COACH_MAX_SUGGESTIONS, COACH_MIN_ONE_FOR_ONE, COACH_MIN_TWO_FOR_TWO, FAIR_RATIO_MIN, FAIR_RATIO_MAX, EXTRA_PIECE_DISCOUNT } from "../config/trade";
+import { COACH_MAX_SUGGESTIONS, COACH_MIN_ONE_FOR_ONE, COACH_MIN_OTHER_TRADES, COACH_MIN_TWO_FOR_TWO, FAIR_RATIO_MIN, FAIR_RATIO_MAX, EXTRA_PIECE_DISCOUNT } from "../config/trade";
 import { VOR_BASELINE, ROS_WEEKS } from "../config/scoring";
 import { DEFAULT_TAB } from "../config/pages";
 import { playerValue, qualityScore, rosValue } from "../lib/scoring";
@@ -1608,10 +1608,22 @@ export function useFantasyApp() {
     };
 
     // Always lead with the required mix: >=2 one-for-ones and >=2 two-for-twos.
+    // Pools are rank-sorted, so these picks are already the best-fitting trades
+    // of each shape.
     take(oneForOne, COACH_MIN_ONE_FOR_ONE);
     take(twoForTwo, COACH_MIN_TWO_FOR_TWO);
-    // Fill the rest with the best of everything left, keeping shape variety.
-    take([...oneForOne, ...twoForTwo, ...other, ...freshFallback].sort(byRank), COACH_MAX_SUGGESTIONS);
+    // Fill the rest: as many good-fit trades (tier 2+: fills your need AND
+    // leaves them better off) as exist, but hold back COACH_MIN_OTHER_TRADES
+    // slots for the best of everything else -- fair trades that help you even
+    // if they're not an obvious fit for the other side are still worth
+    // pitching, and the list shouldn't be all one kind.
+    const isGoodFit = (s: TradeSuggestion) => s.fit.tier >= 2;
+    const rest = [...oneForOne, ...twoForTwo, ...other, ...freshFallback].sort(byRank);
+    const goodFitsTaken = combined.filter(isGoodFit).length;
+    take(rest.filter(isGoodFit), COACH_MAX_SUGGESTIONS - COACH_MIN_OTHER_TRADES - goodFitsTaken);
+    take(rest.filter((s) => !isGoodFit(s)), COACH_MAX_SUGGESTIONS);
+    // Not enough other trades to fill the reserve -> give it back to good fits.
+    take(rest, COACH_MAX_SUGGESTIONS);
 
     // If excluding already-seen suggestions leaves the list short, top it off
     // with the best previously-seen ones rather than showing an empty tab --

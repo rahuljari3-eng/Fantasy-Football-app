@@ -73,6 +73,12 @@ export const COACH_MAX_SUGGESTIONS = 6;
 export const COACH_MIN_ONE_FOR_ONE = 2;
 export const COACH_MIN_TWO_FOR_TWO = 2;
 
+/** Good-fit trades (fill your need AND leave the other team better off) are
+ * surfaced first and as many as exist, but at least this many slots are
+ * always kept for the best OTHER fair trades -- ones that help you without
+ * being an obvious fit for them -- so the list stays a mix. */
+export const COACH_MIN_OTHER_TRADES = 2;
+
 /** MUTUAL FIT: a position counts as a team's "need" when its starter quality
  * score sits below this fraction of the league-average starter there (or it
  * can't fill its required slots at all). Same bar the AI Coach's own needs
