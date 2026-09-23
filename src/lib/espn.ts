@@ -336,11 +336,71 @@ export async function fetchEspnCompletedTrades(): Promise<CompletedTrade[]> {
   // reconstruction doesn't track, or sent back a player who was later
   // dropped and re-added, which silently erases that specific player's own
   // diff (see the big comment above) without invalidating the rest of the
-  // trade. Previously this required BOTH sides non-empty, which dropped
-  // those real trades from the list entirely instead of showing what could
-  // still be reconstructed.
-  return [...groups.values()]
-    .map((g) => ({
+  // trade.
+  //
+  // A player traded TWICE breaks this in a different way: expectedOwner is
+  // always their ORIGINAL draft/waiver owner, so their diff lands on
+  // (original owner, final owner) -- skipping the team they passed through
+  // in the middle. E.g. Kareem Pies trades Rashee Rice to ConkInSon (for
+  // Luther Burden III + Travis Etienne Jr.), and ConkInSon later ships
+  // Rashee Rice onward to Gibbs me head as part of a totally separate deal.
+  // Naively that shows up as two disconnected, seemingly-lopsided groups --
+  // "Kareem Pies gave Rashee Rice to Gibbs me head for nothing" and
+  // "ConkInSon gave Burden + Etienne to Kareem Pies for nothing" -- with
+  // ConkInSon, the real middleman, invisible in both.
+  //
+  // Repair this by looking for a one-sided group (X gave to R, nothing
+  // tracked back) whose player(s) can be explained by ANOTHER one-sided
+  // group where some team Z gave to X, nothing tracked back -- but only
+  // when Z already has an independently-confirmed (both sides non-empty)
+  // trade with R. That confirmation is the load-bearing part: without it,
+  // "X's dangling give" and "X's dangling receive" are just as easily two
+  // unrelated one-sided trades, and guessing wrong would misattribute
+  // players to a team that never touched them. With it, folding X's give
+  // into the (X, Z) group -- and adding the same players to Z's side of the
+  // already-confirmed (Z, R) trade -- reflects a real two-hop trade chain.
+  const isClean = (g: { aToB: number[]; bToA: number[] }) => g.aToB.length > 0 && g.bToA.length > 0;
+  const oneSidedGive = (g: { teamAId: number; teamBId: number; aToB: number[]; bToA: number[] }) =>
+    g.aToB.length > 0
+      ? { giver: g.teamAId, receiver: g.teamBId, players: g.aToB }
+      : { giver: g.teamBId, receiver: g.teamAId, players: g.bToA };
+
+  const removedKeys = new Set<string>();
+  let mergedSomething = true;
+  while (mergedSomething) {
+    mergedSomething = false;
+    for (const [key, g] of groups) {
+      if (removedKeys.has(key) || isClean(g)) continue;
+      const { giver: x, receiver: r, players } = oneSidedGive(g);
+      const qualifying = [...groups.entries()]
+        .filter(([zKey, zg]) => zKey !== key && !removedKeys.has(zKey) && !isClean(zg) && oneSidedGive(zg).receiver === x)
+        .map(([zKey, zg]) => ({ zKey, z: oneSidedGive(zg).giver }))
+        .filter(({ z }) => {
+          const targetKey = [z, r].sort((n, m) => n - m).join("-");
+          const target = groups.get(targetKey);
+          return target && !removedKeys.has(targetKey) && isClean(target);
+        });
+      if (qualifying.length !== 1) continue;
+
+      const { zKey, z } = qualifying[0];
+      const zGroup = groups.get(zKey)!;
+      if (zGroup.teamAId === x) zGroup.aToB = [...zGroup.aToB, ...players];
+      else zGroup.bToA = [...zGroup.bToA, ...players];
+      removedKeys.add(key);
+
+      const targetKey = [z, r].sort((n, m) => n - m).join("-");
+      const target = groups.get(targetKey)!;
+      if (target.teamAId === z) target.aToB = [...target.aToB, ...players];
+      else target.bToA = [...target.bToA, ...players];
+
+      mergedSomething = true;
+      break; // groups mutated -- rescan from scratch
+    }
+  }
+
+  return [...groups.entries()]
+    .filter(([key]) => !removedKeys.has(key))
+    .map(([, g]) => ({
       id: g.teamAId + "-" + g.teamBId,
       teamAId: g.teamAId,
       teamBId: g.teamBId,
