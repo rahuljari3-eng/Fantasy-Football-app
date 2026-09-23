@@ -1,31 +1,22 @@
 // Live ESPN league reads for Roster Sensei: standings, fantasy matchups,
 // and full roster / free-agent ownership sync.
-import { ESPN_LEAGUE_BASE_URL } from "../config/league.js";
+import { ESPN_LEAGUE_BASE_URL, LEAGUE_CONFIG } from "../config/league.js";
+import { applyPropLines, consensusFor, fetchConsensusSources, type ConsensusSources } from "./consensus.js";
+import { fetchWeeklyMatchups, type PlayerPropLines } from "./matchup.js";
 import type { LeagueTeam, Player, Position, RosterPlayer, Tier } from "../types.js";
 import {
   ESPN_INJURY_LABEL_MAP,
   ESPN_LINEUP_SLOT_LABEL,
+  ESPN_POS,
+  extractEspnSeasonActual,
+  type EspnStatLine,
   extractEspnProjection,
   extractEspnSeasonProjection,
 } from "./espn.js";
 import { getNflSchedule } from "./nflSchedule.js";
 
-export const ESPN_POS: Record<number, Position> = {
-  1: "QB",
-  2: "RB",
-  3: "WR",
-  4: "TE",
-  5: "K",
-  16: "DST",
-};
+export { ESPN_POS };
 
-interface EspnStatLine {
-  statSourceId: number;
-  scoringPeriodId: number;
-  statSplitTypeId?: number;
-  appliedTotal?: number;
-  appliedAverage?: number;
-}
 
 interface EspnPlayer {
   id: number;
@@ -166,19 +157,45 @@ function tierFromProj(proj: number, pos: Position): Tier {
   return 3;
 }
 
+/** Consensus inputs for Roster Sensei's sync: the other projection/market
+ * sources plus this week's sportsbook prop lines. Omitted by callers whose
+ * players get the consensus layered on later anyway (the browser's Free
+ * Agents pool -- see hooks/useProjectionRefresh.ts). */
+interface ConsensusInputs {
+  sources: ConsensusSources;
+  playerProps: Record<number, PlayerPropLines>;
+}
+
 function enrichPlayer(
   espn: EspnPlayer,
   scoringPeriodId: number,
   known: Map<number, Player>,
-  teamsById: Awaited<ReturnType<typeof getNflSchedule>>["teamsById"]
+  teamsById: Awaited<ReturnType<typeof getNflSchedule>>["teamsById"],
+  consensus?: ConsensusInputs
 ): Player | null {
   const pos = ESPN_POS[espn.defaultPositionId ?? -1];
   if (!pos) return null;
 
   const nfl = espn.proTeamId != null ? teamsById[espn.proTeamId] : undefined;
   const prev = known.get(espn.id);
-  const proj = extractEspnProjection(espn.stats, scoringPeriodId) ?? prev?.proj ?? 0;
-  const seasonProj = extractEspnSeasonProjection(espn.stats) ?? prev?.seasonProj;
+  const espnProj = extractEspnProjection(espn.stats, scoringPeriodId) ?? prev?.proj ?? 0;
+  const espnSeasonProj = extractEspnSeasonProjection(espn.stats) ?? prev?.seasonProj;
+  const actual = extractEspnSeasonActual(espn.stats);
+  // Same blend the app's refresh applies (lib/consensus.ts), so Sensei's
+  // values match what the user sees in the app.
+  const blended = consensus
+    ? consensusFor(consensus.sources, {
+        id: espn.id,
+        name: espn.fullName || prev?.name || "",
+        pos,
+        proj: espnProj,
+        seasonProj: espnSeasonProj,
+        actualAvg: actual?.avg,
+        gamesPlayed: actual?.gamesPlayed,
+      })
+    : null;
+  const proj = blended ? applyPropLines(blended.proj, consensus?.playerProps[espn.id], blended.modelYards) : espnProj;
+  const seasonProj = blended?.seasonProj ?? espnSeasonProj;
   const status =
     ESPN_INJURY_LABEL_MAP[espn.injuryStatus ?? ""] ||
     espn.injuryStatus ||
@@ -193,6 +210,8 @@ function enrichPlayer(
     bye: nfl?.byeWeek ?? prev?.bye ?? 0,
     proj,
     ...(seasonProj != null ? { seasonProj } : {}),
+    ...(blended?.marketPosRank != null ? { marketPosRank: blended.marketPosRank, marketValue: blended.marketValue } : {}),
+    ...(blended?.modelYards ? { modelYards: blended.modelYards } : {}),
     tier: prev?.tier ?? tierFromProj(proj, pos),
     status,
   };
@@ -289,7 +308,8 @@ export async function fetchMatchups(week?: number): Promise<{
 async function fetchFreeAgents(
   scoringPeriodId: number,
   known: Map<number, Player>,
-  teamsById: Awaited<ReturnType<typeof getNflSchedule>>["teamsById"]
+  teamsById: Awaited<ReturnType<typeof getNflSchedule>>["teamsById"],
+  consensus?: ConsensusInputs
 ): Promise<Player[]> {
   const filter = {
     players: {
@@ -311,7 +331,7 @@ async function fetchFreeAgents(
   for (const entry of Array.isArray(data) ? data : []) {
     const player: EspnPlayer | undefined = "player" in entry ? entry.player : (entry as EspnPlayer);
     if (!player) continue;
-    const enriched = enrichPlayer(player, scoringPeriodId, known, teamsById);
+    const enriched = enrichPlayer(player, scoringPeriodId, known, teamsById, consensus);
     if (enriched) out.push(enriched);
   }
   return out.sort((a, b) => b.proj - a.proj);
@@ -360,6 +380,13 @@ export async function syncLiveRosters(knownPlayers: Player[]): Promise<LiveLeagu
   const data = (await res.json()) as EspnLeaguePayload;
   const scoringPeriodId = data.scoringPeriodId ?? 1;
   const members = data.members || [];
+  // Neither of these can fail the sync: fetchConsensusSources never throws,
+  // and missing prop lines just mean projections stand as-is.
+  const [sources, matchups] = await Promise.all([
+    fetchConsensusSources(LEAGUE_CONFIG.espnSeason, scoringPeriodId),
+    fetchWeeklyMatchups().catch(() => null),
+  ]);
+  const consensus: ConsensusInputs = { sources, playerProps: matchups?.playerProps ?? {} };
 
   const teams: LeagueTeam[] = [];
   for (const t of data.teams || []) {
@@ -367,7 +394,7 @@ export async function syncLiveRosters(knownPlayers: Player[]): Promise<LiveLeagu
     for (const e of t.roster?.entries || []) {
       const player = e.playerPoolEntry?.player;
       if (!player) continue;
-      const base = enrichPlayer(player, scoringPeriodId, known, schedule.teamsById);
+      const base = enrichPlayer(player, scoringPeriodId, known, schedule.teamsById, consensus);
       if (!base) continue;
       const slot = ESPN_LINEUP_SLOT_LABEL[e.lineupSlotId ?? 20] ?? "BE";
       roster.push({
@@ -385,7 +412,7 @@ export async function syncLiveRosters(knownPlayers: Player[]): Promise<LiveLeagu
   }
 
   const rosteredIds = new Set(teams.flatMap((t) => t.roster.map((p) => p.id)));
-  const freeAgents = (await fetchFreeAgents(scoringPeriodId, known, schedule.teamsById)).filter(
+  const freeAgents = (await fetchFreeAgents(scoringPeriodId, known, schedule.teamsById, consensus)).filter(
     (p) => !rosteredIds.has(p.id)
   );
 

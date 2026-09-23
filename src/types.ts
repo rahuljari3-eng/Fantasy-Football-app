@@ -4,6 +4,14 @@
 
 export type Position = "QB" | "RB" | "WR" | "TE" | "DST" | "K";
 
+/** A projection model's expected yardage for one week -- what a posted
+ * sportsbook prop line is compared against (lib/consensus.ts). */
+export interface ModelYards {
+  pass?: number;
+  rush?: number;
+  rec?: number;
+}
+
 // Statuses are mostly the human-readable labels used across the app ("Healthy",
 // "Questionable", ...), but raw ESPN roster data occasionally leaks its own enum
 // value straight through (e.g. "DAY_TO_DAY") when it isn't covered by the
@@ -28,8 +36,9 @@ export interface Player {
    * playerValue (week-priced trade value, live lineup scoring). Absent on
    * raw static data. */
   posRank?: number;
-  /** ESPN's own rest-of-season points-per-game projection (their full-season
-   * model, not just this week's), when a live refresh has fetched it.
+  /** Consensus rest-of-season points-per-game projection (ESPN's and
+   * Sleeper's rest-of-season projections blended with actual production so
+   * far -- see lib/consensus.ts), when a live refresh has fetched it.
    * Deliberately separate from `proj` -- unlike a single week's number, this
    * doesn't collapse toward 0 for a player who's Questionable/Doubtful/Out
    * this week but expected back soon, so it's what qualityScore/rosValue (AI
@@ -40,6 +49,23 @@ export interface Player {
   /** Same idea as posRank, but ranked by seasonProj -- what qualityScore/
    * rosValue use for the rank-chart component instead of posRank. */
   seasonPosRank?: number;
+  /** The trade market's opinion of this player on qualityScore's own scale:
+   * the player pool ordered by FantasyCalc value (across ALL positions),
+   * mapped onto the pool's projection-model values at the same rank. Stamped
+   * at runtime by lib/consensus.ts rankPlayerPool; blended into qualityScore. */
+  marketQuality?: number;
+  /** Per-position correction to the projection model's value level, learned
+   * from the trade market (median market/model ratio at the position). */
+  positionScale?: number;
+  /** Rank at the position by FantasyCalc redraft trade value (real trades,
+   * 1QB/12-team/PPR) -- see lib/consensus.ts. Absent when the market doesn't
+   * value the player. */
+  marketPosRank?: number;
+  /** FantasyCalc's raw redraft value, for display/debugging. */
+  marketValue?: number;
+  /** Sleeper's projected yardage this week -- what a posted sportsbook prop
+   * line is compared against (lib/consensus.ts applyPropLines). */
+  modelYards?: ModelYards;
 }
 
 /** A player entry inside a league team's roster (ESPN also tells us slot/starter). */
@@ -106,6 +132,10 @@ export interface ProjectionOverride {
   status?: PlayerStatus;
   /** See Player.seasonProj. */
   seasonProj?: number;
+  /** See Player.marketPosRank / marketValue / modelYards. */
+  marketPosRank?: number;
+  marketValue?: number;
+  modelYards?: ModelYards;
 }
 
 export type ProjectionOverrides = Record<number, ProjectionOverride>;

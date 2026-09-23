@@ -97,3 +97,44 @@ export const ROS_STATUS_MULTIPLIER_DEFAULT = 1;
  * or grow their role over a season, while deep bench/flex players carry more
  * bust risk across 16 games than in any one week. */
 export const ROS_TIER_TREND: Record<1 | 2 | 3, number> = { 1: 1.05, 2: 1.0, 3: 0.92 };
+
+/** CONSENSUS PROJECTIONS (lib/consensus.ts). Relative weights, renormalized
+ * over whichever sources actually have a number for the player. ESPN and
+ * Sleeper are independent projection models and weighted equally. */
+export const CONSENSUS_WEEKLY_WEIGHTS = { espn: 1, sleeper: 1 } as const;
+export const CONSENSUS_SEASON_WEIGHTS = { espn: 1, sleeper: 1 } as const;
+
+/** Actual points-per-game so far joins the season blend with weight
+ *   CONSENSUS_ACTUAL_MAX_WEIGHT * gp / (gp + CONSENSUS_ACTUAL_SHRINK_GAMES)
+ * -- shrinkage toward the projections, so 2 games is ~1/3 weight (a hot start
+ * nudges the number) and a half season is ~2/3 (sustained production really
+ * moves it). Relative to the projection weights above, which sum to 2. */
+export const CONSENSUS_ACTUAL_MAX_WEIGHT = 1;
+export const CONSENSUS_ACTUAL_SHRINK_GAMES = 4;
+
+/** How many upcoming weeks of Sleeper projections to average into its
+ * rest-of-season number. 8 covers any bye and keeps the browser refresh to a
+ * handful of requests. */
+export const SLEEPER_ROS_WEEKS = 8;
+
+/** Share of season-long value (qualityScore/rosValue) taken from the trade
+ * market -- FantasyCalc redraft values, built from real trades -- vs the
+ * projection model. Tuned on live 2026 data: overall value order vs the
+ * market went 0.88 (model alone) -> 0.98 at 0.5 -> 0.99 at 0.65, with almost
+ * nothing gained past that. The market fixes what the model gets structurally wrong
+ * (cross-position value: in a 1QB league a QB scoring the same points as an
+ * RB trades for far less) and reacts to role/injury news first; the model
+ * keeps it anchored to this league's scoring and actual projections. */
+export const MARKET_VALUE_WEIGHT = 0.65;
+
+/** Per-position market calibration of the projection model (see
+ * rankPlayerPool in lib/consensus.ts): skipped for a position with fewer than
+ * MIN market-valued players, and clamped so a thin or odd market day can
+ * never rescale a position by more than this. */
+export const MARKET_CALIBRATION_MIN_PLAYERS = 8;
+export const MARKET_CALIBRATION_MIN = 0.5;
+export const MARKET_CALIBRATION_MAX = 1.5;
+
+/** A posted sportsbook yardage prop can move a weekly projection by at most
+ * this fraction of it. */
+export const PROP_ADJUST_MAX_FRACTION = 0.3;

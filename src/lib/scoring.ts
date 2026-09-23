@@ -19,6 +19,7 @@ import {
   ROS_STATUS_MULTIPLIER,
   ROS_STATUS_MULTIPLIER_DEFAULT,
   ROS_TIER_TREND,
+  MARKET_VALUE_WEIGHT,
 } from "../config/scoring.js";
 import type { Player, PlayerStatus, Position, RosterNeeds, Tier } from "../types.js";
 
@@ -83,6 +84,22 @@ export function playerValue(p: Player): number {
  * which price a SPECIFIC TRADE and are explicitly split by the Trade
  * Analyzer's own week/season toggle. */
 export function qualityScore(p: Player): number {
+  // positionScale: the model re-leveled per position against the trade
+  // market (lib/consensus.ts rankPlayerPool) -- applies to every player at
+  // the position, including ones the market doesn't value.
+  const model = seasonModelValue(p) * (p.positionScale ?? 1);
+  // Blend in the trade market when it values this player (lib/consensus.ts
+  // stamps marketQuality: the market's cross-position ordering mapped onto
+  // this same value scale). The projection model alone can't tell that a
+  // 1QB-league QB trades for far less than an RB scoring the same points --
+  // the market can, because it's built from trades people actually made.
+  return p.marketQuality != null ? model * (1 - MARKET_VALUE_WEIGHT) + p.marketQuality * MARKET_VALUE_WEIGHT : model;
+}
+
+/** qualityScore from projections alone (no market blend): season projection
+ * + season rank, discounted for injury status and tier trajectory. What the
+ * market's ordering gets mapped onto -- see lib/consensus.ts. */
+export function seasonModelValue(p: Player): number {
   const proj = p.seasonProj ?? p.proj;
   const rank = p.seasonPosRank ?? p.posRank;
   return valueFromProjAndRank(p.pos, proj, rank) * rosStatusMultiplier(p.status) * rosTierTrend(p.tier);
@@ -101,13 +118,9 @@ export function rosTierTrend(tier: Tier): number {
   return ROS_TIER_TREND[tier];
 }
 
-/** Rest-of-season value estimate: the same curved value-over-replacement --
- * off seasonProj/seasonPosRank, like qualityScore, not this week's proj/
- * posRank -- projected across the remaining schedule and nudged for injury
- * risk and tier trajectory. A heuristic, not an independently modeled season
- * projection. */
+/** Rest-of-season value estimate: qualityScore (season projection, rank,
+ * trade market, injury risk, tier trajectory) projected across the remaining
+ * schedule. */
 export function rosValue(p: Player): number {
-  const proj = p.seasonProj ?? p.proj;
-  const rank = p.seasonPosRank ?? p.posRank;
-  return valueFromProjAndRank(p.pos, proj, rank) * ROS_WEEKS * rosStatusMultiplier(p.status) * rosTierTrend(p.tier);
+  return qualityScore(p) * ROS_WEEKS;
 }

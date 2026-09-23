@@ -2,8 +2,18 @@
 // (lm-api-reads.fantasy.espn.com) sends CORS headers that reflect the
 // request's actual Origin for this league, so the browser can call it
 // directly -- no backend proxy needed for a refresh.
-import { ESPN_LEAGUE_BASE_URL } from "../config/league.js";
-import type { PlayerStatus, ProjectionOverrides } from "../types.js";
+import { ESPN_LEAGUE_BASE_URL, LEAGUE_CONFIG } from "../config/league.js";
+import type { Position, PlayerStatus, ProjectionOverrides } from "../types.js";
+
+/** ESPN's numeric defaultPositionId -> this app's position labels. */
+export const ESPN_POS: Record<number, Position> = {
+  1: "QB",
+  2: "RB",
+  3: "WR",
+  4: "TE",
+  5: "K",
+  16: "DST",
+};
 
 export const ESPN_INJURY_LABEL_MAP: Record<string, PlayerStatus> = {
   ACTIVE: "Healthy",
@@ -17,15 +27,20 @@ export const ESPN_INJURY_LABEL_MAP: Record<string, PlayerStatus> = {
 
 // Minimal shape of the bits of ESPN's response this app actually reads --
 // ESPN's real payload has many more fields we don't care about.
-interface EspnStatLine {
+export interface EspnStatLine {
   statSourceId: number;
   scoringPeriodId: number;
+  seasonId?: number;
   statSplitTypeId?: number;
   appliedTotal?: number;
   appliedAverage?: number;
+  /** Raw stat id -> value. "210" is games played. */
+  stats?: Record<string, number>;
 }
 interface EspnPlayer {
   id: number;
+  fullName?: string;
+  defaultPositionId?: number;
   injuryStatus?: string;
   stats?: EspnStatLine[];
 }
@@ -86,21 +101,69 @@ export function extractEspnWeekActual(stats: EspnStatLine[] | undefined, scoring
  * couple of season-level entries with different statSplitTypeId; either is
  * fine here, just prefer 2 ("rest of season") when both are present. */
 export function extractEspnSeasonProjection(stats: EspnStatLine[] | undefined): number | null {
-  const candidates = (stats || []).filter((s) => s.statSourceId === 1 && s.scoringPeriodId === 0);
+  const candidates = (stats || []).filter(
+    (s) => s.statSourceId === 1 && s.scoringPeriodId === 0 && (s.seasonId == null || s.seasonId === LEAGUE_CONFIG.espnSeason)
+  );
   if (candidates.length === 0) return null;
   const match = candidates.find((s) => s.statSplitTypeId === 2) ?? candidates[0];
   const avg = match.appliedAverage ?? (match.appliedTotal != null ? match.appliedTotal / 17 : null);
   return avg != null ? Math.round(avg * 10) / 10 : null;
 }
 
-function toOverride(player: EspnPlayer, period: number): ProjectionOverrides[number] | null {
+const GAMES_PLAYED_STAT = "210";
+
+/** What a player has ACTUALLY averaged this season so far, and over how many
+ * games (statSourceId 0 = actual, scoringPeriodId 0 + statSplitTypeId 0 =
+ * season-to-date roll-up). ESPN also sends last season's roll-up in the same
+ * shape, hence the seasonId check. Null before his first game. */
+export function extractEspnSeasonActual(
+  stats: EspnStatLine[] | undefined,
+  season: number = LEAGUE_CONFIG.espnSeason
+): { avg: number; gamesPlayed: number } | null {
+  const line = (stats || []).find(
+    (s) => s.statSourceId === 0 && s.scoringPeriodId === 0 && (s.statSplitTypeId ?? 0) === 0 && (s.seasonId == null || s.seasonId === season)
+  );
+  const gamesPlayed = line?.stats?.[GAMES_PLAYED_STAT] ?? 0;
+  if (!line || gamesPlayed <= 0) return null;
+  const avg = line.appliedAverage ?? (line.appliedTotal ?? 0) / gamesPlayed;
+  return { avg: Math.round(avg * 10) / 10, gamesPlayed };
+}
+
+/** The raw ESPN numbers for one player, before blending -- what
+ * lib/consensus.ts needs to build the consensus override. */
+export interface EspnPlayerSnapshot {
+  id: number;
+  name: string;
+  pos: Position;
+  proj: number;
+  seasonProj: number | null;
+  actualAvg: number | null;
+  gamesPlayed: number | null;
+}
+
+function toOverride(player: EspnPlayer, period: number): { override: ProjectionOverrides[number]; snapshot: EspnPlayerSnapshot | null } | null {
   const proj = extractEspnProjection(player.stats, period);
   if (proj == null) return null;
   const seasonProj = extractEspnSeasonProjection(player.stats);
+  const actual = extractEspnSeasonActual(player.stats);
+  const pos = ESPN_POS[player.defaultPositionId ?? -1];
   return {
-    proj,
-    status: ESPN_INJURY_LABEL_MAP[player.injuryStatus ?? ""] || player.injuryStatus || "Healthy",
-    ...(seasonProj != null ? { seasonProj } : {}),
+    override: {
+      proj,
+      status: ESPN_INJURY_LABEL_MAP[player.injuryStatus ?? ""] || player.injuryStatus || "Healthy",
+      ...(seasonProj != null ? { seasonProj } : {}),
+    },
+    snapshot: pos
+      ? {
+          id: player.id,
+          name: player.fullName ?? "",
+          pos,
+          proj,
+          seasonProj,
+          actualAvg: actual?.avg ?? null,
+          gamesPlayed: actual?.gamesPlayed ?? null,
+        }
+      : null,
   };
 }
 
@@ -109,6 +172,7 @@ function toOverride(player: EspnPlayer, period: number): ProjectionOverrides[num
  * request. This is ESPN's own number, not an estimate. */
 export async function fetchEspnRosteredProjections(): Promise<{
   fresh: ProjectionOverrides;
+  snapshots: EspnPlayerSnapshot[];
   period: number;
   count: number;
 }> {
@@ -119,17 +183,20 @@ export async function fetchEspnRosteredProjections(): Promise<{
   const data = (await res.json()) as EspnLeagueResponse;
   const period = data.scoringPeriodId;
   const fresh: ProjectionOverrides = {};
+  const snapshots: EspnPlayerSnapshot[] = [];
 
   (data.teams || []).forEach((t) => {
     (t.roster?.entries || []).forEach((e) => {
       const player = e.playerPoolEntry?.player;
       if (!player) return;
-      const override = toOverride(player, period);
-      if (override) fresh[player.id] = override;
+      const result = toOverride(player, period);
+      if (!result) return;
+      fresh[player.id] = result.override;
+      if (result.snapshot) snapshots.push(result.snapshot);
     });
   });
 
-  return { fresh, period, count: Object.keys(fresh).length };
+  return { fresh, snapshots, period, count: Object.keys(fresh).length };
 }
 
 /** Every team's real, current ESPN lineup: espnTeamId -> playerId -> slot
@@ -204,7 +271,9 @@ export async function fetchEspnLiveLineups(): Promise<Record<number, Record<numb
 /** Same idea, but for the free-agent pool (the Free Agents tab) -- a separate
  * ESPN endpoint, since /players (not team rosters) is where unrostered
  * players live. */
-export async function fetchEspnFreeAgentProjections(period: number): Promise<ProjectionOverrides> {
+export async function fetchEspnFreeAgentProjections(
+  period: number
+): Promise<{ fresh: ProjectionOverrides; snapshots: EspnPlayerSnapshot[] }> {
   const filter = {
     players: {
       // See the matching comment in lib/espnLeague.ts -- this league's real FA
@@ -220,15 +289,18 @@ export async function fetchEspnFreeAgentProjections(period: number): Promise<Pro
   if (!res.ok) throw new Error(`ESPN free-agent request failed (${res.status})`);
   const data = (await res.json()) as EspnFreeAgentEntry[] | EspnPlayer[];
   const fresh: ProjectionOverrides = {};
+  const snapshots: EspnPlayerSnapshot[] = [];
 
   (Array.isArray(data) ? data : []).forEach((entry) => {
     const player: EspnPlayer | undefined = "player" in entry ? entry.player : (entry as EspnPlayer);
     if (!player) return;
-    const override = toOverride(player, period);
-    if (override) fresh[player.id] = override;
+    const result = toOverride(player, period);
+    if (!result) return;
+    fresh[player.id] = result.override;
+    if (result.snapshot) snapshots.push(result.snapshot);
   });
 
-  return fresh;
+  return { fresh, snapshots };
 }
 
 interface EspnTransactionItem {

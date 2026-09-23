@@ -2,28 +2,18 @@ import { POSITIONS, REQUIRED_STARTERS } from "../../../src/config/league.js";
 import { ALL_TEAMS } from "../../../src/data/allTeams.js";
 import { FREE_AGENTS } from "../../../src/data/freeAgents.js";
 import { getLiveLeagueCache } from "../../../src/lib/espnLeague.js";
+import { rankPlayerPool } from "../../../src/lib/consensus.js";
 import { analyzeRosterNeeds } from "../../../src/lib/rosterNeeds.js";
 import { playerValue, qualityScore, rosValue, vorPoints } from "../../../src/lib/scoring.js";
 import type { LeagueTeam, Player, Position, RosterNeeds } from "../../../src/types.js";
 import type { ToolContext } from "./types.js";
 
-/** Stamp 1-based projection ranks within each position (needed for playerValue). */
+/** Stamp the pool-relative valuation fields: posRank (this week,
+ * playerValue), seasonPosRank and marketQuality (qualityScore/rosValue). Same
+ * function the app uses, so Sensei and the app always price a player
+ * identically. */
 export function withPosRanks(players: Player[]): Player[] {
-  const ranks = new Map<number, number>();
-  const byPos = new Map<Position, Player[]>();
-  for (const p of players) {
-    const list = byPos.get(p.pos) ?? [];
-    list.push(p);
-    byPos.set(p.pos, list);
-  }
-  for (const list of byPos.values()) {
-    [...list]
-      .sort((a, b) => b.proj - a.proj)
-      .forEach((p, i) => {
-        if (!ranks.has(p.id)) ranks.set(p.id, i + 1);
-      });
-  }
-  return players.map((p) => ({ ...p, posRank: ranks.get(p.id) }));
+  return rankPlayerPool(players);
 }
 
 /** Prefer live ESPN ownership after sync_rosters; else bundled snapshot. */
@@ -189,8 +179,13 @@ export function serializePlayer(p: Player) {
     nflTeam: p.team,
     bye: p.bye,
     proj: p.proj,
-    /** ESPN rest-of-season PPG when available (scoringPeriodId 0). */
+    /** Consensus rest-of-season PPG (ESPN + Sleeper projections blended with
+     * actual production so far). */
     seasonProj: p.seasonProj ?? null,
+    /** Positional rank by FantasyCalc redraft trade value (real trades). */
+    marketPosRank: p.marketPosRank ?? null,
+    /** Season projection rank at the position. */
+    seasonPosRank: p.seasonPosRank ?? null,
     tier: p.tier,
     status: p.status,
     posRank: p.posRank ?? null,

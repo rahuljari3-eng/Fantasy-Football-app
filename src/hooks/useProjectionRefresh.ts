@@ -1,7 +1,10 @@
 // Live projection refresh: pulls current Week-N projections and injury status
-// directly from ESPN. Self-contained -- it only produces an id-keyed
+// from ESPN, blended with Sleeper's projections, actual production so far,
+// and FantasyCalc trade-market values (lib/consensus.ts). Self-contained -- it only produces an id-keyed
 // overrides map, and doesn't know anything about rosters, trades, etc.
 import { useCallback, useEffect, useState } from "react";
+import { LEAGUE_CONFIG } from "../config/league";
+import { applyConsensusToOverrides, fetchConsensusSources } from "../lib/consensus";
 import { fetchEspnRosteredProjections, fetchEspnFreeAgentProjections } from "../lib/espn";
 import { getStoredValue, setStoredValue } from "../lib/storage";
 import type { ProjectionOverrides, RefreshProgress } from "../types";
@@ -48,15 +51,25 @@ export function useProjectionRefresh() {
     try {
       const rostered = await fetchEspnRosteredProjections();
       fresh = { ...fresh, ...rostered.fresh };
+      let snapshots = rostered.snapshots;
       setRefreshProgress({ done: 1, total: 2 });
 
-      try {
-        const freeAgents = await fetchEspnFreeAgentProjections(rostered.period);
-        fresh = { ...fresh, ...freeAgents };
-      } catch {
+      // The other projection/market sources only need the scoring period, so
+      // they load alongside the free-agent pull rather than after it.
+      const [freeAgents, sources] = await Promise.all([
         // Free-agent refresh failing shouldn't block the more important
         // rostered-player update.
+        fetchEspnFreeAgentProjections(rostered.period).catch(() => null),
+        fetchConsensusSources(LEAGUE_CONFIG.espnSeason, rostered.period),
+      ]);
+      if (freeAgents) {
+        fresh = { ...fresh, ...freeAgents.fresh };
+        snapshots = [...snapshots, ...freeAgents.snapshots];
       }
+      // ESPN alone was the only input here before; blend in Sleeper's
+      // projections, actual production, and the trade market -- see
+      // lib/consensus.ts.
+      fresh = applyConsensusToOverrides(fresh, snapshots, sources);
       setRefreshProgress({ done: 2, total: 2 });
     } catch (espnErr) {
       setRefreshing(false);

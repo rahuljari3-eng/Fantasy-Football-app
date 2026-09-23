@@ -12,6 +12,7 @@ import { VOR_BASELINE, ROS_WEEKS } from "../config/scoring";
 import { DEFAULT_TAB } from "../config/pages";
 import { playerValue, qualityScore, rosValue } from "../lib/scoring";
 import { analyzeRosterNeeds } from "../lib/rosterNeeds";
+import { applyPropLines, rankPlayerPool } from "../lib/consensus";
 import {
   allPoolSuggestions,
   buildCoachContext,
@@ -475,74 +476,51 @@ export function useFantasyApp() {
     <P extends Player>(player: P): P => {
       const ov = projectionOverrides[player.id];
       if (!ov) return player;
+      const proj = ov.proj ?? player.proj;
       return {
         ...player,
-        proj: ov.proj ?? player.proj,
+        // Consensus weekly projection, then -- once this week's sportsbook
+        // yardage props have posted -- the market's yardage swapped in for the
+        // projections' (lib/consensus.ts applyPropLines).
+        proj: applyPropLines(proj, matchupData.playerProps[player.id], ov.modelYards),
         status: ov.status || player.status,
         // Falls back to the live weekly proj (not the static bundled one)
-        // when ESPN didn't send a season projection for this player, so it's
-        // never less current than proj itself -- just insulated from a
-        // single bad/injured week the way proj isn't.
+        // when there's no season projection for this player, so it's never
+        // less current than proj itself -- just insulated from a single
+        // bad/injured week the way proj isn't.
         seasonProj: ov.seasonProj ?? player.seasonProj ?? ov.proj ?? player.proj,
+        ...(ov.marketPosRank != null ? { marketPosRank: ov.marketPosRank, marketValue: ov.marketValue } : {}),
+        ...(ov.modelYards ? { modelYards: ov.modelYards } : {}),
       };
     },
-    [projectionOverrides]
+    [projectionOverrides, matchupData]
   );
 
-  // Positional rank (1 = best projected at the position) across every player in
-  // the league plus free agents, computed off post-override projections. Feeds
-  // the rank-chart component of playerValue -- see lib/scoring.ts. THIS WEEK's
-  // projection only -- see seasonPosRankOf below for the season-stable version
-  // qualityScore/rosValue use instead.
-  const posRankOf = useMemo(() => {
+  // Pool-relative valuation fields across every player in the league plus
+  // free agents, off post-override projections: posRank by THIS WEEK's
+  // projection (playerValue's rank chart), seasonPosRank by season projection
+  // (qualityScore/rosValue) -- so a player who's Out this week (proj
+  // collapsed toward 0) doesn't also collapse to the bottom of his season
+  // rank chart -- and marketQuality, the trade market's value blended into
+  // qualityScore. Same function Roster Sensei uses (lib/consensus.ts
+  // rankPlayerPool).
+  const ranksById = useMemo(() => {
     const pool = [...ALL_TEAMS.flatMap((t) => t.roster), ...(liveFreeAgents ?? FREE_AGENTS)].map(applyOverrideRaw);
-    const groups = new Map<Position, Player[]>();
-    pool.forEach((p) => {
-      const g = groups.get(p.pos) ?? [];
-      g.push(p);
-      groups.set(p.pos, g);
-    });
-    const ranks = new Map<number, number>();
-    groups.forEach((list) => {
-      list.sort((a, b) => b.proj - a.proj).forEach((p, i) => {
-        if (!ranks.has(p.id)) ranks.set(p.id, i + 1);
-      });
-    });
-    return (id: number) => ranks.get(id);
+    return new Map(rankPlayerPool(pool).map((p) => [p.id, p]));
   }, [applyOverrideRaw, liveFreeAgents]);
 
-  // Same idea as posRankOf, but ranked by seasonProj instead of this week's
-  // proj -- so a player who's Questionable/Doubtful/Out this week (proj
-  // collapsed toward 0) doesn't also collapse to the bottom of his position's
-  // rank chart, which is what was crushing an actually-elite player's
-  // AI-Coach quality score and trade value over a one- or two-week absence.
-  const seasonPosRankOf = useMemo(() => {
-    const pool = [...ALL_TEAMS.flatMap((t) => t.roster), ...(liveFreeAgents ?? FREE_AGENTS)].map(applyOverrideRaw);
-    const groups = new Map<Position, Player[]>();
-    pool.forEach((p) => {
-      const g = groups.get(p.pos) ?? [];
-      g.push(p);
-      groups.set(p.pos, g);
-    });
-    const ranks = new Map<number, number>();
-    groups.forEach((list) => {
-      list.sort((a, b) => (b.seasonProj ?? b.proj) - (a.seasonProj ?? a.proj)).forEach((p, i) => {
-        if (!ranks.has(p.id)) ranks.set(p.id, i + 1);
-      });
-    });
-    return (id: number) => ranks.get(id);
-  }, [applyOverrideRaw, liveFreeAgents]);
-
-  // applyOverride now also stamps both positional ranks, so every
-  // "effective*" array carries them and playerValue/qualityScore can use the
-  // rank chart consistently.
+  // applyOverride also stamps the pool-relative fields above, so every
+  // "effective*" array carries them and playerValue/qualityScore price
+  // consistently everywhere.
   const applyOverride = useCallback(
     <P extends Player>(player: P): P => ({
       ...applyOverrideRaw(player),
-      posRank: posRankOf(player.id),
-      seasonPosRank: seasonPosRankOf(player.id),
+      posRank: ranksById.get(player.id)?.posRank,
+      seasonPosRank: ranksById.get(player.id)?.seasonPosRank,
+      marketQuality: ranksById.get(player.id)?.marketQuality,
+      positionScale: ranksById.get(player.id)?.positionScale,
     }),
-    [applyOverrideRaw, posRankOf, seasonPosRankOf]
+    [applyOverrideRaw, ranksById]
   );
 
   // Every team's optimal-lineup weekly point total, off current (override-
