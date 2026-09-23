@@ -1,0 +1,30 @@
+name: CI
+
+# Type-checks the whole app -- including Roster Sensei's server, which
+# `tsc -b` now covers via tsconfig.server.json -- builds it, and smoke-tests
+# every Sensei tool against the live league (scripts/smoke-sensei.ts). Both
+# earlier Sensei outages (a deleted module still imported by the server, and
+# trade tools called without a Pricer) would have failed here.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npm run smoke:sensei

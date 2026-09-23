@@ -10,7 +10,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "verify:discriminator": "tsx scripts/verify-discriminator-normalize.ts",
-    "sync:snapshot": "node --import tsx scripts/syncLeagueSnapshot.ts"
+    "sync:snapshot": "node --import tsx scripts/syncLeagueSnapshot.ts",
+    "smoke:sensei": "node --import tsx scripts/smoke-sensei.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",

@@ -64,6 +64,11 @@ const TOOLS: ToolDefinition[] = [
 
 const byName = new Map(TOOLS.map((t) => [t.name, t]));
 
+/** Every registered tool's name, in registry order. */
+export function toolNames(): string[] {
+  return TOOLS.map((t) => t.name);
+}
+
 export function getOpenAiTools(allowlist?: string[]): ChatCompletionTool[] {
   const allowed = allowlist?.length ? new Set(allowlist) : null;
   return TOOLS.filter((t) => !allowed || allowed.has(t.name)).map((t) => ({

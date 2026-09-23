@@ -17,12 +17,12 @@ export interface ToolContext {
   localLineup?: LocalLineupContext;
 }
 
-export interface JsonSchema {
+export type JsonSchema = {
   type: "object";
   properties: Record<string, unknown>;
   required?: string[];
   additionalProperties?: boolean;
-}
+};
 
 export interface ToolDefinition {
   name: string;
