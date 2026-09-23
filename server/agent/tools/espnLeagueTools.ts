@@ -16,7 +16,7 @@ import {
   fetchTopScorers,
 } from "../../../src/lib/playerPerformance.js";
 import { computePlayoffOutlook } from "../../../src/lib/playoffOdds.js";
-import { fairnessRatio, packageValue, ratioIsFair, starGateOk } from "../../../src/lib/tradeEngine.js";
+import { fairnessRatio, packageValue, ratioIsFair, SEASON_PRICER, starGateOk } from "../../../src/lib/tradeEngine.js";
 import type { LeagueTeam, Player } from "../../../src/types.js";
 import {
   activeTeams,
@@ -513,10 +513,12 @@ export const getCompletedTradesTool: ToolDefinition = {
       const unresolvedB = t.teamBReceived.filter((id) => !byId.has(id));
 
       // From team A's perspective: gave what B received, got what A received.
-      const aGaveVal = packageValue(bPlayers);
-      const aGotVal = packageValue(aPlayers);
+      // Season-long, like every other trade judgment -- a completed trade is
+      // a rest-of-season bet, not a one-week one.
+      const aGaveVal = packageValue(bPlayers, SEASON_PRICER);
+      const aGotVal = packageValue(aPlayers, SEASON_PRICER);
       const ratio = fairnessRatio(aGaveVal, aGotVal);
-      const gateOk = starGateOk(bPlayers, aPlayers);
+      const gateOk = starGateOk(bPlayers, aPlayers, SEASON_PRICER);
       const verdict = completedTradeVerdict(ratio, gateOk);
       const favorsTeamB = verdict === "favors_team_b" || verdict === "slightly_favors_team_b" || verdict === "likely_unfair_star_gate";
       const favorsTeamA = verdict === "favors_team_a" || verdict === "slightly_favors_team_a";

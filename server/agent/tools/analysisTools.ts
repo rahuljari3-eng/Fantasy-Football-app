@@ -5,7 +5,15 @@ import { fetchWeeklyMatchups, gradeMatchup } from "../../../src/lib/matchup.js";
 import { analyzeRosterNeeds } from "../../../src/lib/rosterNeeds.js";
 import { fetchLeagueNewsFeed } from "../../../src/lib/news.js";
 import { playerValue, qualityScore, rosValue } from "../../../src/lib/scoring.js";
-import { fairnessRatio, needAdjustedPackageValue, packageValue, ratioIsFair, starGateOk } from "../../../src/lib/tradeEngine.js";
+import {
+  fairnessRatio,
+  needAdjustedPackageValue,
+  packageValue,
+  ratioIsFair,
+  SEASON_PRICER,
+  starGateOk,
+  WEEK_PRICER,
+} from "../../../src/lib/tradeEngine.js";
 import { findWhatItWouldTake } from "../../../src/lib/whatWouldItTake.js";
 import type { Player, Position } from "../../../src/types.js";
 import {
@@ -254,10 +262,15 @@ export const evaluateTradeTool: ToolDefinition = {
 
     const give = giveRes.players;
     const get = getRes.players;
-    const gateOk = starGateOk(give, get);
+    // Every trade-engine call names its pricer explicitly (see Pricer in
+    // lib/tradeEngine.ts). The week block is priced off this week; the star
+    // gate, season block, and need-adjusted grade are season-long, the same
+    // basis the AI Coach tab judges trades on.
+    const gateOk = starGateOk(give, get, SEASON_PRICER);
+    const weekGateOk = starGateOk(give, get, WEEK_PRICER);
 
-    const weekGive = packageValue(give);
-    const weekGet = packageValue(get);
+    const weekGive = packageValue(give, WEEK_PRICER);
+    const weekGet = packageValue(get, WEEK_PRICER);
     const weekRatio = fairnessRatio(weekGive, weekGet);
 
     const seasonGive = packageWithValues(give, rosValue, VOR_BASELINE * ROS_WEEKS);
@@ -271,15 +284,15 @@ export const evaluateTradeTool: ToolDefinition = {
       const baseline = leagueBaseline();
       const myNeeds = analyzeRosterNeeds(teamPlayersRanked(ctx.managedTeamId));
       const theirNeeds = analyzeRosterNeeds(teamPlayersRanked(args.opponentTeamId));
-      const adjGive = needAdjustedPackageValue(give, theirNeeds, baseline);
-      const adjGet = needAdjustedPackageValue(get, myNeeds, baseline);
+      const adjGive = needAdjustedPackageValue(give, theirNeeds, baseline, SEASON_PRICER);
+      const adjGet = needAdjustedPackageValue(get, myNeeds, baseline, SEASON_PRICER);
       const adjRatio = fairnessRatio(adjGive, adjGet);
       needAdjusted = {
         giveValue: Math.round(adjGive * 10) / 10,
         getValue: Math.round(adjGet * 10) / 10,
         ratio: Math.round(adjRatio * 100) / 100,
         verdict: verdictFromRatio(adjRatio, gateOk),
-        note: "Scaled by each side's positional need vs league baseline (week playerValue basis).",
+        note: "Scaled by each side's positional need vs league baseline (rest-of-season quality basis, same as the AI Coach tab).",
       };
     }
 
@@ -287,7 +300,7 @@ export const evaluateTradeTool: ToolDefinition = {
       giveValue: Math.round(weekGive * 10) / 10,
       getValue: Math.round(weekGet * 10) / 10,
       ratio: Math.round(weekRatio * 100) / 100,
-      verdict: verdictFromRatio(weekRatio, gateOk),
+      verdict: verdictFromRatio(weekRatio, weekGateOk),
     };
     const seasonBlock = {
       giveValue: Math.round(seasonGive * 10) / 10,
@@ -593,7 +606,7 @@ export const whatWouldItTakeTool: ToolDefinition = {
       (pos) => myNeeds[pos].tradeableDepth
     );
 
-    const options = findWhatItWouldTake(target, giveCandidates, depthCandidates, theirNeeds, myNeeds, baseline);
+    const options = findWhatItWouldTake(target, giveCandidates, depthCandidates, theirNeeds, myNeeds, baseline, SEASON_PRICER);
 
     return {
       ok: true,
