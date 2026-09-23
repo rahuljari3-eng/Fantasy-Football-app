@@ -6,7 +6,7 @@
 // minimum it'd cost me to get THIS specific guy?"
 import { needAdjustedPackageValue, fairnessRatio, ratioIsFair, starGateOk, needFactor } from "./tradeEngine.js";
 import { NEED_MULTIPLIER_FILL } from "../config/trade.js";
-import type { PositionBaseline } from "./tradeEngine.js";
+import type { PositionBaseline, Pricer } from "./tradeEngine.js";
 import type { Player, Position, RosterNeeds } from "../types.js";
 
 export interface WhatWouldItTakeOption {
@@ -56,10 +56,10 @@ function buildCandidatePackages(corePool: Player[], depthPool: Player[], size: n
 /** Every give candidate's value is scaled by the RECEIVING team's need, so a
  * package can clear the fairness bar with less raw value when it fills a real
  * hole for them -- surface which positions in `give` are doing that. */
-function fillsNeedFor(give: Player[], theirNeeds: RosterNeeds, baseline: PositionBaseline): Position[] {
+function fillsNeedFor(give: Player[], theirNeeds: RosterNeeds, baseline: PositionBaseline, pricer: Pricer): Position[] {
   const positions = new Set<Position>();
   give.forEach((p) => {
-    if (needFactor(theirNeeds, baseline, p) === NEED_MULTIPLIER_FILL) positions.add(p.pos);
+    if (needFactor(theirNeeds, baseline, p, pricer) === NEED_MULTIPLIER_FILL) positions.add(p.pos);
   });
   return [...positions];
 }
@@ -78,19 +78,20 @@ export function findWhatItWouldTake(
   depthCandidates: Player[],
   theirNeeds: RosterNeeds,
   myNeeds: RosterNeeds,
-  baseline: PositionBaseline
+  baseline: PositionBaseline,
+  pricer: Pricer
 ): WhatWouldItTakeOption[] | null {
-  const getVal = needAdjustedPackageValue([target], myNeeds, baseline);
+  const getVal = needAdjustedPackageValue([target], myNeeds, baseline, pricer);
   const corePool = coreCandidates.filter((p) => p.status !== "Out" && p.id !== target.id);
   const depthPool = depthCandidates.filter((p) => p.status !== "Out" && p.id !== target.id);
 
   for (let size = 1; size <= MAX_PIECES; size++) {
     const found: WhatWouldItTakeOption[] = [];
     for (const combo of buildCandidatePackages(corePool, depthPool, size)) {
-      const giveVal = needAdjustedPackageValue(combo, theirNeeds, baseline);
+      const giveVal = needAdjustedPackageValue(combo, theirNeeds, baseline, pricer);
       const ratio = fairnessRatio(giveVal, getVal);
-      if (ratioIsFair(ratio) && starGateOk(combo, [target])) {
-        found.push({ give: combo, giveVal, getVal, ratio, fillsNeedFor: fillsNeedFor(combo, theirNeeds, baseline) });
+      if (ratioIsFair(ratio) && starGateOk(combo, [target], pricer)) {
+        found.push({ give: combo, giveVal, getVal, ratio, fillsNeedFor: fillsNeedFor(combo, theirNeeds, baseline, pricer) });
       }
     }
     if (found.length) {

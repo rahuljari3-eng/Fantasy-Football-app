@@ -6,6 +6,7 @@ import { PlayerNameLink } from "../components/PlayerNameLink";
 import { SearchInput } from "../components/SearchInput";
 import { CompletedTradesPanel } from "../components/CompletedTradesPanel";
 import { WhatWouldItTakePanel } from "../components/WhatWouldItTakePanel";
+import { SEASON_PRICER, WEEK_PRICER } from "../lib/tradeEngine";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 import type { LeaguePlayer, Player, TradeHorizon } from "../types";
 import type { WhatWouldItTakeOption } from "../lib/whatWouldItTake";
@@ -239,7 +240,13 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
           {!loadingCompleted && completedEspnTrades.length === 0 && (
             <div className="text-xs text-[#636366] italic">No completed trades found yet.</div>
           )}
-          <CompletedTradesPanel trades={completedEspnTrades} allTeams={allTeams} playerById={playerById} tradeSideValue={tradeSideValue} />
+          <CompletedTradesPanel
+            trades={completedEspnTrades}
+            allTeams={allTeams}
+            playerById={playerById}
+            tradeSideValue={tradeSideValue}
+            pricer={tradeHorizon === "season" ? SEASON_PRICER : WEEK_PRICER}
+          />
         </div>
       ) : subTab === "wwit" ? (
         <div key="wwit" className="animate-fade-slide-up">

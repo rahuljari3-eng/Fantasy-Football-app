@@ -3,6 +3,7 @@ import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX } from "../config/trade";
 import { fairnessRatio, starGateOk } from "../lib/tradeEngine";
 import { PosBadge } from "./PosBadge";
 import type { CompletedTrade } from "../lib/espn";
+import type { Pricer } from "../lib/tradeEngine";
 import type { LeagueTeam, Player } from "../types";
 
 /** Grades every completed trade in the league -- both sides, regardless of
@@ -16,11 +17,16 @@ export function CompletedTradesPanel({
   allTeams,
   playerById,
   tradeSideValue,
+  pricer,
 }: {
   trades: CompletedTrade[];
   allTeams: LeagueTeam[];
   playerById: (id: number) => Player | undefined;
   tradeSideValue: (ids: number[]) => number;
+  /** Same This week/Rest of season pricer as the rest of the Trade Analyzer's
+   * `tradeSideValue`, so the star gate's "was this a stud?" check agrees with
+   * the values shown right next to it. */
+  pricer: Pricer;
 }) {
   if (trades.length === 0) return null;
 
@@ -46,7 +52,7 @@ export function CompletedTradesPanel({
         // From team A's perspective: what A gave up is what B received, and
         // vice versa -- same ratio/star-gate math the interactive analyzer uses.
         const ratio = fairnessRatio(bVal, aVal);
-        const starGateViolation = !incomplete && !starGateOk(bPlayers, aPlayers);
+        const starGateViolation = !incomplete && !starGateOk(bPlayers, aPlayers, pricer);
         const favorsA = !incomplete && !starGateViolation && ratio > LOPSIDED_RATIO_MAX;
         const favorsB = !incomplete && (starGateViolation || ratio < LOPSIDED_RATIO_MIN);
 

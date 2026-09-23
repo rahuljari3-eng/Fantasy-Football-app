@@ -27,6 +27,7 @@ export function CoachPage({ app }: { app: FantasyApp }) {
     regenerateCoachSuggestions,
     hasFreshCoachSuggestions,
     tradeTargetsByNeed,
+    searchMoreTradeTargets,
     openWhatWouldItTake,
     playerHasNews,
     openPlayerNews,
@@ -247,6 +248,14 @@ export function CoachPage({ app }: { app: FantasyApp }) {
                     </button>
                   ))}
                 </div>
+                {group.hasMore && (
+                  <button
+                    onClick={() => searchMoreTradeTargets(group.pos)}
+                    className="w-full flex items-center justify-center gap-1.5 px-3.5 py-2 border-t border-[#38383A]/60 text-xs font-medium text-[#98989D] hover:text-[#FFFFFF] hover:bg-[#1C1C1E] transition-colors duration-150"
+                  >
+                    <RefreshCw size={11} /> Search for more
+                  </button>
+                )}
               </div>
             ))}
           </div>

@@ -25,40 +25,70 @@ import {
   NEED_MULTIPLIER_NEUTRAL,
 } from "../config/trade.js";
 import { VOR_BASELINE } from "../config/scoring.js";
-import { playerValue } from "./scoring.js";
+import { playerValue, qualityScore } from "./scoring.js";
 import type { Player, Position, RosterNeeds } from "../types.js";
+
+/** Which "how good is this player" number a piece of trade math prices
+ * against, plus which positional rank backs the star check -- see the two
+ * exported instances below. Every function in this module that touches
+ * value takes one explicitly rather than assuming `playerValue`, so a caller
+ * can't accidentally price a season-long question (AI Coach, "what would it
+ * take?") off a single week's projection, or vice versa. */
+export interface Pricer {
+  value: (p: Player) => number;
+  rank: (p: Player) => number | undefined;
+}
+
+/** This week only -- proj/posRank. Right for the interactive Trade
+ * Analyzer's "This week" mode, where "is this fair" is genuinely a
+ * single-week question. */
+export const WEEK_PRICER: Pricer = { value: playerValue, rank: (p) => p.posRank };
+
+/** Rest-of-season outlook -- seasonProj/seasonPosRank (qualityScore already
+ * falls back to proj/posRank when those aren't set), the same number the AI
+ * Coach's needs analysis (lib/rosterNeeds.ts) already prices every player by.
+ * Right for anything judging "how good is this player, full stop": the AI
+ * Coach's suggestion engine and "players to trade for," and the "What would
+ * it take?" solver (which has no week/season toggle of its own and is asking
+ * a long-term "what's this realistically cost me" question either way). A
+ * single Questionable/bye-week projection collapsing `playerValue` to near
+ * zero would otherwise make a good player look nearly free to acquire, or a
+ * throw-in from your own roster look like it's worth almost nothing to give
+ * up -- exactly backwards for a season-long recommendation. */
+export const SEASON_PRICER: Pricer = { value: qualityScore, rank: (p) => p.seasonPosRank ?? p.posRank };
 
 /** A genuine difference-maker: true league-wide positional rank inside
  * STAR_RANK_THRESHOLD. NOT the same thing as Tier -- Tier is derived from
  * ESPN ownership% (>=80% owned = Tier 1), which covers roughly two-thirds of
  * every rostered player and would make almost any decent starter "a star".
- * Falls back to Tier 1 only when posRank hasn't been stamped on this player
+ * Falls back to Tier 1 only when no rank has been stamped on this player
  * (defensive -- every normal call path ranks players before pricing them). */
-function isStar(p: Player): boolean {
-  if (typeof p.posRank === "number") return p.posRank <= (STAR_RANK_THRESHOLD[p.pos] ?? 8);
+function isStar(p: Player, pricer: Pricer): boolean {
+  const rank = pricer.rank(p);
+  if (typeof rank === "number") return rank <= (STAR_RANK_THRESHOLD[p.pos] ?? 8);
   return p.tier === 1;
 }
 
-export function hasStar(players: Player[]): boolean {
-  return players.some(isStar);
+export function hasStar(players: Player[], pricer: Pricer): boolean {
+  return players.some((p) => isStar(p, pricer));
 }
 
 /** The above-replacement portion of a player's value -- what he's really worth
  * as an extra piece, since the roster spot and replacement-level baseline come
  * "for free" from anyone. */
-function marginalValue(p: Player): number {
-  return Math.max(0, playerValue(p) - VOR_BASELINE);
+function marginalValue(p: Player, pricer: Pricer): number {
+  return Math.max(0, pricer.value(p) - VOR_BASELINE);
 }
 
 /** The star gate. If a side sends a genuine star (see isStar), the other side
  * must return (a) a Tier-1 or Tier-2 player, and (b) a single player worth at
  * least STAR_RETURN_MIN_TOP_FRACTION of that star's value. Blocks stud-for-
  * depth even when the padded package "adds up". */
-export function starGateOk(give: Player[], get: Player[]): boolean {
+export function starGateOk(give: Player[], get: Player[], pricer: Pricer): boolean {
   if (!REQUIRE_STAR_RETURN) return true;
-  const topValue = (arr: Player[]) => arr.reduce((m, p) => Math.max(m, playerValue(p)), 0);
+  const topValue = (arr: Player[]) => arr.reduce((m, p) => Math.max(m, pricer.value(p)), 0);
   const sideOk = (sending: Player[], receiving: Player[]): boolean => {
-    const stars = sending.filter(isStar);
+    const stars = sending.filter((p) => isStar(p, pricer));
     if (!stars.length) return true;
     const starVal = topValue(stars);
     if (!receiving.some((p) => p.tier <= 2)) return false;
@@ -72,12 +102,12 @@ export type PositionBaseline = Record<Position, number>;
 /** Value of one whole side of a trade: best piece full, every extra piece only
  * its marginal (above-replacement) value, discounted compounding by
  * EXTRA_PIECE_DISCOUNT. */
-export function packageValue(players: Player[]): number {
-  const sorted = [...players].sort((a, b) => playerValue(b) - playerValue(a));
+export function packageValue(players: Player[], pricer: Pricer): number {
+  const sorted = [...players].sort((a, b) => pricer.value(b) - pricer.value(a));
   if (!sorted.length) return 0;
-  let total = playerValue(sorted[0]);
+  let total = pricer.value(sorted[0]);
   for (let i = 1; i < sorted.length; i++) {
-    total += marginalValue(sorted[i]) * Math.pow(EXTRA_PIECE_DISCOUNT, i);
+    total += marginalValue(sorted[i], pricer) * Math.pow(EXTRA_PIECE_DISCOUNT, i);
   }
   return total;
 }
@@ -105,12 +135,12 @@ export function ratioIsFair(ratio: number): boolean {
  * two of them could read as "fair". A team missing enough bodies to fill the
  * position at all (hasEnoughBodies false) is the one case where literally
  * anyone helps, so that still bypasses the upgrade check. */
-export function needFactor(needs: RosterNeeds, baseline: PositionBaseline, player: Player): number {
+export function needFactor(needs: RosterNeeds, baseline: PositionBaseline, player: Player, pricer: Pricer): number {
   const n = needs[player.pos];
   if (!n) return NEED_MULTIPLIER_NEUTRAL;
   const base = baseline[player.pos] || 0;
   if (!n.hasEnoughBodies) return NEED_MULTIPLIER_FILL;
-  const isRealUpgrade = !n.weakestStarter || playerValue(player) > playerValue(n.weakestStarter);
+  const isRealUpgrade = !n.weakestStarter || pricer.value(player) > pricer.value(n.weakestStarter);
   if (isRealUpgrade && base && n.starterScore < base * 0.85) return NEED_MULTIPLIER_FILL;
   if (base && n.starterScore > base * 1.1 && n.tradeableDepth.length > 0) return NEED_MULTIPLIER_STACKED;
   return NEED_MULTIPLIER_NEUTRAL;
@@ -122,13 +152,14 @@ export function needFactor(needs: RosterNeeds, baseline: PositionBaseline, playe
 export function needAdjustedPackageValue(
   players: Player[],
   needs: RosterNeeds,
-  baseline: PositionBaseline
+  baseline: PositionBaseline,
+  pricer: Pricer
 ): number {
-  const sorted = [...players].sort((a, b) => playerValue(b) - playerValue(a));
+  const sorted = [...players].sort((a, b) => pricer.value(b) - pricer.value(a));
   if (!sorted.length) return 0;
-  let total = playerValue(sorted[0]) * needFactor(needs, baseline, sorted[0]);
+  let total = pricer.value(sorted[0]) * needFactor(needs, baseline, sorted[0], pricer);
   for (let i = 1; i < sorted.length; i++) {
-    total += marginalValue(sorted[i]) * Math.pow(EXTRA_PIECE_DISCOUNT, i) * needFactor(needs, baseline, sorted[i]);
+    total += marginalValue(sorted[i], pricer) * Math.pow(EXTRA_PIECE_DISCOUNT, i) * needFactor(needs, baseline, sorted[i], pricer);
   }
   return total;
 }
@@ -157,15 +188,16 @@ export function balancePackage(
   yourNeeds: RosterNeeds,
   baseline: PositionBaseline,
   extraGiveOptions: Player[],
-  extraGetOptions: Player[]
+  extraGetOptions: Player[],
+  pricer: Pricer
 ): BalancedPackage | null {
   const evaluate = (give: Player[], get: Player[]): BalancedPackage => {
-    const giveVal = needAdjustedPackageValue(give, theirNeeds, baseline);
-    const getVal = needAdjustedPackageValue(get, yourNeeds, baseline);
+    const giveVal = needAdjustedPackageValue(give, theirNeeds, baseline, pricer);
+    const getVal = needAdjustedPackageValue(get, yourNeeds, baseline, pricer);
     return { give, get, giveVal, getVal, ratio: fairnessRatio(giveVal, getVal) };
   };
 
-  const acceptable = (p: BalancedPackage) => ratioIsFair(p.ratio) && starGateOk(p.give, p.get);
+  const acceptable = (p: BalancedPackage) => ratioIsFair(p.ratio) && starGateOk(p.give, p.get, pricer);
 
   const base = evaluate(giveList, getList);
   if (acceptable(base)) return base;
@@ -205,10 +237,11 @@ export function balanceTwoForTwo(
   yourNeeds: RosterNeeds,
   baseline: PositionBaseline,
   extraGiveOptions: Player[],
-  extraGetOptions: Player[]
+  extraGetOptions: Player[],
+  pricer: Pricer
 ): BalancedPackage | null {
-  const giveOpts = [...extraGiveOptions].sort((a, b) => playerValue(b) - playerValue(a)).slice(0, 8);
-  const getOpts = [...extraGetOptions].sort((a, b) => playerValue(b) - playerValue(a)).slice(0, 8);
+  const giveOpts = [...extraGiveOptions].sort((a, b) => pricer.value(b) - pricer.value(a)).slice(0, 8);
+  const getOpts = [...extraGetOptions].sort((a, b) => pricer.value(b) - pricer.value(a)).slice(0, 8);
 
   let best: BalancedPackage | null = null;
   for (const g of giveOpts) {
@@ -217,10 +250,10 @@ export function balanceTwoForTwo(
       if (c.id === coreGet.id || c.id === coreGive.id || c.id === g.id) continue;
       const give = [coreGive, g];
       const get = [coreGet, c];
-      const giveVal = needAdjustedPackageValue(give, theirNeeds, baseline);
-      const getVal = needAdjustedPackageValue(get, yourNeeds, baseline);
+      const giveVal = needAdjustedPackageValue(give, theirNeeds, baseline, pricer);
+      const getVal = needAdjustedPackageValue(get, yourNeeds, baseline, pricer);
       const ratio = fairnessRatio(giveVal, getVal);
-      if (ratioIsFair(ratio) && starGateOk(give, get) && (!best || Math.abs(ratio - 1) < Math.abs(best.ratio - 1))) {
+      if (ratioIsFair(ratio) && starGateOk(give, get, pricer) && (!best || Math.abs(ratio - 1) < Math.abs(best.ratio - 1))) {
         best = { give, get, giveVal, getVal, ratio };
       }
     }

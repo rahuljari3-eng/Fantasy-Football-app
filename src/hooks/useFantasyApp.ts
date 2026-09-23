@@ -15,7 +15,7 @@ import { analyzeRosterNeeds } from "../lib/rosterNeeds";
 import { deriveAssignments, deriveAssignmentsFromEspnSlots } from "../lib/teamRoster";
 import { fetchEspnCompletedTrades, fetchEspnLineups, type CompletedTrade } from "../lib/espn";
 import { fetchLiveFreeAgents } from "../lib/espnLeague";
-import { balancePackage, balanceTwoForTwo, fairnessRatio, needAdjustedPackageValue, starGateOk } from "../lib/tradeEngine";
+import { balancePackage, balanceTwoForTwo, fairnessRatio, needAdjustedPackageValue, starGateOk, SEASON_PRICER, WEEK_PRICER } from "../lib/tradeEngine";
 import { findWhatItWouldTake as solveWhatItWouldTake, type WhatWouldItTakeOption } from "../lib/whatWouldItTake";
 import { optimizeLineup } from "../lib/optimizeLineup";
 import { useProjectionRefresh } from "./useProjectionRefresh";
@@ -997,13 +997,17 @@ export function useFantasyApp() {
   // fairness bar the analyzer/coach use -- see lib/whatWouldItTake.ts. Draws
   // its core piece from the same myMovablePlayers pool as the rest of the
   // trade engine, so it never offers up a player you actually need to keep,
-  // and any additional pieces from myTradeableDepth only.
+  // and any additional pieces from myTradeableDepth only. Always priced
+  // season-long (SEASON_PRICER) -- this has no week/season toggle of its own
+  // (unlike Build a trade), and both its callers (this panel and the AI
+  // Coach's "players to trade for") are asking a long-term "what's this
+  // realistically cost me" question, not a this-week one.
   const findWhatItWouldTake = useCallback(
     (target: LeaguePlayer): WhatWouldItTakeOption[] | null => {
       const theirTeam = effectiveLeagueTeams.find((t) => t.id === target.fantasyTeamId);
       if (!theirTeam) return null;
       const theirNeeds = analyzeRosterNeeds(theirTeam.roster);
-      return solveWhatItWouldTake(target, myMovablePlayers, myTradeableDepth, theirNeeds, myNeeds, leagueBaseline);
+      return solveWhatItWouldTake(target, myMovablePlayers, myTradeableDepth, theirNeeds, myNeeds, leagueBaseline, SEASON_PRICER);
     },
     [effectiveLeagueTeams, myMovablePlayers, myTradeableDepth, myNeeds, leagueBaseline]
   );
@@ -1092,7 +1096,11 @@ export function useFantasyApp() {
   // cheapest clearing package so the UI can show what it'd actually cost
   // before the user ever opens the solver, and is still meant to be clicked
   // straight into "What would it take?" for the full option list.
-  const tradeTargetsByNeed = useMemo(() => {
+  // Every candidate that clears the bar, not just the top 3 -- "search for
+  // more" (below) reveals further batches from this same pool instead of
+  // re-solving, so clicking it can't surface a worse-fit player than what's
+  // already showing.
+  const tradeTargetsByNeedAll = useMemo(() => {
     return needyPositionsRanked
       .filter((pos) => isTradeablePos(pos))
       .map((pos) => {
@@ -1101,20 +1109,46 @@ export function useFantasyApp() {
           .map((p) => ({ ...p, qScore: qualityScore(p) }))
           .sort((a, b) => b.qScore - a.qScore)
           // Cap how many go through the solver -- combinatorial search per
-          // candidate, and the top ~12 by quality is already generous odds
-          // of finding the realistically-gettable ones among them.
-          .slice(0, 12)
+          // candidate. Wide enough to have real depth behind the top 3 for
+          // "search for more" to reveal.
+          .slice(0, 24)
           .map((p) => {
             const options = findWhatItWouldTake(p);
             return options && options.length > 0 ? { ...p, cheapestOption: options[0] } : null;
           })
           .filter((p): p is NonNullable<typeof p> => p !== null)
-          .sort((a, b) => b.qScore - a.qScore)
-          .slice(0, 3);
+          .sort((a, b) => b.qScore - a.qScore);
         return { pos, reason: needReason(pos), candidates };
       })
       .filter((group) => group.candidates.length > 0);
   }, [needyPositionsRanked, effectiveAllLeaguePlayers, needReason, isTradeablePos, findWhatItWouldTake]);
+
+  // Keys of "players to trade for" candidates already shown, per position --
+  // "search for more" pushes the currently-visible batch in here so the next
+  // click reveals the next-best ones from tradeTargetsByNeedAll instead of
+  // repeating itself. Keyed by position too (not just player id) since the
+  // same player could theoretically appear as a FLEX-eligible fit at two
+  // positions.
+  const [excludedTradeTargetKeys, setExcludedTradeTargetKeys] = useState<Set<string>>(() => new Set());
+
+  const tradeTargetsByNeed = useMemo(() => {
+    return tradeTargetsByNeedAll
+      .map((group) => {
+        const remaining = group.candidates.filter((p) => !excludedTradeTargetKeys.has(`${group.pos}:${p.id}`));
+        return { ...group, candidates: remaining.slice(0, 3), hasMore: remaining.length > 3 };
+      })
+      .filter((group) => group.candidates.length > 0);
+  }, [tradeTargetsByNeedAll, excludedTradeTargetKeys]);
+
+  function searchMoreTradeTargets(pos: Position) {
+    setExcludedTradeTargetKeys((prev) => {
+      const group = tradeTargetsByNeed.find((g) => g.pos === pos);
+      if (!group) return prev;
+      const next = new Set(prev);
+      group.candidates.forEach((p) => next.add(`${pos}:${p.id}`));
+      return next;
+    });
+  }
 
   // Fallback when nothing qualifies as a "need": just surface the best
   // overall available players so the tab is never empty.
@@ -1168,11 +1202,13 @@ export function useFantasyApp() {
         });
         if (!overlapPos) return;
 
-        const candVal = playerValue(cand);
+        const candVal = SEASON_PRICER.value(cand);
         const depthOptions = myNeeds[overlapPos].tradeableDepth;
         if (!depthOptions.length) return;
-        const offerPlayer = depthOptions.reduce((best, p) => (Math.abs(playerValue(p) - candVal) < Math.abs(playerValue(best) - candVal) ? p : best));
-        const offerVal = playerValue(offerPlayer);
+        const offerPlayer = depthOptions.reduce((best, p) =>
+          Math.abs(SEASON_PRICER.value(p) - candVal) < Math.abs(SEASON_PRICER.value(best) - candVal) ? p : best
+        );
+        const offerVal = SEASON_PRICER.value(offerPlayer);
         // Coarse pre-filter -- balancePackage does the real ratio check.
         const preRatio = fairnessRatio(offerVal, candVal);
         if (preRatio > 1.9 || preRatio < 0.5) return;
@@ -1180,7 +1216,7 @@ export function useFantasyApp() {
         const extraGiveOptions: ScoredPlayer[] = POSITIONS.flatMap((pos) => myNeeds[pos].tradeableDepth).filter((p) => p.id !== offerPlayer.id);
         const extraGetOptions: ScoredPlayer[] = POSITIONS.flatMap((pos) => theirNeeds[pos].tradeableDepth).filter((p) => p.id !== cand.id);
 
-        const result = balancePackage([offerPlayer], [cand], theirNeeds, myNeeds, leagueBaseline, extraGiveOptions, extraGetOptions);
+        const result = balancePackage([offerPlayer], [cand], theirNeeds, myNeeds, leagueBaseline, extraGiveOptions, extraGetOptions, SEASON_PRICER);
         if (result) {
           found.push({
             id: `${theirTeam.id}-${result.get.map((p) => p.id).join(",")}-${result.give.map((p) => p.id).join(",")}`,
@@ -1199,7 +1235,7 @@ export function useFantasyApp() {
         }
 
         // Also offer a genuine 2-for-2 built around the same core.
-        const twoResult = balanceTwoForTwo(offerPlayer, cand, theirNeeds, myNeeds, leagueBaseline, extraGiveOptions, extraGetOptions);
+        const twoResult = balanceTwoForTwo(offerPlayer, cand, theirNeeds, myNeeds, leagueBaseline, extraGiveOptions, extraGetOptions, SEASON_PRICER);
         if (twoResult) {
           found.push({
             id: `2x2-${theirTeam.id}-${twoResult.get.map((p) => p.id).join(",")}-${twoResult.give.map((p) => p.id).join(",")}`,
@@ -1229,7 +1265,7 @@ export function useFantasyApp() {
     const movable = myMovablePlayers;
 
     movable.forEach((offerPlayer) => {
-      const offerVal = playerValue(offerPlayer);
+      const offerVal = SEASON_PRICER.value(offerPlayer);
       const candidates = effectiveAllLeaguePlayers
         .filter((p) => p.status !== "Out" && p.fantasyTeamId && isTradeablePos(p.pos))
         .map((p) => ({ ...p, qScore: qualityScore(p) }))
@@ -1238,21 +1274,21 @@ export function useFantasyApp() {
           const myWorstQ = myWorstAtPos ? myWorstAtPos.qScore : -Infinity;
           return p.qScore > myWorstQ * 1.06; // must actually be an upgrade somewhere on your roster
         })
-        .sort((a, b) => playerValue(b) - playerValue(a))
+        .sort((a, b) => SEASON_PRICER.value(b) - SEASON_PRICER.value(a))
         .slice(0, 6);
 
       candidates.forEach((cand) => {
         const theirTeam = effectiveLeagueTeams.find((t) => t.id === cand.fantasyTeamId);
         if (!theirTeam) return;
         const theirNeeds = analyzeRosterNeeds(theirTeam.roster);
-        const candVal = playerValue(cand);
+        const candVal = SEASON_PRICER.value(cand);
         const preRatio = fairnessRatio(offerVal, candVal);
         if (preRatio > 1.9 || preRatio < 0.5) return;
 
         const extraGiveOptions: ScoredPlayer[] = POSITIONS.flatMap((pos) => myNeeds[pos].tradeableDepth).filter((p) => p.id !== offerPlayer.id);
         const extraGetOptions: ScoredPlayer[] = POSITIONS.flatMap((pos) => theirNeeds[pos].tradeableDepth).filter((p) => p.id !== cand.id);
 
-        const result = balancePackage([offerPlayer], [cand], theirNeeds, myNeeds, leagueBaseline, extraGiveOptions, extraGetOptions);
+        const result = balancePackage([offerPlayer], [cand], theirNeeds, myNeeds, leagueBaseline, extraGiveOptions, extraGetOptions, SEASON_PRICER);
         if (result) {
           found.push({
             id: `gen-${theirTeam.id}-${result.get.map((p) => p.id).join(",")}-${result.give.map((p) => p.id).join(",")}`,
@@ -1270,7 +1306,7 @@ export function useFantasyApp() {
           });
         }
 
-        const twoResult = balanceTwoForTwo(offerPlayer, cand, theirNeeds, myNeeds, leagueBaseline, extraGiveOptions, extraGetOptions);
+        const twoResult = balanceTwoForTwo(offerPlayer, cand, theirNeeds, myNeeds, leagueBaseline, extraGiveOptions, extraGetOptions, SEASON_PRICER);
         if (twoResult) {
           found.push({
             id: `gen2x2-${theirTeam.id}-${twoResult.get.map((p) => p.id).join(",")}-${twoResult.give.map((p) => p.id).join(",")}`,
@@ -1303,16 +1339,18 @@ export function useFantasyApp() {
       if (!myPlayersAtPos.length) return;
       const candidateGive = myPlayersAtPos[myPlayersAtPos.length - 1];
       if (candidateGive.status === "Out") return;
-      const giveVal = playerValue(candidateGive);
+      const giveVal = SEASON_PRICER.value(candidateGive);
       const pool = effectiveAllLeaguePlayers.filter((p) => p.pos === pos && p.status !== "Out" && p.id !== candidateGive.id);
       if (!pool.length) return;
-      const closest = pool.reduce((best, p) => (Math.abs(playerValue(p) - giveVal) < Math.abs(playerValue(best) - giveVal) ? p : best));
+      const closest = pool.reduce((best, p) =>
+        Math.abs(SEASON_PRICER.value(p) - giveVal) < Math.abs(SEASON_PRICER.value(best) - giveVal) ? p : best
+      );
       const theirTeam = effectiveLeagueTeams.find((t) => t.id === closest.fantasyTeamId);
       if (!theirTeam) return;
-      const getVal = playerValue(closest);
+      const getVal = SEASON_PRICER.value(closest);
       const ratio = fairnessRatio(giveVal, getVal);
       if (ratio < FAIR_RATIO_MIN || ratio > FAIR_RATIO_MAX) return;
-      if (!starGateOk([candidateGive], [closest])) return;
+      if (!starGateOk([candidateGive], [closest], SEASON_PRICER)) return;
       found.push({
         id: `fallback-${theirTeam.id}-${closest.id}-${candidateGive.id}`,
         teamId: theirTeam.id,
@@ -1336,7 +1374,7 @@ export function useFantasyApp() {
   // two-for-two options and never devolves into all 1-for-1s (or all 2-for-1s).
   const twoForTwoFallbackSuggestions = useMemo(() => {
     const found: TradeSuggestion[] = [];
-    const myMovable = [...myMovablePlayers].sort((a, b) => playerValue(b) - playerValue(a)).slice(0, 6);
+    const myMovable = [...myMovablePlayers].sort((a, b) => SEASON_PRICER.value(b) - SEASON_PRICER.value(a)).slice(0, 6);
     if (myMovable.length < 2) return found;
 
     const givePairs: Player[][] = [];
@@ -1348,22 +1386,22 @@ export function useFantasyApp() {
       const theirNeeds = analyzeRosterNeeds(team.roster);
       const theirActive = team.roster
         .filter((p) => p.status !== "Out" && isTradeablePos(p.pos))
-        .sort((a, b) => playerValue(b) - playerValue(a))
+        .sort((a, b) => SEASON_PRICER.value(b) - SEASON_PRICER.value(a))
         .slice(0, 12);
       if (theirActive.length < 2) return;
 
       let best: { give: Player[]; get: Player[]; giveVal: number; getVal: number; ratio: number } | null = null;
       givePairs.forEach((give) => {
-        const giveVal = needAdjustedPackageValue(give, theirNeeds, leagueBaseline);
+        const giveVal = needAdjustedPackageValue(give, theirNeeds, leagueBaseline, SEASON_PRICER);
         for (let i = 0; i < theirActive.length; i++) {
           for (let j = i + 1; j < theirActive.length; j++) {
             const get = [theirActive[i], theirActive[j]];
-            const getVal = needAdjustedPackageValue(get, myNeeds, leagueBaseline);
+            const getVal = needAdjustedPackageValue(get, myNeeds, leagueBaseline, SEASON_PRICER);
             const ratio = getVal / giveVal;
             if (
               ratio >= FAIR_RATIO_MIN &&
               ratio <= FAIR_RATIO_MAX &&
-              starGateOk(give, get) &&
+              starGateOk(give, get, SEASON_PRICER) &&
               (!best || Math.abs(ratio - 1) < Math.abs(best.ratio - 1))
             ) {
               best = { give, get, giveVal, getVal, ratio };
@@ -1514,12 +1552,16 @@ export function useFantasyApp() {
   // Fairness ratio: what you get / what you give. 1.0 = dead even.
   const tradeRatio = giveVal > 0 && getVal > 0 ? getVal / giveVal : null;
   // Star gate: a Tier-1 player on one side with no Tier-1/2 coming back is
-  // "likely unfair" no matter what the value ratio says.
+  // "likely unfair" no matter what the value ratio says. Priced by whichever
+  // horizon is active, same as giveVal/getVal above -- a stud who's merely
+  // Questionable this week shouldn't lose his "star" status (and the
+  // protection that comes with it) in Week mode.
   const tradeStarGateViolation =
     (tradeGive.length > 0 || tradeGet.length > 0) &&
     !starGateOk(
       tradeGive.map((id) => playerById(id)).filter((p): p is Player => !!p),
-      tradeGet.map((id) => playerById(id)).filter((p): p is Player => !!p)
+      tradeGet.map((id) => playerById(id)).filter((p): p is Player => !!p),
+      tradeHorizon === "season" ? SEASON_PRICER : WEEK_PRICER
     );
 
   function toggleTradeList(setList: (updater: (cur: number[]) => number[]) => void, id: number) {
@@ -1607,6 +1649,7 @@ export function useFantasyApp() {
     regenerateCoachSuggestions,
     hasFreshCoachSuggestions,
     tradeTargetsByNeed,
+    searchMoreTradeTargets,
     openWhatWouldItTake,
 
     // trade analyzer
