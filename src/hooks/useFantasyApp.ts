@@ -1100,10 +1100,21 @@ export function useFantasyApp() {
   // more" (below) reveals further batches from this same pool instead of
   // re-solving, so clicking it can't surface a worse-fit player than what's
   // already showing.
+  //
+  // Unlike the general-purpose findWhatItWouldTake wrapper, this does NOT
+  // let the solver offer up a player at the SAME position as the need it's
+  // trying to fill. Giving away your worst RB to get a better RB, when RB is
+  // your declared need, is a zero-sum swap of bodies at your thin spot --
+  // your roster construction problem is exactly as unsolved after that trade
+  // as before it, even if the swap is a real quality upgrade. needBasedSuggestions
+  // above already avoids this (it explicitly looks for a strength position to
+  // trade FROM); this is the same idea applied to the solver-backed list.
   const tradeTargetsByNeedAll = useMemo(() => {
     return needyPositionsRanked
       .filter((pos) => isTradeablePos(pos))
       .map((pos) => {
+        const corePool = myMovablePlayers.filter((p) => p.pos !== pos);
+        const depthPool = myTradeableDepth.filter((p) => p.pos !== pos);
         const candidates = effectiveAllLeaguePlayers
           .filter((p) => p.pos === pos && p.status !== "Out")
           .map((p) => ({ ...p, qScore: qualityScore(p) }))
@@ -1113,7 +1124,10 @@ export function useFantasyApp() {
           // "search for more" to reveal.
           .slice(0, 24)
           .map((p) => {
-            const options = findWhatItWouldTake(p);
+            const theirTeam = effectiveLeagueTeams.find((t) => t.id === p.fantasyTeamId);
+            if (!theirTeam) return null;
+            const theirNeeds = analyzeRosterNeeds(theirTeam.roster);
+            const options = solveWhatItWouldTake(p, corePool, depthPool, theirNeeds, myNeeds, leagueBaseline, SEASON_PRICER);
             return options && options.length > 0 ? { ...p, cheapestOption: options[0] } : null;
           })
           .filter((p): p is NonNullable<typeof p> => p !== null)
@@ -1121,7 +1135,17 @@ export function useFantasyApp() {
         return { pos, reason: needReason(pos), candidates };
       })
       .filter((group) => group.candidates.length > 0);
-  }, [needyPositionsRanked, effectiveAllLeaguePlayers, needReason, isTradeablePos, findWhatItWouldTake]);
+  }, [
+    needyPositionsRanked,
+    effectiveAllLeaguePlayers,
+    effectiveLeagueTeams,
+    needReason,
+    isTradeablePos,
+    myMovablePlayers,
+    myTradeableDepth,
+    myNeeds,
+    leagueBaseline,
+  ]);
 
   // Keys of "players to trade for" candidates already shown, per position --
   // "search for more" pushes the currently-visible batch in here so the next
