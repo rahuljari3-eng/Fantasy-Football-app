@@ -13,6 +13,10 @@
 //     difference -- see fairnessRatio / ratioIsFair.
 //  5. The STAR GATE independently blocks "a stud for a good starter + filler"
 //     regardless of the computed ratio (starGateOk).
+//  6. MUTUAL FIT (evaluateTradeFit) is separate from fairness: it re-runs both
+//     teams' depth charts after the swap and asks whether each side's actual
+//     starting lineup gets better at a position it needs. Fairness decides
+//     whether a trade is shown at all; fit decides which fair trades lead.
 import {
   EXTRA_PIECE_DISCOUNT,
   FAIR_RATIO_MIN,
@@ -23,10 +27,14 @@ import {
   NEED_MULTIPLIER_FILL,
   NEED_MULTIPLIER_STACKED,
   NEED_MULTIPLIER_NEUTRAL,
+  NEED_BASELINE_FRACTION,
+  NEED_HELP_MIN_GAIN,
 } from "../config/trade.js";
+import { POSITIONS, REQUIRED_STARTERS } from "../config/league.js";
+import { analyzeRosterNeeds } from "./rosterNeeds.js";
 import { VOR_BASELINE } from "../config/scoring.js";
 import { playerValue, qualityScore } from "./scoring.js";
-import type { Player, Position, RosterNeeds } from "../types.js";
+import type { Player, Position, RosterNeeds, TradeFit } from "../types.js";
 
 /** Which "how good is this player" number a piece of trade math prices
  * against, plus which positional rank backs the star check -- see the two
@@ -259,4 +267,76 @@ export function balanceTwoForTwo(
     }
   }
   return best;
+}
+
+/** A genuine hole: can't fill the required starting slots, or starter quality
+ * sits meaningfully below the league-average starter there. */
+export function isNeedPosition(needs: RosterNeeds, baseline: PositionBaseline, pos: Position): boolean {
+  const n = needs[pos];
+  if (!n.hasEnoughBodies) return true;
+  if (!baseline[pos]) return false;
+  return n.starterScore < baseline[pos] * NEED_BASELINE_FRACTION;
+}
+
+function starterTotal(needs: RosterNeeds): number {
+  return POSITIONS.reduce((sum, pos) => sum + needs[pos].starters.reduce((s, p) => s + p.qScore, 0), 0);
+}
+
+/** Quality of a position's fixed starting slots only. Deliberately NOT
+ * PositionNeed.starterScore: that's a per-slot average that also counts FLEX
+ * for whichever position won it, so losing a FLEX-starting TE shrinks the TE
+ * denominator and can make the position look *better* -- exactly backwards
+ * for "did this trade fill their TE hole". */
+function fixedSlotScore(needs: RosterNeeds, pos: Position): number {
+  const slots = REQUIRED_STARTERS[pos];
+  return needs[pos].players.slice(0, slots).reduce((s, p) => s + p.qScore, 0) / slots;
+}
+
+function needsHelped(before: RosterNeeds, after: RosterNeeds, baseline: PositionBaseline): Position[] {
+  return POSITIONS.filter(
+    (pos) => isNeedPosition(before, baseline, pos) && fixedSlotScore(after, pos) > fixedSlotScore(before, pos) * (1 + NEED_HELP_MIN_GAIN)
+  );
+}
+
+/** Whether a trade makes BOTH teams' starting lineups better where they're
+ * actually thin -- the thing that makes the other manager want to say yes.
+ * Priced by qualityScore (the season-long number the needs analysis and
+ * SEASON_PRICER already use), by re-running each roster's depth chart with the
+ * players swapped, so it accounts for who'd actually start, the shared FLEX,
+ * and what each side loses at the position it gives from. */
+export function evaluateTradeFit(
+  myRoster: Player[],
+  theirRoster: Player[],
+  give: Player[],
+  get: Player[],
+  baseline: PositionBaseline
+): TradeFit {
+  const giveIds = new Set(give.map((p) => p.id));
+  const getIds = new Set(get.map((p) => p.id));
+  const myBefore = analyzeRosterNeeds(myRoster);
+  const theirBefore = analyzeRosterNeeds(theirRoster);
+  const myAfter = analyzeRosterNeeds([...myRoster.filter((p) => !giveIds.has(p.id)), ...get]);
+  const theirAfter = analyzeRosterNeeds([...theirRoster.filter((p) => !getIds.has(p.id)), ...give]);
+
+  const myGain = starterTotal(myAfter) - starterTotal(myBefore);
+  const theirGain = starterTotal(theirAfter) - starterTotal(theirBefore);
+  const myNeedsHelped = needsHelped(myBefore, myAfter, baseline);
+  const theirNeedsHelped = needsHelped(theirBefore, theirAfter, baseline);
+
+  // Tier 3 doesn't require THEIR overall lineup total to rise: filling their
+  // hole usually costs them a piece elsewhere, and the fairness ratio (which
+  // already scales for team need) is what says that exchange is even. What
+  // makes it a trade they'd want is that it fixes a position they need.
+  let tier = 0;
+  if (myNeedsHelped.length && theirNeedsHelped.length && myGain > 0) tier = 3;
+  else if (myNeedsHelped.length && myGain > 0 && theirGain > 0) tier = 2;
+  else if (myGain > 0 && theirGain > 0) tier = 1;
+  return { myGain, theirGain, myNeedsHelped, theirNeedsHelped, tier };
+}
+
+/** Sort key among fair trades: better mutual fit first, then how much it
+ * lifts your lineup, with the other side's gain as a smaller tiebreaker (a
+ * trade they'd actually want is worth more than one they'd merely tolerate). */
+export function compareTradeFit(a: TradeFit, b: TradeFit): number {
+  return b.tier - a.tier || b.myGain + 0.5 * b.theirGain - (a.myGain + 0.5 * a.theirGain);
 }

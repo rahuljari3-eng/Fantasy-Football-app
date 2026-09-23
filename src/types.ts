@@ -176,6 +176,24 @@ export type RosterNeeds = Record<Position, PositionNeed>;
 
 export type TradeReason = "need" | "value" | "fallback";
 
+/** How a trade changes both teams' starting lineups -- see evaluateTradeFit
+ * in lib/tradeEngine.ts. */
+export interface TradeFit {
+  /** Change in the total quality score of your starting lineup (FLEX
+   * included) once the trade goes through. Negative = you start worse. */
+  myGain: number;
+  /** Same, for the other team. */
+  theirGain: number;
+  /** Your need positions whose starters get meaningfully better. */
+  myNeedsHelped: Position[];
+  /** Their need positions whose starters get meaningfully better. */
+  theirNeedsHelped: Position[];
+  /** 3 = fills a need for BOTH teams (and your lineup improves), 2 = fills one of yours and they still
+   * come out with a better lineup, 1 = both lineups improve, 0 = otherwise
+   * (e.g. a same-position upgrade that just moves the hole to their roster). */
+  tier: number;
+}
+
 export interface TradeSuggestion {
   id: string;
   teamId: number;
@@ -191,6 +209,7 @@ export interface TradeSuggestion {
   ratio: number;
   upgrade: number;
   reason: TradeReason;
+  fit: TradeFit;
 }
 
 export type TradeHorizon = "week" | "season";

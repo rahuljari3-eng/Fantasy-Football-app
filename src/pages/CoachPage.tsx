@@ -5,6 +5,23 @@ import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
 import { StatusIndicator } from "../components/StatusIndicator";
 import type { FantasyApp } from "../hooks/useFantasyApp";
+import type { TradeSuggestion } from "../types";
+
+/** One line on why the other manager would (or wouldn't) take this -- straight
+ * from evaluateTradeFit's before/after depth charts. */
+function fitSummary(s: TradeSuggestion): { text: string; className: string } {
+  const { theirNeedsHelped, theirGain, myNeedsHelped } = s.fit;
+  const yours = myNeedsHelped.length ? `Upgrades your ${myNeedsHelped.join("/")}` : "Doesn't fill one of your needs";
+  if (theirNeedsHelped.length) {
+    const cost = theirGain < 0 ? " (at the cost of some depth elsewhere)" : "";
+    return {
+      text: `${yours}; fills ${s.teamName}'s ${theirNeedsHelped.join("/")} need too${cost}, so they have a real reason to say yes.`,
+      className: "text-emerald-400",
+    };
+  }
+  if (theirGain > 0) return { text: `${yours}; ${s.teamName}'s starting lineup also gets a bit better.`, className: "text-[#98989D]" };
+  return { text: `${yours}, but it weakens ${s.teamName}'s starting lineup — a harder sell.`, className: "text-amber-400" };
+}
 
 /** Turn a get/give value ratio into a short verdict + a tailwind text color. */
 function ratioVerdict(ratio: number): { label: string; className: string } {
@@ -95,7 +112,8 @@ export function CoachPage({ app }: { app: FantasyApp }) {
         <p className="text-xs text-[#636366] mb-3 max-w-2xl">
           The list always mixes shapes — at least two straight 1-for-1s and two 2-for-2s, never all of one kind. Each card shows a{" "}
           <span className="text-[#C9A227]">value ratio</span> (what you get ÷ what you give, after the package discount and a team-need adjustment).
-          Anything from {FAIR_RATIO_MIN.toFixed(2)}–{FAIR_RATIO_MAX.toFixed(2)} is fair; edges are where your read on team need should decide. Extra
+          Anything from {FAIR_RATIO_MIN.toFixed(2)}–{FAIR_RATIO_MAX.toFixed(2)} is fair; edges are where your read on team need should decide. Trades that fill a need on{" "}
+          <em>both</em> rosters (marked Win-win) are listed first, since those are the ones the other manager actually wants. Extra
           players only count if they genuinely close the gap, and any deal that moves a Tier-1 player must send a Tier-1 or Tier-2 player back. Not loving
           these? Hit "Get new recommendations" for another fair batch.
         </p>
@@ -110,20 +128,26 @@ export function CoachPage({ app }: { app: FantasyApp }) {
           <div className="grid md:grid-cols-2 gap-3">
             {coachSuggestions.map((s) => {
               const verdict = ratioVerdict(s.ratio);
+              // A value/fallback trade can still turn out to fill one of your
+              // needs once both depth charts are re-run -- label it by that.
+              const kind = s.reason === "need" || s.fit.myNeedsHelped.length ? "need" : s.reason;
               return (
                 <div key={s.id} className="bg-[#1C1C1E] border border-[#38383A] rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1.5">
                       <span
                         className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
-                          s.reason === "need" ? "bg-red-500/15 text-red-300 border-red-500/30" : s.reason === "value" ? "bg-[#C9A227]/15 text-[#C9A227] border-[#C9A227]/30" : "bg-[#2C2C2E] text-[#98989D] border-[#38383A]"
+                          kind === "need" ? "bg-red-500/15 text-red-300 border-red-500/30" : kind === "value" ? "bg-[#C9A227]/15 text-[#C9A227] border-[#C9A227]/30" : "bg-[#2C2C2E] text-[#98989D] border-[#38383A]"
                         }`}
                       >
-                        {s.reason === "need" ? "Fills a need" : s.reason === "value" ? "Good value" : "Fair swap"}
+                        {kind === "need" ? "Fills a need" : kind === "value" ? "Good value" : "Fair swap"}
                       </span>
                       <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-[#2C2C2E] text-[#98989D] border-[#38383A]">
                         {s.give.length}-for-{s.get.length}
                       </span>
+                      {s.fit.tier === 3 && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-emerald-500/15 text-emerald-300 border-emerald-500/30">Win-win</span>
+                      )}
                     </div>
                     <span className="text-sm font-medium">{s.teamName}</span>
                   </div>
@@ -165,15 +189,16 @@ export function CoachPage({ app }: { app: FantasyApp }) {
                     {s.reason === "need" ? (
                       <>
                         Shores up your {s.needPos} (+{s.upgrade.toFixed(1)} quality-score upgrade — factoring VOR, the elite-tier curve, and injury risk) by
-                        moving from your {s.overlapPos} depth, which {s.teamName} is genuinely light at.
+                        moving from your {s.overlapPos}, which {s.teamName} is genuinely light at.
                       </>
                     ) : s.reason === "value" ? (
                       <>
                         A roughly even value swap: nudges your {s.needPos} spot up while moving a {s.overlapPos} piece that isn't your top guy there.
                       </>
-                    ) : (
-                      <>A same-position, roughly even value swap with {s.teamName} — not necessarily an upgrade, but a fair baseline option worth having on the table.</>
+                    ) : kind === "need" ? null : (
+                      <>A roughly even value swap with {s.teamName} — not necessarily an upgrade, but a fair baseline option worth having on the table.</>
                     )}
+                    <div className={`${kind === "need" && s.reason === "fallback" ? "" : "mt-1.5 "}${fitSummary(s).className}`}>{fitSummary(s).text}</div>
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">

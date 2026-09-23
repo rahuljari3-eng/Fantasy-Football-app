@@ -72,3 +72,14 @@ export const COACH_MAX_SUGGESTIONS = 6;
  * short). The remaining slots are filled with the best of anything left. */
 export const COACH_MIN_ONE_FOR_ONE = 2;
 export const COACH_MIN_TWO_FOR_TWO = 2;
+
+/** MUTUAL FIT: a position counts as a team's "need" when its starter quality
+ * score sits below this fraction of the league-average starter there (or it
+ * can't fill its required slots at all). Same bar the AI Coach's own needs
+ * list uses. */
+export const NEED_BASELINE_FRACTION = 0.85;
+
+/** A trade only "helps a need" if the team's starter quality score at that
+ * needy position rises by at least this fraction -- so swapping one
+ * replacement-level body for another doesn't count as filling a hole. */
+export const NEED_HELP_MIN_GAIN = 0.03;
