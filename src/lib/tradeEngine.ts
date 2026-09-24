@@ -130,16 +130,26 @@ export function ratioIsFair(ratio: number): boolean {
   return ratio >= FAIR_RATIO_MIN && ratio <= FAIR_RATIO_MAX;
 }
 
-/** The other manager's side of the deal, on straight value with no
- * team-need scaling: what you receive must not be worth more than
- * FAIR_RATIO_MAX times what you send. The need-adjusted ratio alone can call
- * a trade fair because the players you get sit at a position you're already
- * deep at (NEED_MULTIPLIER_STACKED) -- e.g. TreVeyon Henderson for Tyler
- * Shough + Christian Watson -- while the other manager would be handing over
- * a quarter more value than he gets back. Nobody accepts that, so it isn't
- * worth suggesting. Paying extra for a need (the ratio below 1) stays fine. */
-export function notLopsidedForThem(give: Player[], get: Player[], pricer: Pricer): boolean {
-  return fairnessRatio(packageValue(give, pricer), packageValue(get, pricer)) <= FAIR_RATIO_MAX;
+/** Would the other manager -- and the trade market -- also call this fair?
+ * The need-adjusted ratio is your formula; on top of it a suggestion must:
+ *
+ *  1. Not be lopsided for them on straight value (no team-need scaling):
+ *     what you get can't be worth more than FAIR_RATIO_MAX times what you
+ *     give. The need-adjusted ratio alone can call a trade fair because the
+ *     players you get sit at a position you're already deep at -- e.g.
+ *     TreVeyon Henderson for Tyler Shough + Christian Watson -- while the
+ *     other manager hands over a quarter more value than he gets back.
+ *     Paying extra for a need (straight-value ratio below 1) stays fine.
+ *  2. Land inside the same fair window priced by the trade market alone
+ *     (MARKET_PRICER). Otherwise your formula could say "you win" while the
+ *     market badge says "you overpay ~20%" -- usually a player the
+ *     projections like far more than the market does (or vice versa), or the
+ *     need bonus stacking on top. A trade real managers price as an overpay
+ *     isn't one worth suggesting, and one they price as a steal won't be
+ *     accepted. */
+export function otherSideWouldConsider(give: Player[], get: Player[], pricer: Pricer): boolean {
+  if (fairnessRatio(packageValue(give, pricer), packageValue(get, pricer)) > FAIR_RATIO_MAX) return false;
+  return ratioIsFair(fairnessRatio(packageValue(give, MARKET_PRICER), packageValue(get, MARKET_PRICER)));
 }
 
 /** How much an incoming player's value should be scaled for a team, given
@@ -217,7 +227,7 @@ export function balancePackage(
     return { give, get, giveVal, getVal, ratio: fairnessRatio(giveVal, getVal) };
   };
 
-  const acceptable = (p: BalancedPackage) => ratioIsFair(p.ratio) && starGateOk(p.give, p.get, pricer) && notLopsidedForThem(p.give, p.get, pricer);
+  const acceptable = (p: BalancedPackage) => ratioIsFair(p.ratio) && starGateOk(p.give, p.get, pricer) && otherSideWouldConsider(p.give, p.get, pricer);
 
   const base = evaluate(giveList, getList);
   if (acceptable(base)) return base;
@@ -273,7 +283,7 @@ export function balanceTwoForTwo(
       const giveVal = needAdjustedPackageValue(give, theirNeeds, baseline, pricer);
       const getVal = needAdjustedPackageValue(get, yourNeeds, baseline, pricer);
       const ratio = fairnessRatio(giveVal, getVal);
-      if (ratioIsFair(ratio) && starGateOk(give, get, pricer) && notLopsidedForThem(give, get, pricer) && (!best || Math.abs(ratio - 1) < Math.abs(best.ratio - 1))) {
+      if (ratioIsFair(ratio) && starGateOk(give, get, pricer) && otherSideWouldConsider(give, get, pricer) && (!best || Math.abs(ratio - 1) < Math.abs(best.ratio - 1))) {
         best = { give, get, giveVal, getVal, ratio };
       }
     }

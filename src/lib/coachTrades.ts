@@ -24,7 +24,7 @@ import {
   fairnessRatio,
   isNeedPosition,
   needAdjustedPackageValue,
-  notLopsidedForThem,
+  otherSideWouldConsider,
   ratioIsFair,
   starGateOk,
   SEASON_PRICER,
@@ -285,7 +285,7 @@ function mutualFitSuggestions(ctx: CoachContext): TradeSuggestion[] {
           getOptions.forEach((get) => {
             const getVal = needAdjustedPackageValue(get, myNeeds, leagueBaseline, SEASON_PRICER);
             const ratio = fairnessRatio(giveVal, getVal);
-            if (!ratioIsFair(ratio) || !starGateOk(give, get, SEASON_PRICER) || !notLopsidedForThem(give, get, SEASON_PRICER)) return;
+            if (!ratioIsFair(ratio) || !starGateOk(give, get, SEASON_PRICER) || !otherSideWouldConsider(give, get, SEASON_PRICER)) return;
             const fit = tradeFitFor(team.roster, give, get);
             if (fit.tier < 2) return;
             teamFound.push({
@@ -408,7 +408,7 @@ function fallbackSuggestions(ctx: CoachContext): TradeSuggestion[] {
     const getVal = SEASON_PRICER.value(closest);
     const ratio = fairnessRatio(giveVal, getVal);
     if (ratio < FAIR_RATIO_MIN || ratio > FAIR_RATIO_MAX) return;
-    if (!starGateOk([candidateGive], [closest], SEASON_PRICER)) return;
+    if (!starGateOk([candidateGive], [closest], SEASON_PRICER) || !otherSideWouldConsider([candidateGive], [closest], SEASON_PRICER)) return;
     found.push({
       id: `fallback-${theirTeam.id}-${closest.id}-${candidateGive.id}`,
       teamId: theirTeam.id,
@@ -462,7 +462,7 @@ function twoForTwoFallbackSuggestions(ctx: CoachContext): TradeSuggestion[] {
           const get = [theirActive[i], theirActive[j]];
           const getVal = needAdjustedPackageValue(get, myNeeds, leagueBaseline, SEASON_PRICER);
           const ratio = getVal / giveVal;
-          if (ratio < FAIR_RATIO_MIN || ratio > FAIR_RATIO_MAX || !starGateOk(give, get, SEASON_PRICER) || !notLopsidedForThem(give, get, SEASON_PRICER)) continue;
+          if (ratio < FAIR_RATIO_MIN || ratio > FAIR_RATIO_MAX || !starGateOk(give, get, SEASON_PRICER) || !otherSideWouldConsider(give, get, SEASON_PRICER)) continue;
           const fit = tradeFitFor(team.roster, give, get);
           const cur = best as Pick | null;
           if (!cur || compareTradeFit(fit, cur.fit) < 0 || (compareTradeFit(fit, cur.fit) === 0 && Math.abs(ratio - 1) < Math.abs(cur.ratio - 1))) {
