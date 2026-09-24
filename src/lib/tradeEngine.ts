@@ -130,6 +130,18 @@ export function ratioIsFair(ratio: number): boolean {
   return ratio >= FAIR_RATIO_MIN && ratio <= FAIR_RATIO_MAX;
 }
 
+/** The other manager's side of the deal, on straight value with no
+ * team-need scaling: what you receive must not be worth more than
+ * FAIR_RATIO_MAX times what you send. The need-adjusted ratio alone can call
+ * a trade fair because the players you get sit at a position you're already
+ * deep at (NEED_MULTIPLIER_STACKED) -- e.g. TreVeyon Henderson for Tyler
+ * Shough + Christian Watson -- while the other manager would be handing over
+ * a quarter more value than he gets back. Nobody accepts that, so it isn't
+ * worth suggesting. Paying extra for a need (the ratio below 1) stays fine. */
+export function notLopsidedForThem(give: Player[], get: Player[], pricer: Pricer): boolean {
+  return fairnessRatio(packageValue(give, pricer), packageValue(get, pricer)) <= FAIR_RATIO_MAX;
+}
+
 /** How much an incoming player's value should be scaled for a team, given
  * that team's depth at his position versus the league-average starter there:
  * up if he genuinely fills a hole, down if they're already stacked.
@@ -205,7 +217,7 @@ export function balancePackage(
     return { give, get, giveVal, getVal, ratio: fairnessRatio(giveVal, getVal) };
   };
 
-  const acceptable = (p: BalancedPackage) => ratioIsFair(p.ratio) && starGateOk(p.give, p.get, pricer);
+  const acceptable = (p: BalancedPackage) => ratioIsFair(p.ratio) && starGateOk(p.give, p.get, pricer) && notLopsidedForThem(p.give, p.get, pricer);
 
   const base = evaluate(giveList, getList);
   if (acceptable(base)) return base;
@@ -261,7 +273,7 @@ export function balanceTwoForTwo(
       const giveVal = needAdjustedPackageValue(give, theirNeeds, baseline, pricer);
       const getVal = needAdjustedPackageValue(get, yourNeeds, baseline, pricer);
       const ratio = fairnessRatio(giveVal, getVal);
-      if (ratioIsFair(ratio) && starGateOk(give, get, pricer) && (!best || Math.abs(ratio - 1) < Math.abs(best.ratio - 1))) {
+      if (ratioIsFair(ratio) && starGateOk(give, get, pricer) && notLopsidedForThem(give, get, pricer) && (!best || Math.abs(ratio - 1) < Math.abs(best.ratio - 1))) {
         best = { give, get, giveVal, getVal, ratio };
       }
     }
