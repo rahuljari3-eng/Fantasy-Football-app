@@ -502,13 +502,33 @@ export interface CoachPools {
 }
 
 export function buildCoachPools(ctx: CoachContext): CoachPools {
-  return {
+  const pools: CoachPools = {
     mutual: mutualFitSuggestions(ctx),
     need: needBasedSuggestions(ctx),
     general: generalSuggestions(ctx),
     fallback: fallbackSuggestions(ctx),
     twoForTwoFallback: twoForTwoFallbackSuggestions(ctx),
   };
+  const all = allPoolSuggestions(pools);
+  return filterPools(pools, (s) => !all.some((t) => dominates(t, s)));
+}
+
+/** True when `t` is strictly the better deal for you than `s` with the same
+ * manager: you give the same players or fewer and get the same or more.
+ * The generators run independently, so without this the list could show
+ * "Moore + Johnson for McConkey + Williams" next to "Moore + Johnson for
+ * Williams" -- the second is just the first minus a free player, and seeing
+ * both makes neither look trustworthy. */
+function dominates(t: TradeSuggestion, s: TradeSuggestion): boolean {
+  if (t === s || t.teamId !== s.teamId) return false;
+  const ids = (ps: Player[]) => new Set(ps.map((p) => p.id));
+  const tGive = ids(t.give);
+  const tGet = ids(t.get);
+  const sGive = ids(s.give);
+  const sGet = ids(s.get);
+  const giveSubset = [...tGive].every((id) => sGive.has(id));
+  const getSuperset = [...sGet].every((id) => tGet.has(id));
+  return giveSubset && getSuperset && (tGive.size < sGive.size || tGet.size > sGet.size);
 }
 
 /** The same pools with `keep` applied to every one of them -- filtering
