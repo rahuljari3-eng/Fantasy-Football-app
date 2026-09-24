@@ -4,17 +4,17 @@
   "3": {
    "8439": {
     "espn": 14.1,
-    "custom": 14.1,
+    "custom": 14.2,
     "actual": null
    },
    "12483": {
     "espn": 15.7,
-    "custom": 15.5,
+    "custom": 15.4,
     "actual": null
    },
    "14880": {
     "espn": 13,
-    "custom": 14,
+    "custom": 13.9,
     "actual": null
    },
    "15168": {
@@ -24,7 +24,7 @@
    },
    "15818": {
     "espn": 9.5,
-    "custom": 8.4,
+    "custom": 8.5,
     "actual": null
    },
    "15835": {
@@ -34,12 +34,12 @@
    },
    "15847": {
     "espn": 12.7,
-    "custom": 12.3,
+    "custom": 12.2,
     "actual": null
    },
    "15864": {
     "espn": 15.1,
-    "custom": 15.1,
+    "custom": 15.2,
     "actual": null
    },
    "16002": {
@@ -74,7 +74,7 @@
    },
    "2576336": {
     "espn": 1.9,
-    "custom": 1.9,
+    "custom": 2.3,
     "actual": null
    },
    "2576581": {
@@ -84,12 +84,12 @@
    },
    "2576925": {
     "espn": 5.6,
-    "custom": 6.6,
+    "custom": 5.8,
     "actual": null
    },
    "2576980": {
     "espn": 15.3,
-    "custom": 14.2,
+    "custom": 13.5,
     "actual": null
    },
    "2577417": {
@@ -104,7 +104,7 @@
    },
    "2969939": {
     "espn": 14.7,
-    "custom": 14.5,
+    "custom": 14.8,
     "actual": null
    },
    "2973405": {
@@ -124,17 +124,17 @@
    },
    "2976212": {
     "espn": 10.8,
-    "custom": 10.2,
+    "custom": 9.7,
     "actual": null
    },
    "2977187": {
     "espn": 5.9,
-    "custom": 6.6,
+    "custom": 5.3,
     "actual": null
    },
    "2991662": {
     "espn": 8.8,
-    "custom": 7.9,
+    "custom": 8,
     "actual": null
    },
    "2998565": {
@@ -149,7 +149,7 @@
    },
    "3042519": {
     "espn": 13.6,
-    "custom": 13.3,
+    "custom": 13.2,
     "actual": null
    },
    "3043078": {
@@ -219,7 +219,7 @@
    },
    "3116164": {
     "espn": 6.6,
-    "custom": 6.6,
+    "custom": 6.5,
     "actual": null
    },
    "3116165": {
@@ -244,12 +244,12 @@
    },
    "3117256": {
     "espn": 9.5,
-    "custom": 10,
+    "custom": 10.2,
     "actual": null
    },
    "3121422": {
     "espn": 11.9,
-    "custom": 11.1,
+    "custom": 10.2,
     "actual": null
    },
    "3122840": {
@@ -324,12 +324,12 @@
    },
    "3915416": {
     "espn": 12.6,
-    "custom": 11.9,
+    "custom": 11.8,
     "actual": null
    },
    "3915511": {
     "espn": 16.4,
-    "custom": 17.3,
+    "custom": 17.4,
     "actual": null
    },
    "3916148": {
@@ -359,7 +359,7 @@
    },
    "3917792": {
     "espn": 14,
-    "custom": 13.9,
+    "custom": 14.3,
     "actual": null
    },
    "3917914": {
@@ -369,7 +369,7 @@
    },
    "3918298": {
     "espn": 23.6,
-    "custom": 22.9,
+    "custom": 23,
     "actual": null
    },
    "3921690": {
@@ -394,7 +394,7 @@
    },
    "3929645": {
     "espn": 9.2,
-    "custom": 9.8,
+    "custom": 8.5,
     "actual": null
    },
    "3929914": {
@@ -409,7 +409,7 @@
    },
    "4032473": {
     "espn": 10.9,
-    "custom": 9.6,
+    "custom": 8.3,
     "actual": null
    },
    "4035020": {
@@ -424,7 +424,7 @@
    },
    "4035538": {
     "espn": 11.9,
-    "custom": 13.3,
+    "custom": 12.6,
     "actual": null
    },
    "4035687": {
@@ -439,12 +439,12 @@
    },
    "4036133": {
     "espn": 9.2,
-    "custom": 8.4,
+    "custom": 8.3,
     "actual": null
    },
    "4036378": {
     "espn": 17.3,
-    "custom": 16.1,
+    "custom": 16,
     "actual": null
    },
    "4038441": {
@@ -459,7 +459,7 @@
    },
    "4038941": {
     "espn": 17.3,
-    "custom": 16.7,
+    "custom": 16.6,
     "actual": null
    },
    "4039050": {
@@ -479,17 +479,17 @@
    },
    "4040655": {
     "espn": 5,
-    "custom": 4.6,
+    "custom": 4.7,
     "actual": null
    },
    "4040715": {
     "espn": 19.8,
-    "custom": 19.4,
+    "custom": 18.5,
     "actual": null
    },
    "4040761": {
     "espn": 5.2,
-    "custom": 5.2,
+    "custom": 5.1,
     "actual": null
    },
    "4045305": {
@@ -524,7 +524,7 @@
    },
    "4239993": {
     "espn": 12.7,
-    "custom": 12,
+    "custom": 12.2,
     "actual": null
    },
    "4239996": {
@@ -534,7 +534,7 @@
    },
    "4240472": {
     "espn": 2.6,
-    "custom": 3.1,
+    "custom": 3,
     "actual": null
    },
    "4240631": {
@@ -549,7 +549,7 @@
    },
    "4241389": {
     "espn": 17.3,
-    "custom": 17.2,
+    "custom": 17,
     "actual": null
    },
    "4241410": {
@@ -559,7 +559,7 @@
    },
    "4241416": {
     "espn": 14.4,
-    "custom": 14.7,
+    "custom": 15.3,
     "actual": null
    },
    "4241424": {
@@ -569,7 +569,7 @@
    },
    "4241457": {
     "espn": 3.4,
-    "custom": 3.6,
+    "custom": 3.5,
     "actual": null
    },
    "4241463": {
@@ -579,7 +579,7 @@
    },
    "4241474": {
     "espn": 5.7,
-    "custom": 5.1,
+    "custom": 5,
     "actual": null
    },
    "4241478": {
@@ -614,12 +614,12 @@
    },
    "4242433": {
     "espn": 2.6,
-    "custom": 2.3,
+    "custom": 2.2,
     "actual": null
    },
    "4242512": {
     "espn": 14.7,
-    "custom": 14.8,
+    "custom": 15,
     "actual": null
    },
    "4242557": {
@@ -639,7 +639,7 @@
    },
    "4248528": {
     "espn": 14,
-    "custom": 14.8,
+    "custom": 14.9,
     "actual": null
    },
    "4248557": {
@@ -649,7 +649,7 @@
    },
    "4258173": {
     "espn": 15.8,
-    "custom": 15.3,
+    "custom": 15.2,
     "actual": null
    },
    "4258595": {
@@ -674,17 +674,17 @@
    },
    "4360248": {
     "espn": 9.9,
-    "custom": 9.1,
+    "custom": 9.2,
     "actual": null
    },
    "4360310": {
     "espn": 17.4,
-    "custom": 17.2,
+    "custom": 17.4,
     "actual": null
    },
    "4360423": {
     "espn": 14.1,
-    "custom": 13.4,
+    "custom": 13.5,
     "actual": null
    },
    "4360635": {
@@ -694,7 +694,7 @@
    },
    "4360689": {
     "espn": 18.8,
-    "custom": 19,
+    "custom": 19.1,
     "actual": null
    },
    "4360761": {
@@ -719,7 +719,7 @@
    },
    "4361050": {
     "espn": 12.2,
-    "custom": 11,
+    "custom": 11.2,
     "actual": null
    },
    "4361307": {
@@ -739,7 +739,7 @@
    },
    "4361409": {
     "espn": 6.3,
-    "custom": 5.5,
+    "custom": 5.4,
     "actual": null
    },
    "4361411": {
@@ -779,7 +779,7 @@
    },
    "4362238": {
     "espn": 16.6,
-    "custom": 17.2,
+    "custom": 17.1,
     "actual": null
    },
    "4362477": {
@@ -794,12 +794,12 @@
    },
    "4362619": {
     "espn": 4.3,
-    "custom": 4,
+    "custom": 4.1,
     "actual": null
    },
    "4362628": {
     "espn": 18.9,
-    "custom": 18.1,
+    "custom": 18,
     "actual": null
    },
    "4362921": {
@@ -869,17 +869,17 @@
    },
    "4374302": {
     "espn": 19.9,
-    "custom": 19,
+    "custom": 19.2,
     "actual": null
    },
    "4379399": {
     "espn": 17,
-    "custom": 17.2,
+    "custom": 17,
     "actual": null
    },
    "4382466": {
     "espn": 6.3,
-    "custom": 6.5,
+    "custom": 6.4,
     "actual": null
    },
    "4383396": {
@@ -914,7 +914,7 @@
    },
    "4426338": {
     "espn": 16.6,
-    "custom": 15.8,
+    "custom": 15.7,
     "actual": null
    },
    "4426354": {
@@ -924,7 +924,7 @@
    },
    "4426388": {
     "espn": 10.9,
-    "custom": 10.9,
+    "custom": 10.8,
     "actual": null
    },
    "4426485": {
@@ -939,12 +939,12 @@
    },
    "4426502": {
     "espn": 15.4,
-    "custom": 14.8,
+    "custom": 15.1,
     "actual": null
    },
    "4426515": {
     "espn": 19.9,
-    "custom": 18.7,
+    "custom": 18.6,
     "actual": null
    },
    "4426553": {
@@ -959,12 +959,12 @@
    },
    "4427095": {
     "espn": 8.9,
-    "custom": 7.6,
+    "custom": 7.5,
     "actual": null
    },
    "4427366": {
     "espn": 16.2,
-    "custom": 14.7,
+    "custom": 15.2,
     "actual": null
    },
    "4427834": {
@@ -974,7 +974,7 @@
    },
    "4428331": {
     "espn": 12.7,
-    "custom": 12.3,
+    "custom": 12.2,
     "actual": null
    },
    "4428396": {
@@ -1004,22 +1004,22 @@
    },
    "4429022": {
     "espn": 6.8,
-    "custom": 7.2,
+    "custom": 6.8,
     "actual": null
    },
    "4429023": {
     "espn": 8.6,
-    "custom": 7,
+    "custom": 7.1,
     "actual": null
    },
    "4429025": {
     "espn": 10.9,
-    "custom": 9.3,
+    "custom": 9.2,
     "actual": null
    },
    "4429059": {
     "espn": 8.6,
-    "custom": 7.7,
+    "custom": 7.5,
     "actual": null
    },
    "4429086": {
@@ -1029,17 +1029,17 @@
    },
    "4429096": {
     "espn": 8.6,
-    "custom": 8.3,
+    "custom": 8.2,
     "actual": null
    },
    "4429148": {
     "espn": 2.9,
-    "custom": 3.1,
+    "custom": 3.2,
     "actual": null
    },
    "4429160": {
     "espn": 19.4,
-    "custom": 17.5,
+    "custom": 17.6,
     "actual": null
    },
    "4429205": {
@@ -1059,17 +1059,17 @@
    },
    "4429795": {
     "espn": 25.3,
-    "custom": 23.6,
+    "custom": 24,
     "actual": null
    },
    "4429835": {
     "espn": 3.2,
-    "custom": 5.4,
+    "custom": 4.2,
     "actual": null
    },
    "4430027": {
     "espn": 11.2,
-    "custom": 11.1,
+    "custom": 11.2,
     "actual": null
    },
    "4430034": {
@@ -1099,7 +1099,7 @@
    },
    "4430737": {
     "espn": 12.6,
-    "custom": 11.8,
+    "custom": 11.7,
     "actual": null
    },
    "4430802": {
@@ -1124,7 +1124,7 @@
    },
    "4430878": {
     "espn": 20.8,
-    "custom": 21.3,
+    "custom": 19.9,
     "actual": null
    },
    "4430968": {
@@ -1164,7 +1164,7 @@
    },
    "4431459": {
     "espn": 12.3,
-    "custom": 11.1,
+    "custom": 11.9,
     "actual": null
    },
    "4431466": {
@@ -1189,7 +1189,7 @@
    },
    "4432577": {
     "espn": 16.1,
-    "custom": 16,
+    "custom": 15.8,
     "actual": null
    },
    "4432620": {
@@ -1199,17 +1199,17 @@
    },
    "4432665": {
     "espn": 14.2,
-    "custom": 13.9,
+    "custom": 13.7,
     "actual": null
    },
    "4432708": {
     "espn": 7,
-    "custom": 6.4,
+    "custom": 6.5,
     "actual": null
    },
    "4432710": {
     "espn": 10.5,
-    "custom": 10.2,
+    "custom": 10,
     "actual": null
    },
    "4432773": {
@@ -1224,7 +1224,7 @@
    },
    "4567048": {
     "espn": 21,
-    "custom": 20.5,
+    "custom": 20.3,
     "actual": null
    },
    "4567096": {
@@ -1249,7 +1249,7 @@
    },
    "4569173": {
     "espn": 12,
-    "custom": 11.2,
+    "custom": 11.3,
     "actual": null
    },
    "4569371": {
@@ -1264,7 +1264,7 @@
    },
    "4569559": {
     "espn": 11.5,
-    "custom": 11.4,
+    "custom": 11.5,
     "actual": null
    },
    "4569587": {
@@ -1279,12 +1279,12 @@
    },
    "4569618": {
     "espn": 14.7,
-    "custom": 14.5,
+    "custom": 14.7,
     "actual": null
    },
    "4569987": {
     "espn": 14.9,
-    "custom": 14.1,
+    "custom": 14.2,
     "actual": null
    },
    "4570037": {
@@ -1314,22 +1314,22 @@
    },
    "4576297": {
     "espn": 6.6,
-    "custom": 7.5,
+    "custom": 6.5,
     "actual": null
    },
    "4586312": {
     "espn": 3.9,
-    "custom": 3.9,
+    "custom": 4.5,
     "actual": null
    },
    "4595342": {
     "espn": 8.7,
-    "custom": 8.8,
+    "custom": 8.7,
     "actual": null
    },
    "4595348": {
     "espn": 14.4,
-    "custom": 14,
+    "custom": 14.3,
     "actual": null
    },
    "4596334": {
@@ -1354,7 +1354,7 @@
    },
    "4600981": {
     "espn": 5.8,
-    "custom": 6.7,
+    "custom": 6.6,
     "actual": null
    },
    "4601080": {
@@ -1369,7 +1369,7 @@
    },
    "4603186": {
     "espn": 4.7,
-    "custom": 4.9,
+    "custom": 4.8,
     "actual": null
    },
    "4608686": {
@@ -1409,7 +1409,7 @@
    },
    "4682648": {
     "espn": 8.3,
-    "custom": 7.2,
+    "custom": 7.4,
     "actual": null
    },
    "4682745": {
@@ -1419,7 +1419,7 @@
    },
    "4683062": {
     "espn": 11.4,
-    "custom": 10.3,
+    "custom": 10.2,
     "actual": null
    },
    "4683151": {
@@ -1459,7 +1459,7 @@
    },
    "4685382": {
     "espn": 15,
-    "custom": 14.6,
+    "custom": 14.5,
     "actual": null
    },
    "4685415": {
@@ -1469,7 +1469,7 @@
    },
    "4685472": {
     "espn": 14.2,
-    "custom": 14,
+    "custom": 12.9,
     "actual": null
    },
    "4685504": {
@@ -1479,7 +1479,7 @@
    },
    "4685512": {
     "espn": 12.1,
-    "custom": 11.9,
+    "custom": 11.1,
     "actual": null
    },
    "4685553": {
@@ -1489,17 +1489,17 @@
    },
    "4685555": {
     "espn": 1.4,
-    "custom": 1.6,
+    "custom": 1.7,
     "actual": null
    },
    "4685702": {
     "espn": 13.7,
-    "custom": 12.7,
+    "custom": 13.3,
     "actual": null
    },
    "4685720": {
     "espn": 16.7,
-    "custom": 16.9,
+    "custom": 16.8,
     "actual": null
    },
    "4686248": {
@@ -1509,7 +1509,7 @@
    },
    "4686422": {
     "espn": 7.1,
-    "custom": 6.2,
+    "custom": 7.4,
     "actual": null
    },
    "4686468": {
@@ -1524,7 +1524,7 @@
    },
    "4686612": {
     "espn": 8,
-    "custom": 7.6,
+    "custom": 7.1,
     "actual": null
    },
    "4686658": {
@@ -1534,17 +1534,17 @@
    },
    "4686728": {
     "espn": 7.9,
-    "custom": 7.8,
+    "custom": 7.7,
     "actual": null
    },
    "4688380": {
     "espn": 13.9,
-    "custom": 13.8,
+    "custom": 13.2,
     "actual": null
    },
    "4688813": {
     "espn": 11.5,
-    "custom": 11.4,
+    "custom": 11.3,
     "actual": null
    },
    "4690143": {
@@ -1564,12 +1564,12 @@
    },
    "4695705": {
     "espn": 0.5,
-    "custom": 1.2,
+    "custom": 1.1,
     "actual": null
    },
    "4695883": {
     "espn": 13.8,
-    "custom": 14.1,
+    "custom": 14,
     "actual": null
    },
    "4696044": {
@@ -1584,7 +1584,7 @@
    },
    "4696981": {
     "espn": 14,
-    "custom": 14.2,
+    "custom": 14,
     "actual": null
    },
    "4697815": {
@@ -1599,7 +1599,7 @@
    },
    "4701936": {
     "espn": 11.4,
-    "custom": 11.5,
+    "custom": 11.3,
     "actual": null
    },
    "4702555": {
@@ -1649,7 +1649,7 @@
    },
    "4819231": {
     "espn": 7.9,
-    "custom": 7.6,
+    "custom": 7.7,
     "actual": null
    },
    "4831959": {
@@ -1659,7 +1659,7 @@
    },
    "4832800": {
     "espn": 11.3,
-    "custom": 10.5,
+    "custom": 10.9,
     "actual": null
    },
    "4832846": {
@@ -1669,7 +1669,7 @@
    },
    "4832955": {
     "espn": 6.1,
-    "custom": 7.1,
+    "custom": 7,
     "actual": null
    },
    "4869645": {
@@ -1689,7 +1689,7 @@
    },
    "4870653": {
     "espn": 11,
-    "custom": 10.1,
+    "custom": 9.6,
     "actual": null
    },
    "4870795": {
@@ -1704,7 +1704,7 @@
    },
    "4871023": {
     "espn": 11.8,
-    "custom": 10.7,
+    "custom": 10.6,
     "actual": null
    },
    "4879194": {
@@ -1724,7 +1724,7 @@
    },
    "4882093": {
     "espn": 11,
-    "custom": 11.6,
+    "custom": 11.7,
     "actual": null
    },
    "4883647": {
@@ -1734,12 +1734,12 @@
    },
    "4887558": {
     "espn": 8.9,
-    "custom": 5.6,
+    "custom": 7.6,
     "actual": null
    },
    "4890973": {
     "espn": 18.9,
-    "custom": 17,
+    "custom": 18.5,
     "actual": null
    },
    "4911851": {
@@ -1779,12 +1779,12 @@
    },
    "5082630": {
     "espn": 1.6,
-    "custom": 1.8,
+    "custom": 1.7,
     "actual": null
    },
    "5083076": {
     "espn": 9.8,
-    "custom": 9.4,
+    "custom": 9.7,
     "actual": null
    },
    "5083315": {
