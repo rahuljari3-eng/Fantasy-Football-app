@@ -23,7 +23,6 @@ import {
   evaluateTradeFit,
   fairnessRatio,
   isNeedPosition,
-  marketCheck,
   needAdjustedPackageValue,
   ratioIsFair,
   starGateOk,
@@ -529,80 +528,18 @@ export function allPoolSuggestions(pools: CoachPools): TradeSuggestion[] {
   return [...pools.mutual, ...pools.need, ...pools.general, ...pools.fallback, ...pools.twoForTwoFallback];
 }
 
-/** Where the trade market alone puts a suggestion (lib/tradeEngine.ts
- * marketCheck): 0 = market-fair (or the market has no opinion), 1 = the
- * market says you win big (the other manager likely balks), 2 = the market
- * says you overpay. Every suggestion is already fair by the app's own
- * formula; this only decides how early it gets shown. */
-function marketTier(s: TradeSuggestion): number {
-  const tone = marketCheck(s.give, s.get)?.tone;
-  return tone === "you_overpay" ? 2 : tone === "you_win" ? 1 : 0;
-}
-
-/** The list the Coach tab shows: trades the market also calls fair come
- * first, and ones the market flags (you win big, then you overpay) are only
- * used once the fair ones are exhausted -- i.e. toward the end of cycling
- * "Get new recommendations" -- and always sort to the bottom of a batch.
- * Within each market tier: shape minimums, good fits first with slots
+/** The list the Coach tab shows: shape minimums, good fits first with slots
  * reserved for other fair trades, skipping anything in `excludedKeys` (already
  * shown via "Get new recommendations") unless that would leave it short. */
 export function mixCoachSuggestions(pools: CoachPools, excludedKeys: Set<string> = new Set(), max: number = COACH_MAX_SUGGESTIONS): TradeSuggestion[] {
-  const tiers = new Map<string, number>();
-  const tierOf = (s: TradeSuggestion) => {
-    const key = suggestionKey(s);
-    let t = tiers.get(key);
-    if (t == null) tiers.set(key, (t = marketTier(s)));
-    return t;
-  };
-
-  const combined: TradeSuggestion[] = [];
-  const usedKeys = new Set<string>();
-  for (const maxTier of [0, 1, 2]) {
-    if (combined.length >= max) break;
-    const tierPools = filterPools(pools, (s) => tierOf(s) <= maxTier);
-    const skip = new Set([...excludedKeys, ...usedKeys]);
-    for (const s of mixFreshSuggestions(tierPools, skip, max - combined.length)) {
-      usedKeys.add(suggestionKey(s));
-      combined.push(s);
-    }
-  }
-
-  // If excluding already-seen suggestions leaves the list short, top it off
-  // with the best previously-seen ones (market-fair first) rather than
-  // showing an empty tab -- still good, reasonable trades, just not brand new.
-  if (combined.length < max) {
-    const everything = allPoolSuggestions(pools).sort((a, b) => tierOf(a) - tierOf(b) || rankSuggestions(a, b));
-    for (const s of everything) {
-      if (combined.length >= max) break;
-      const key = suggestionKey(s);
-      if (usedKeys.has(key)) continue;
-      usedKeys.add(key);
-      combined.push(s);
-    }
-  }
-
-  // The shape minimums decide WHICH trades make the cut; display order is
-  // market tier, then pure rank, so a Win-win 2-for-2 isn't buried under a
-  // forced 1-for-1 that doesn't help the other side, and a market overpay
-  // never sits above a market-fair trade.
-  return combined.sort((a, b) => tierOf(a) - tierOf(b) || rankSuggestions(a, b));
-}
-
-/** Mutual fit leads (a trade that fills a need on BOTH rosters is the one
- * the other manager actually wants), then need-driven over value-driven,
- * then the biggest lift to your lineup. */
-function rankSuggestions(a: TradeSuggestion, b: TradeSuggestion): number {
-  const priority = (s: TradeSuggestion) => (s.reason === "need" ? 1 : 0);
-  return b.fit.tier - a.fit.tier || priority(b) - priority(a) || compareTradeFit(a.fit, b.fit);
-}
-
-/** Up to `max` suggestions not in `excludedKeys`: shape minimums, then good
- * fits with slots reserved for other fair trades. No top-off with excluded
- * ones -- mixCoachSuggestions does that once every market tier is used. */
-function mixFreshSuggestions(pools: CoachPools, excludedKeys: Set<string>, max: number): TradeSuggestion[] {
     const notExcluded = (s: TradeSuggestion) => !excludedKeys.has(suggestionKey(s));
     const deduped = dedupeSuggestions([...pools.mutual, ...pools.need, ...pools.general].filter(notExcluded));
-    const byRank = rankSuggestions;
+    // Mutual fit leads (a trade that fills a need on BOTH rosters is the one
+    // the other manager actually wants), then need-driven over value-driven,
+    // then the biggest lift to your lineup.
+    const priority = (s: TradeSuggestion) => (s.reason === "need" ? 1 : 0);
+    const byRank = (a: TradeSuggestion, b: TradeSuggestion) =>
+      b.fit.tier - a.fit.tier || priority(b) - priority(a) || compareTradeFit(a.fit, b.fit);
 
     const is1x1 = (s: TradeSuggestion) => s.give.length === 1 && s.get.length === 1;
     const is2x2 = (s: TradeSuggestion) => s.give.length === 2 && s.get.length === 2;
@@ -646,7 +583,30 @@ function mixFreshSuggestions(pools: CoachPools, excludedKeys: Set<string>, max: 
     // Not enough other trades to fill the reserve -> give it back to good fits.
     take(rest, max);
 
-    return combined;
+    // If excluding already-seen suggestions leaves the list short, top it off
+    // with the best previously-seen ones rather than showing an empty tab --
+    // still good, reasonable trades, just not brand new.
+    if (combined.length < max) {
+      const everything = [
+        ...pools.mutual,
+        ...pools.need,
+        ...pools.general,
+        ...pools.fallback,
+        ...pools.twoForTwoFallback,
+      ].sort(byRank);
+      for (const s of everything) {
+        if (combined.length >= max) break;
+        const key = suggestionKey(s);
+        if (usedKeys.has(key)) continue;
+        usedKeys.add(key);
+        combined.push(s);
+      }
+    }
+
+    // The shape minimums above decide WHICH trades make the cut; display
+    // order is pure rank, so a Win-win 2-for-2 isn't buried under a forced
+    // 1-for-1 that doesn't help the other side.
+    return combined.sort(byRank);
 }
 
 /** One-call version for callers without React state (Roster Sensei).
