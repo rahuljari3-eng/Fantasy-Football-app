@@ -1002,9 +1002,9 @@ export function useFantasyApp() {
       const theirTeam = effectiveLeagueTeams.find((t) => t.id === target.fantasyTeamId);
       if (!theirTeam) return null;
       const theirNeeds = analyzeRosterNeeds(theirTeam.roster);
-      return solveWhatItWouldTake(target, myMovablePlayers, myTradeableDepth, theirNeeds, myNeeds, leagueBaseline, SEASON_PRICER);
+      return solveWhatItWouldTake(target, myMovablePlayers, myTradeableDepth, theirNeeds, leagueBaseline, SEASON_PRICER);
     },
-    [effectiveLeagueTeams, myMovablePlayers, myTradeableDepth, myNeeds, leagueBaseline]
+    [effectiveLeagueTeams, myMovablePlayers, myTradeableDepth, leagueBaseline]
   );
 
   // Which player id (if any) the "What would it take?" panel should open
@@ -1122,7 +1122,7 @@ export function useFantasyApp() {
             const theirTeam = effectiveLeagueTeams.find((t) => t.id === p.fantasyTeamId);
             if (!theirTeam) return null;
             const theirNeeds = analyzeRosterNeeds(theirTeam.roster);
-            const options = solveWhatItWouldTake(p, corePool, depthPool, theirNeeds, myNeeds, leagueBaseline, SEASON_PRICER);
+            const options = solveWhatItWouldTake(p, corePool, depthPool, theirNeeds, leagueBaseline, SEASON_PRICER);
             return options && options.length > 0 ? { ...p, cheapestOption: options[0] } : null;
           })
           .filter((p): p is NonNullable<typeof p> => p !== null)
