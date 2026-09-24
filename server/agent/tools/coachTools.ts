@@ -209,7 +209,7 @@ export const optimizeLineupTool: ToolDefinition = {
 export const suggestTradesTool: ToolDefinition = {
   name: "suggest_trades",
   description:
-    "Propose fair, WORTHWHILE coach-style trade packages for a team (need-based + value-based, 1-for-1 and 2-for-2). Already filtered to a real upgrade -- never pads the list with lateral same-value swaps or scrub-for-scrub trades just to hit a count, so it can return fewer than requested (even zero) when nothing meaningful is available. Use when the user asks what trades to make or who to target.",
+    "Propose fair, WORTHWHILE coach-style trade packages for a team (need-based + value-based, 1-for-1 and 2-for-2). Already filtered to a real upgrade -- never pads the list with lateral same-value swaps or scrub-for-scrub trades just to hit a count, so it can return fewer than requested (even zero) when nothing meaningful is available. Optional coverByeWeek / urgency only re-rank fair packages (fairness unchanged). Use when the user asks what trades to make or who to target.",
   parameters: {
     type: "object",
     properties: {
@@ -221,6 +221,16 @@ export const suggestTradesTool: ToolDefinition = {
         type: "number",
         description: "Max suggestions to return (default 6, max 10).",
       },
+      coverByeWeek: {
+        type: "number",
+        description:
+          "Optional NFL/fantasy week to prioritize bye coverage for (prefer getting players NOT on bye that week, especially at needy positions).",
+      },
+      urgency: {
+        type: "string",
+        description:
+          'Optional ranking lean: "neutral" (default), "must_win" (prefer this-week production on the get side), or "playoff_push" (blend ROS quality with near-term). Does not bypass fairness.',
+      },
     },
     additionalProperties: false,
   },
@@ -228,6 +238,10 @@ export const suggestTradesTool: ToolDefinition = {
     const teamId = typeof args.teamId === "number" ? args.teamId : undefined;
     const maxRaw = typeof args.max === "number" ? args.max : 6;
     const max = Math.max(1, Math.min(10, Math.floor(maxRaw)));
+    const coverByeWeek = typeof args.coverByeWeek === "number" && args.coverByeWeek > 0 ? Math.floor(args.coverByeWeek) : undefined;
+    const urgencyRaw = typeof args.urgency === "string" ? args.urgency.trim() : "neutral";
+    const urgency =
+      urgencyRaw === "must_win" || urgencyRaw === "playoff_push" || urgencyRaw === "neutral" ? urgencyRaw : "neutral";
 
     const resolved = resolveTeam(ctx, teamId);
     if (!resolved.ok) return resolved;
@@ -284,11 +298,13 @@ export const suggestTradesTool: ToolDefinition = {
     // stacking bench scrubs), and that's a fine, honest answer on its own.
     // The filter runs inside the engine, before the mix, so what's left is
     // still the Coach tab's mix of good-fit and other trades.
-    const { suggestions, candidateCount, needyPositions, strengthPositions } = suggestTrades({
+    const { suggestions, candidateCount, needyPositions, strengthPositions, situationNote } = suggestTrades({
       myPlayers,
       leagueTeams: opponents,
       max,
       filter: isMeaningfulSuggestion,
+      coverByeWeek,
+      urgency,
     });
     const hadOnlyFallback = suggestions.length === 0 && candidateCount > 0;
 
@@ -305,6 +321,9 @@ export const suggestTradesTool: ToolDefinition = {
       teamName: team.name,
       needyPositions,
       strengthPositions,
+      coverByeWeek: coverByeWeek ?? null,
+      urgency,
+      situationNote,
       count: suggestions.length,
       suggestions: suggestions.map((s) => ({
         id: s.id,
@@ -331,6 +350,7 @@ export const suggestTradesTool: ToolDefinition = {
       })),
       citeHints: [
         `Needs: ${needyPositions.join(", ") || "none"}; strengths: ${strengthPositions.join(", ") || "none"}.`,
+        ...(situationNote ? [`Situation ranking: ${situationNote}.`] : []),
         ...(suggestions.length === 0
           ? [
               hadOnlyFallback
@@ -349,7 +369,7 @@ export const suggestTradesTool: ToolDefinition = {
           return `vs ${s.teamName}: give ${give} (${Math.round(s.giveVal * 10) / 10}) for ${get} (${Math.round(s.getVal * 10) / 10}), ratio ${Math.round(s.ratio * 100) / 100}, upgrade ${Math.round(s.upgrade * 10) / 10}. Reason: ${s.reason}; ${theirSide}.`;
         }),
       ],
-      note: "Values use the same coach/trade engine as the AI Coach tab (rest-of-season value + need adjustment) -- quote giveVal/getVal/ratio EXACTLY as given, do not recompute them from raw proj or per-player weekValue sums (package values are discounted/need-adjusted, not a plain sum). Already filtered to a meaningful upgrade bar and a minimum relevant-player-value floor -- do not add back lateral or scrub-for-scrub swaps yourself. Suggestions are ranked mutual-fit first: fit.fillsTheirNeeds / theirLineupChange say why the other manager would (or wouldn't) accept -- use that to explain the pitch, and flag a negative theirLineupChange as a harder sell. Each player carries thisWeekMatchup (opponent, grade, implied total/workload label) -- weave that real football context (matchup quality, role, game script) into why the trade makes sense, not just the raw numbers. For a specific package grade, call evaluate_trade.",
+      note: "Values use the same coach/trade engine as the AI Coach tab (rest-of-season value + need adjustment) -- quote giveVal/getVal/ratio EXACTLY as given, do not recompute them from raw proj or per-player weekValue sums (package values are discounted/need-adjusted, not a plain sum). Already filtered to a meaningful upgrade bar and a minimum relevant-player-value floor -- do not add back lateral or scrub-for-scrub swaps yourself. Suggestions are ranked mutual-fit first (then optional coverByeWeek/urgency re-rank): fit.fillsTheirNeeds / theirLineupChange say why the other manager would (or wouldn't) accept -- use that to explain the pitch, and flag a negative theirLineupChange as a harder sell. Each player carries thisWeekMatchup (opponent, grade, implied total/workload label) -- weave that real football context (matchup quality, role, game script) into why the trade makes sense, not just the raw numbers. For a specific package grade, call evaluate_trade. When briefing shows a bye pileup or must-win stakes, pass coverByeWeek / urgency.",
     };
   },
 };
