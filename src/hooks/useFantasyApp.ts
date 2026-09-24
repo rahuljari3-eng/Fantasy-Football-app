@@ -1310,6 +1310,8 @@ export function useFantasyApp() {
     setTradeOpponentId(s.teamId);
     setTradeGive(s.give.map((p) => p.id));
     setTradeGet(s.get.map((p) => p.id));
+    setTradeHorizon("season");
+    setTradeNeedAdjust(true);
     setTab("trade");
   }
 
@@ -1371,11 +1373,12 @@ export function useFantasyApp() {
     },
     [tradePlayers, tradeHorizon]
   );
-  // Star gate: a Tier-1 player on one side with no Tier-1/2 coming back is
-  // "likely unfair" no matter what the value ratio says. Priced by whichever
-  // horizon is active, same as giveVal/getVal above -- a stud who's merely
-  // Questionable this week shouldn't lose his "star" status (and the
-  // protection that comes with it) in Week mode.
+  // Star gate: a top positional-rank stud on one side without Tier-1/2 (and
+  // enough top-piece value) coming back is "likely unfair" no matter what the
+  // value ratio says. Priced by whichever horizon is active, same as
+  // giveVal/getVal above -- a stud who's merely Questionable this week
+  // shouldn't lose his "star" status (and the protection that comes with it)
+  // in Week mode.
   const tradeStarGateViolation =
     (tradeGive.length > 0 || tradeGet.length > 0) &&
     !starGateOk(

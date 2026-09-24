@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, Plus, TrendingDown, TrendingUp, X } from "lucide-react";
-import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX, FAIR_RATIO_MIN, FAIR_RATIO_MAX } from "../config/trade";
+import { ChevronRight, Plus, ShieldAlert, TrendingDown, TrendingUp, X } from "lucide-react";
 import { HowItWorks } from "../components/HowItWorks";
 import { MarketCheckBadge } from "../components/MarketCheckBadge";
 import { PosBadge } from "../components/PosBadge";
@@ -8,7 +7,16 @@ import { PlayerNameLink } from "../components/PlayerNameLink";
 import { SearchInput } from "../components/SearchInput";
 import { CompletedTradesPanel } from "../components/CompletedTradesPanel";
 import { WhatWouldItTakePanel } from "../components/WhatWouldItTakePanel";
-import { ratioIsFair, SEASON_PRICER, WEEK_PRICER } from "../lib/tradeEngine";
+import {
+  describeStarGateFailure,
+  diagnoseStarGate,
+  packageValue,
+  ratioLeanAside,
+  ratioVerdictLabel,
+  SEASON_PRICER,
+  WEEK_PRICER,
+} from "../lib/tradeEngine";
+import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX } from "../config/trade";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 import type { LeaguePlayer, Player, TradeHorizon } from "../types";
 import type { WhatWouldItTakeOption } from "../lib/whatWouldItTake";
@@ -164,7 +172,6 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
     getVal,
     diff,
     tradeRatio,
-    tradeStarGateViolation,
     playerById,
     tradeValueOf,
     toggleTradeList,
@@ -173,7 +180,6 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
     playerHasNews,
     openPlayerNews,
     completedEspnTrades,
-    tradeSideValue,
     refreshCompletedTrades,
     allTeams,
     findWhatItWouldTake,
@@ -215,7 +221,14 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
     setTradeOpponentId(target.fantasyTeamId);
     setTradeGive(option.give.map((p) => p.id));
     setTradeGet([target.id]);
+    setTradeHorizon("season");
+    setTradeNeedAdjust(true);
     setSubTab("build");
+  };
+
+  const completedSideValue = (ids: number[]) => {
+    const players = ids.map(playerById).filter((p): p is Player => !!p);
+    return packageValue(players, SEASON_PRICER);
   };
 
   return (
@@ -237,8 +250,8 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
       {subTab === "completed" ? (
         <div key="completed" className="space-y-2.5 animate-fade-slide-up">
           <p className="text-sm text-[#98989D] max-w-2xl">
-            Every trade completed in the league so far, graded for both sides -- regardless of who made it. Reconstructed from public ESPN data, so it
-            checks for new ones automatically while this tab is open.
+            Every trade completed in the league so far, graded for both sides -- regardless of who made it. Graded on rest-of-season quality (same basis as
+            Sensei / AI Coach), reconstructed from public ESPN data, and re-checked while this tab is open.
           </p>
           {loadingCompleted && completedEspnTrades.length === 0 && <div className="text-xs text-[#636366] italic">Checking ESPN for completed trades…</div>}
           {!loadingCompleted && completedEspnTrades.length === 0 && (
@@ -248,8 +261,8 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
             trades={completedEspnTrades}
             allTeams={allTeams}
             playerById={playerById}
-            tradeSideValue={tradeSideValue}
-            pricer={tradeHorizon === "season" ? SEASON_PRICER : WEEK_PRICER}
+            tradeSideValue={completedSideValue}
+            pricer={SEASON_PRICER}
           />
         </div>
       ) : subTab === "wwit" ? (
@@ -275,9 +288,13 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
                   ? "Rest of season: each player's season quality (ESPN + Sleeper ROS PPG, actuals, FantasyCalc/Vegas market) × remaining games (bye excluded), with a small schedule-ease nudge. Optional need-adjusted mode matches the AI Coach."
                   : "This week: each player's value for this week only, from consensus projections (ESPN, Sleeper, and DraftKings yardage props when posted)."}{" "}
                 Elite players are worth more than their raw points suggest, and each extra player in a package is discounted — you can't out-total a stud
-                with role players.
+                with role players. Side totals therefore often won't equal the sum of the chips.
               </p>
-              <p>The market badge shows what the trade market alone thinks of the deal.</p>
+              <p>
+                The market badge is FantasyCalc alone (real redraft trades). It can disagree with the app's ratio — that's intentional; managers often see the
+                deal differently. The star gate is separate from the points ratio: sending a top-rank stud without a Tier-1/2 (and enough top-piece value)
+                back fails even if the package math says you "win."
+              </p>
             </HowItWorks>
           </div>
         </div>
@@ -368,44 +385,67 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
         </div>
 
         {(tradeGive.length > 0 || tradeGet.length > 0) && (() => {
-          const even = !tradeStarGateViolation && tradeRatio != null && ratioIsFair(tradeRatio);
-          const favorsYou = !tradeStarGateViolation && tradeRatio != null && tradeRatio > LOPSIDED_RATIO_MAX;
-          const favorsThem = tradeStarGateViolation || (tradeRatio != null && tradeRatio < LOPSIDED_RATIO_MIN);
+          const givePlayers = tradeGive.map(playerById).filter((p): p is Player => !!p);
+          const getPlayers = tradeGet.map(playerById).filter((p): p is Player => !!p);
+          const pricer = tradeHorizon === "season" ? SEASON_PRICER : WEEK_PRICER;
+          const gate = diagnoseStarGate(givePlayers, getPlayers, pricer);
+          const valueVerdict = tradeRatio != null ? ratioVerdictLabel(tradeRatio) : null;
+          const favorsYou = gate.ok && tradeRatio != null && tradeRatio > LOPSIDED_RATIO_MAX;
+          const favorsThem = gate.ok && tradeRatio != null && tradeRatio < LOPSIDED_RATIO_MIN;
+          const cardClass = !gate.ok
+            ? "bg-amber-500/10 border-amber-500/30"
+            : favorsYou
+              ? "bg-emerald-500/10 border-emerald-500/30"
+              : favorsThem
+                ? "bg-red-500/10 border-red-500/30"
+                : "bg-[#1C1C1E] border-[#38383A]";
+          const Icon = !gate.ok ? ShieldAlert : favorsYou ? TrendingUp : favorsThem ? TrendingDown : ChevronRight;
+          const iconClass = !gate.ok
+            ? "text-amber-400"
+            : favorsYou
+              ? "text-emerald-400"
+              : favorsThem
+                ? "text-red-400"
+                : "text-[#C9A227]";
           return (
-          <div className={`rounded-xl p-4 border ${favorsYou ? "bg-emerald-500/10 border-emerald-500/30" : favorsThem ? "bg-red-500/10 border-red-500/30" : "bg-[#1C1C1E] border-[#38383A]"}`}>
+          <div className={`rounded-xl p-4 border ${cardClass}`}>
             <div className="flex items-center gap-3">
-              {favorsYou ? <TrendingUp className="text-emerald-400 shrink-0" size={20} /> : favorsThem ? <TrendingDown className="text-red-400 shrink-0" size={20} /> : <ChevronRight className="text-[#C9A227] shrink-0" size={20} />}
-              <div>
+              <Icon className={`${iconClass} shrink-0`} size={20} />
+              <div className="min-w-0">
                 <div className="font-medium">
-                  {tradeStarGateViolation
-                    ? "Likely unfair — star gate"
-                    : even
-                      ? "Roughly even"
-                      : favorsYou
-                        ? tradeRatio != null && tradeRatio > FAIR_RATIO_MAX && tradeRatio <= LOPSIDED_RATIO_MAX
-                          ? "Slightly favors you"
-                          : "Favors you"
-                        : tradeRatio != null && tradeRatio < FAIR_RATIO_MIN && tradeRatio >= LOPSIDED_RATIO_MIN
-                          ? "Slightly favors them"
-                          : "Favors them"}
+                  {!gate.ok ? "Likely unfair — star gate" : valueVerdict?.label ?? "—"}
                   {tradeRatio != null && <span className="mono-font text-[#C9A227] ml-2">ratio {tradeRatio.toFixed(2)}</span>}
                 </div>
                 <div className="mt-1">
-                  <MarketCheckBadge
-                    give={tradeGive.map(playerById).filter((p): p is NonNullable<typeof p> => !!p)}
-                    get={tradeGet.map(playerById).filter((p): p is NonNullable<typeof p> => !!p)}
-                  />
+                  <MarketCheckBadge give={givePlayers} get={getPlayers} appRatio={tradeRatio} />
                 </div>
-                <div className="text-sm text-[#98989D]">
-                  {tradeStarGateViolation && (
-                    <span className="text-amber-400">
-                      You're moving a Tier-1 player without getting a Tier-1 or Tier-2 player back — scarcity at the top rarely trades even for role players.{" "}
-                    </span>
+                <div className="text-sm text-[#98989D] space-y-1 mt-1">
+                  {!gate.ok &&
+                    gate.failures.map((f, i) => (
+                      <p key={i} className="text-amber-400">
+                        {describeStarGateFailure(f)}
+                      </p>
+                    ))}
+                  {!gate.ok && tradeRatio != null && (
+                    <p>
+                      Gate fails independently of the points math — {ratioLeanAside(tradeRatio)}.
+                    </p>
                   )}
-                  Net value {diff > 0 ? "+" : ""}
-                  {diff.toFixed(1)} {tradeHorizon === "season" ? "rest-of-season pts" : "this week"} in your favor
-                  {tradeRatio != null && ` (${Math.abs(Math.round((tradeRatio - 1) * 100))}% ${tradeRatio >= 1 ? "your way" : "their way"})`}.{" "}
-                  {tradeGet.some((id) => playerById(id)?.status !== "Healthy") && "Heads up: someone you'd receive has an injury flag — factor that into the ask."}
+                  {gate.ok && (
+                    <p>
+                      Net value {diff > 0 ? "+" : ""}
+                      {diff.toFixed(1)} {tradeHorizon === "season" ? "rest-of-season pts" : "this week"} in your favor
+                      {tradeRatio != null && ` (${Math.abs(Math.round((tradeRatio - 1) * 100))}% ${tradeRatio >= 1 ? "your way" : "their way"})`}.
+                    </p>
+                  )}
+                  {(givePlayers.length > 1 || getPlayers.length > 1) && (
+                    <p className="text-[11px] text-[#636366]">
+                      Package totals discount extra pieces (best counts full) — chip values won't sum to the side total.
+                    </p>
+                  )}
+                  {tradeGet.some((id) => playerById(id)?.status !== "Healthy") && (
+                    <p>Heads up: someone you'd receive has an injury flag — factor that into the ask.</p>
+                  )}
                 </div>
               </div>
             </div>

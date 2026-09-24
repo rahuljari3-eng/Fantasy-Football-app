@@ -113,7 +113,7 @@ function TradeCard({ s, app, savedAt }: { s: TradeSuggestion; app: FantasyApp; s
           </div>
           <div className={`text-[11px] ${verdict.className}`}>{verdict.label}</div>
           <div className="mt-1">
-            <MarketCheckBadge give={s.give} get={s.get} />
+            <MarketCheckBadge give={s.give} get={s.get} appRatio={s.ratio} />
           </div>
           {savedAt && <div className="text-[10px] text-[#636366] mt-1">Saved {new Date(savedAt).toLocaleDateString()}</div>}
         </div>

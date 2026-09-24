@@ -5,13 +5,14 @@ import { analyzeRosterNeeds } from "../../../src/lib/rosterNeeds.js";
 import { fetchLeagueNewsFeed } from "../../../src/lib/news.js";
 import { qualityScore } from "../../../src/lib/scoring.js";
 import {
+  describeStarGateFailure,
+  diagnoseStarGate,
   fairnessRatio,
   needAdjustedPackageValue,
   packageValue,
   ROS_PRICER,
   rosPackageFloor,
   SEASON_PRICER,
-  starGateOk,
   verdictFromRatio,
   WEEK_PRICER,
 } from "../../../src/lib/tradeEngine.js";
@@ -251,8 +252,13 @@ export const evaluateTradeTool: ToolDefinition = {
     // lib/tradeEngine.ts). The week block is priced off this week; the star
     // gate, season block, and need-adjusted grade are season-long, the same
     // basis the AI Coach tab judges trades on.
-    const gateOk = starGateOk(give, get, SEASON_PRICER);
-    const weekGateOk = starGateOk(give, get, WEEK_PRICER);
+    const gate = diagnoseStarGate(give, get, SEASON_PRICER);
+    const weekGate = diagnoseStarGate(give, get, WEEK_PRICER);
+    const gateOk = gate.ok;
+    const weekGateOk = weekGate.ok;
+    const starGateNotes = gate.ok
+      ? []
+      : gate.failures.map((f) => describeStarGateFailure(f));
 
     const weekGive = packageValue(give, WEEK_PRICER);
     const weekGet = packageValue(get, WEEK_PRICER);
@@ -305,6 +311,7 @@ export const evaluateTradeTool: ToolDefinition = {
       give: giveSerialized,
       get: getSerialized,
       starGateOk: gateOk,
+      starGateNotes,
       week: weekBlock,
       season: seasonBlock,
       needAdjusted,
@@ -312,11 +319,11 @@ export const evaluateTradeTool: ToolDefinition = {
       citeHints: [
         `Week: give ${weekBlock.giveValue} vs get ${weekBlock.getValue} (ratio ${weekBlock.ratio}, verdict ${weekBlock.verdict}).`,
         `ROS: give ${seasonBlock.giveValue} vs get ${seasonBlock.getValue} (ratio ${seasonBlock.ratio}, verdict ${seasonBlock.verdict}). Absolute ROS totals use remaining weeks; needAdjusted uses quality×need on the same fairness window.`,
-        `Star gate OK: ${gateOk}. Fair ratio window ${FAIR_RATIO_MIN}–${FAIR_RATIO_MAX}.`,
+        `Star gate OK: ${gateOk}.${starGateNotes.length ? ` ${starGateNotes.join(" ")}` : ""} Fair ratio window ${FAIR_RATIO_MIN}–${FAIR_RATIO_MAX}. Star gate is independent of the points ratio — do not treat likely_unfair_star_gate as "favors them" if the ROS ratio leans your way.`,
         `Give: ${giveSerialized.map((p) => `${p.name} (proj ${p.proj}, weekValue ${p.weekValue}, bye ${p.bye}, status ${p.status})${matchupLine(p)}`).join("; ")}.`,
         `Get: ${getSerialized.map((p) => `${p.name} (proj ${p.proj}, weekValue ${p.weekValue}, bye ${p.bye}, status ${p.status})${matchupLine(p)}`).join("; ")}.`,
       ],
-      note: "Each player carries thisWeekMatchup (opponent, grade, implied total/workload label) -- weave this real football context into your reasoning (game script, opponent strength, role), not just the bare value numbers.",
+      note: "Each player carries thisWeekMatchup (opponent, grade, implied total/workload label) -- weave this real football context into your reasoning (game script, opponent strength, role), not just the bare value numbers. Package values discount extras (not a plain sum of weekValue/rosValue). Quote week/season/needAdjusted verdicts exactly; if starGateOk is false, quote starGateNotes and explain that the gate is separate from who 'wins' on points.",
     };
   },
 };

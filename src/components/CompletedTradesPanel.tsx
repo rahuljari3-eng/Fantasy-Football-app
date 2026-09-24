@@ -1,6 +1,12 @@
-import { Scale, TrendingDown, TrendingUp } from "lucide-react";
+import { Scale, ShieldAlert, TrendingDown, TrendingUp } from "lucide-react";
 import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX } from "../config/trade";
-import { fairnessRatio, starGateOk } from "../lib/tradeEngine";
+import {
+  describeStarGateFailure,
+  diagnoseStarGate,
+  fairnessRatio,
+  ratioLeanAside,
+  ratioVerdictLabel,
+} from "../lib/tradeEngine";
 import { PosBadge } from "./PosBadge";
 import type { CompletedTrade } from "../lib/espn";
 import type { Pricer } from "../lib/tradeEngine";
@@ -38,6 +44,8 @@ export function CompletedTradesPanel({
       {trades.map((t) => {
         const teamA = allTeams.find((x) => x.id === t.teamAId);
         const teamB = allTeams.find((x) => x.id === t.teamBId);
+        const aName = teamA?.name ?? `Team ${t.teamAId}`;
+        const bName = teamB?.name ?? `Team ${t.teamBId}`;
         const aPlayers = t.teamAReceived.map(playerById).filter((p): p is Player => !!p);
         const bPlayers = t.teamBReceived.map(playerById).filter((p): p is Player => !!p);
         const aVal = tradeSideValue(t.teamAReceived);
@@ -52,29 +60,38 @@ export function CompletedTradesPanel({
         // From team A's perspective: what A gave up is what B received, and
         // vice versa -- same ratio/star-gate math the interactive analyzer uses.
         const ratio = fairnessRatio(bVal, aVal);
-        const starGateViolation = !incomplete && !starGateOk(bPlayers, aPlayers, pricer);
-        const favorsA = !incomplete && !starGateViolation && ratio > LOPSIDED_RATIO_MAX;
-        const favorsB = !incomplete && (starGateViolation || ratio < LOPSIDED_RATIO_MIN);
+        const gate = incomplete ? { ok: true, failures: [] } : diagnoseStarGate(bPlayers, aPlayers, pricer);
+        const favorsA = !incomplete && gate.ok && ratio > LOPSIDED_RATIO_MAX;
+        const favorsB = !incomplete && gate.ok && ratio < LOPSIDED_RATIO_MIN;
+        const valueLabel = !incomplete ? ratioVerdictLabel(ratio).label : null;
 
         return (
           <div key={t.id} className="bg-[#1C1C1E] border border-[#38383A] rounded-xl p-4">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-1.5">
               <div className="text-sm font-medium">
-                {teamA?.name ?? `Team ${t.teamAId}`} <span className="text-[#636366] font-normal">vs</span> {teamB?.name ?? `Team ${t.teamBId}`}
+                {aName} <span className="text-[#636366] font-normal">vs</span> {bName}
               </div>
-              <div className={`text-xs font-medium flex items-center gap-1 ${favorsA || favorsB ? "text-[#C9A227]" : "text-[#98989D]"}`}>
+              <div
+                className={`text-xs font-medium flex items-center gap-1 ${
+                  !gate.ok ? "text-amber-400" : favorsA || favorsB ? "text-[#C9A227]" : "text-[#98989D]"
+                }`}
+              >
                 {incomplete ? (
                   "Can't grade -- return side incomplete"
+                ) : !gate.ok ? (
+                  <>
+                    <ShieldAlert size={13} /> Likely unfair — star gate
+                  </>
                 ) : favorsA ? (
                   <>
-                    <TrendingUp size={13} /> {teamA?.name ?? "Team A"} won this trade
+                    <TrendingUp size={13} /> {aName} won this trade
                   </>
                 ) : favorsB ? (
                   <>
-                    <TrendingDown size={13} /> {teamB?.name ?? "Team B"} won this trade
+                    <TrendingDown size={13} /> {bName} won this trade
                   </>
                 ) : (
-                  "Roughly even"
+                  valueLabel ?? "Roughly even"
                 )}
               </div>
             </div>
@@ -107,13 +124,22 @@ export function CompletedTradesPanel({
               ))}
             </div>
 
-            <div className="text-[11px] text-[#636366] mt-2.5">
+            <div className="text-[11px] text-[#636366] mt-2.5 space-y-1">
               {incomplete ? (
-                "One side's return couldn't be fully reconstructed from public ESPN data, so this trade isn't graded."
+                <p>One side's return couldn't be fully reconstructed from public ESPN data, so this trade isn't graded.</p>
               ) : (
                 <>
-                  {starGateViolation && <span className="text-amber-400">A Tier-1 player moved without a Tier-1/2 player coming back. </span>}
-                  Fairness ratio {ratio.toFixed(2)} (relative to {teamA?.name ?? "Team A"}).
+                  {!gate.ok &&
+                    gate.failures.map((f, i) => (
+                      <p key={i} className="text-amber-400">
+                        {describeStarGateFailure(f, { give: `${aName} is`, get: `${bName} is` })}
+                      </p>
+                    ))}
+                  {!gate.ok && <p>Gate fails independently — {ratioLeanAside(ratio, "team_a")}.</p>}
+                  <p>
+                    Fairness ratio {ratio.toFixed(2)}
+                    {gate.ok && valueLabel ? ` · ${valueLabel}` : ""} (relative to {aName}).
+                  </p>
                 </>
               )}
             </div>

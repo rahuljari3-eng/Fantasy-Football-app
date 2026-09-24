@@ -16,7 +16,7 @@ import {
   fetchTopScorers,
 } from "../../../src/lib/playerPerformance.js";
 import { computePlayoffOutlook } from "../../../src/lib/playoffOdds.js";
-import { fairnessRatio, packageValue, SEASON_PRICER, starGateOk, verdictFromRatio } from "../../../src/lib/tradeEngine.js";
+import { fairnessRatio, packageValue, SEASON_PRICER, diagnoseStarGate, describeStarGateFailure, verdictFromRatio } from "../../../src/lib/tradeEngine.js";
 import type { LeagueTeam, Player } from "../../../src/types.js";
 import {
   activeTeams,
@@ -516,10 +516,15 @@ export const getCompletedTradesTool: ToolDefinition = {
       const aGaveVal = packageValue(bPlayers, SEASON_PRICER);
       const aGotVal = packageValue(aPlayers, SEASON_PRICER);
       const ratio = fairnessRatio(aGaveVal, aGotVal);
-      const gateOk = starGateOk(bPlayers, aPlayers, SEASON_PRICER);
-      const verdict = completedTradeVerdict(ratio, gateOk);
-      const favorsTeamB = verdict === "favors_team_b" || verdict === "slightly_favors_team_b" || verdict === "likely_unfair_star_gate";
+      const gate = diagnoseStarGate(bPlayers, aPlayers, SEASON_PRICER);
+      const verdict = completedTradeVerdict(ratio, gate.ok);
+      const favorsTeamB = verdict === "favors_team_b" || verdict === "slightly_favors_team_b";
       const favorsTeamA = verdict === "favors_team_a" || verdict === "slightly_favors_team_a";
+      const starGateNotes = gate.ok
+        ? []
+        : gate.failures.map((f) =>
+            describeStarGateFailure(f, { give: `${teamAName} is`, get: `${teamBName} is` })
+          );
 
       return {
         id: t.id,
@@ -534,8 +539,11 @@ export const getCompletedTradesTool: ToolDefinition = {
           teamAReceivedValue: Math.round(aGotVal * 10) / 10,
           teamBReceivedValue: Math.round(aGaveVal * 10) / 10,
           fairnessRatio: Math.round(ratio * 100) / 100,
-          starGateOk: gateOk,
+          starGateOk: gate.ok,
+          starGateNotes,
           verdict,
+          // Star gate is independent of who "won" on points — never assign a
+          // winner solely because the gate failed.
           winner: favorsTeamA
             ? { id: t.teamAId, name: teamAName }
             : favorsTeamB
@@ -551,7 +559,7 @@ export const getCompletedTradesTool: ToolDefinition = {
       count: enriched.length,
       trades: enriched,
       note:
-        "Reconstructed from ESPN public transactions + current rosters — only bilateral swaps that still leave a paper trail (players still rostered). Pending offers and one-sided moves after subsequent drops are omitted. Quote grade.verdict when discussing who won a deal.",
+        "Reconstructed from ESPN public transactions + current rosters — only bilateral swaps that still leave a paper trail (players still rostered). Pending offers and one-sided moves after subsequent drops are omitted. Quote grade.verdict when discussing fairness; if verdict is likely_unfair_star_gate, quote starGateNotes and do NOT invent a winner from the gate alone (winner is null when only the gate fails).",
     };
   },
 };

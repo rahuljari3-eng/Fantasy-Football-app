@@ -137,21 +137,84 @@ function marginalValue(p: Player, pricer: Pricer, floor: number): number {
   return Math.max(0, pricer.value(p) - floor);
 }
 
+export type StarGateFailureReason = "no_tier12_return" | "insufficient_top_return";
+
+/** One failed direction of the star gate. `sendingSide: "give"` means the
+ * caller's give side is sending the star(s); `"get"` means the other side is. */
+export interface StarGateFailure {
+  sendingSide: "give" | "get";
+  stars: Player[];
+  reason: StarGateFailureReason;
+  starValue: number;
+  returnTopValue: number;
+  requiredTopValue: number;
+}
+
+export interface StarGateDiagnosis {
+  ok: boolean;
+  failures: StarGateFailure[];
+}
+
+function topPieceValue(arr: Player[], pricer: Pricer): number {
+  return arr.reduce((m, p) => Math.max(m, pricer.value(p)), 0);
+}
+
+/** Direction-aware star-gate check. Prefer this over a bare boolean when UI /
+ * Sensei need to explain *who* broke the gate and why. */
+export function diagnoseStarGate(give: Player[], get: Player[], pricer: Pricer): StarGateDiagnosis {
+  if (!REQUIRE_STAR_RETURN) return { ok: true, failures: [] };
+  const checkSide = (sending: Player[], receiving: Player[], sendingSide: "give" | "get"): StarGateFailure | null => {
+    const stars = sending.filter((p) => isStar(p, pricer));
+    if (!stars.length) return null;
+    const starValue = topPieceValue(stars, pricer);
+    const requiredTopValue = starValue * STAR_RETURN_MIN_TOP_FRACTION;
+    const returnTopValue = topPieceValue(receiving, pricer);
+    if (!receiving.some((p) => p.tier <= 2)) {
+      return { sendingSide, stars, reason: "no_tier12_return", starValue, returnTopValue, requiredTopValue };
+    }
+    if (returnTopValue < requiredTopValue) {
+      return { sendingSide, stars, reason: "insufficient_top_return", starValue, returnTopValue, requiredTopValue };
+    }
+    return null;
+  };
+  const failures = [checkSide(give, get, "give"), checkSide(get, give, "get")].filter(
+    (f): f is StarGateFailure => f != null
+  );
+  return { ok: failures.length === 0, failures };
+}
+
 /** The star gate. If a side sends a genuine star (see isStar), the other side
  * must return (a) a Tier-1 or Tier-2 player, and (b) a single player worth at
  * least STAR_RETURN_MIN_TOP_FRACTION of that star's value. Blocks stud-for-
- * depth even when the padded package "adds up". */
+ * depth even when the padded package "adds up". Checks BOTH directions. */
 export function starGateOk(give: Player[], get: Player[], pricer: Pricer): boolean {
-  if (!REQUIRE_STAR_RETURN) return true;
-  const topValue = (arr: Player[]) => arr.reduce((m, p) => Math.max(m, pricer.value(p)), 0);
-  const sideOk = (sending: Player[], receiving: Player[]): boolean => {
-    const stars = sending.filter((p) => isStar(p, pricer));
-    if (!stars.length) return true;
-    const starVal = topValue(stars);
-    if (!receiving.some((p) => p.tier <= 2)) return false;
-    return topValue(receiving) >= starVal * STAR_RETURN_MIN_TOP_FRACTION;
-  };
-  return sideOk(give, get) && sideOk(get, give);
+  return diagnoseStarGate(give, get, pricer).ok;
+}
+
+/** Human copy for one star-gate failure. `sideLabels.give` / `.get` name who
+ * is sending (e.g. "You're" / "They're", or team names + "is"). */
+export function describeStarGateFailure(
+  failure: StarGateFailure,
+  sideLabels: { give: string; get: string } = { give: "You're", get: "They're" }
+): string {
+  const sender = failure.sendingSide === "give" ? sideLabels.give : sideLabels.get;
+  const names = failure.stars.map((p) => p.name).join(", ");
+  const rankNote = "top positional rank — not the same as ownership Tier";
+  if (failure.reason === "no_tier12_return") {
+    return `Star gate: ${sender} sending ${names} (${rankNote}) without a Tier-1 or Tier-2 coming back — scarcity at the top isn't replaced by depth alone.`;
+  }
+  const pct = Math.round(STAR_RETURN_MIN_TOP_FRACTION * 100);
+  return `Star gate: ${sender} sending ${names} (${rankNote}), but the best piece coming back isn't worth enough of that star (~${pct}% of star value required).`;
+}
+
+/** Short phrase for the points ratio when the star gate failed independently. */
+export function ratioLeanAside(ratio: number, perspective: "you" | "team_a" = "you"): string {
+  const pct = Math.abs(Math.round((ratio - 1) * 100));
+  if (ratioIsFair(ratio)) return "package value is roughly even";
+  if (perspective === "you") {
+    return ratio >= 1 ? `package value still leans your way ${pct}%` : `package value still leans their way ${pct}%`;
+  }
+  return ratio >= 1 ? `package value still leans team A's way ${pct}%` : `package value still leans team B's way ${pct}%`;
 }
 
 export type PositionBaseline = Record<Position, number>;
