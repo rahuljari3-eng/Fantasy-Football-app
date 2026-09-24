@@ -15,7 +15,7 @@ import {
   FAIR_RATIO_MIN,
 } from "../config/trade.js";
 import { analyzeRosterNeeds } from "./rosterNeeds.js";
-import { qualityScore } from "./scoring.js";
+import { playerValue, qualityScore } from "./scoring.js";
 import {
   balancePackage,
   balanceTwoForTwo,
@@ -31,6 +31,9 @@ import {
   type PositionBaseline,
 } from "./tradeEngine.js";
 import type { LeaguePlayer, LeagueTeam, Player, Position, RosterNeeds, ScoredPlayer, TradeFit, TradeSuggestion } from "../types.js";
+
+/** Near-term vs long-term lean for ranking coach suggestions (Sensei optional). */
+export type TradeUrgency = "neutral" | "must_win" | "playoff_push";
 
 /** League baseline = the average starter quality score at each position
  * across every team in the league (all opponents + you), so "need" and
@@ -633,29 +636,100 @@ export function mixCoachSuggestions(pools: CoachPools, excludedKeys: Set<string>
 /** One-call version for callers without React state (Roster Sensei).
  * `filter` drops candidates from every pool BEFORE the mix, so the result is
  * still a proper mix (good fits + reserved other trades) of `max` survivors --
- * filtering after the mix would silently throw the reserved slots away. */
+ * filtering after the mix would silently throw the reserved slots away.
+ * Optional `coverByeWeek` / `urgency` only re-rank the mixed list (fairness
+ * gates unchanged). */
 export function suggestTrades(input: {
   myPlayers: Player[];
   leagueTeams: LeagueTeam[];
   max?: number;
   filter?: (s: TradeSuggestion) => boolean;
+  /** Prefer packages that improve coverage for this NFL/fantasy week (players
+   * you get who are NOT on bye; shedding players who ARE on bye). */
+  coverByeWeek?: number;
+  /** must_win leans weekValue on the get side; playoff_push blends season + week. */
+  urgency?: TradeUrgency;
 }): {
   suggestions: TradeSuggestion[];
-  /** How many candidates existed before `filter` -- lets a caller tell "nothing
-   * at all" apart from "only trivial trades, all filtered out". */
   candidateCount: number;
   needyPositions: Position[];
   strengthPositions: Position[];
   baseline: PositionBaseline;
+  situationNote: string | null;
 } {
   const ctx = buildCoachContext(input);
   const pools = buildCoachPools(ctx);
   const filtered = input.filter ? filterPools(pools, input.filter) : pools;
+  let suggestions = mixCoachSuggestions(filtered, new Set(), input.max ?? COACH_MAX_SUGGESTIONS);
+  const situationNote = situationNoteFor(input.coverByeWeek, input.urgency);
+  if (situationNote) {
+    suggestions = rankSuggestionsForSituation(suggestions, {
+      coverByeWeek: input.coverByeWeek,
+      urgency: input.urgency ?? "neutral",
+      needyPositions: ctx.needyPositions,
+    });
+  }
   return {
-    suggestions: mixCoachSuggestions(filtered, new Set(), input.max ?? COACH_MAX_SUGGESTIONS),
+    suggestions,
     candidateCount: allPoolSuggestions(pools).length,
     needyPositions: ctx.needyPositions,
     strengthPositions: computeStrengthPositions(ctx.myNeeds, ctx.leagueBaseline),
     baseline: ctx.leagueBaseline,
+    situationNote,
   };
+}
+
+function situationNoteFor(coverByeWeek?: number, urgency?: TradeUrgency): string | null {
+  const parts: string[] = [];
+  if (typeof coverByeWeek === "number" && coverByeWeek > 0) {
+    parts.push(`ranked for bye coverage in week ${coverByeWeek}`);
+  }
+  if (urgency && urgency !== "neutral") {
+    parts.push(urgency === "must_win" ? "leaned toward this-week production (must_win)" : "leaned toward ROS + near-term (playoff_push)");
+  }
+  return parts.length ? parts.join("; ") : null;
+}
+
+/** How well a package covers a target bye week for the receiving manager. */
+export function byeCoverageScore(s: TradeSuggestion, week: number, needy: Position[]): number {
+  let score = 0;
+  for (const p of s.get) {
+    const needyBonus = needy.includes(p.pos) ? 2 : 0;
+    if (p.bye !== week) score += 2 + needyBonus;
+    else score -= 2 + needyBonus;
+  }
+  for (const p of s.give) {
+    if (p.bye === week) score += 1;
+  }
+  return score;
+}
+
+function urgencyScore(s: TradeSuggestion, urgency: TradeUrgency): number {
+  if (urgency === "neutral") return 0;
+  const getWeek = s.get.reduce((sum, p) => sum + playerValue(p), 0);
+  const getSeason = s.get.reduce((sum, p) => sum + qualityScore(p), 0);
+  if (urgency === "must_win") return getWeek;
+  return getSeason * 0.7 + getWeek * 0.3;
+}
+
+/** Re-rank an already-fair suggestion list for bye coverage / urgency. Does not
+ * change package composition or fairness — only display order. */
+export function rankSuggestionsForSituation(
+  suggestions: TradeSuggestion[],
+  opts: { coverByeWeek?: number; urgency: TradeUrgency; needyPositions: Position[] }
+): TradeSuggestion[] {
+  const priority = (s: TradeSuggestion) => (s.reason === "need" ? 1 : 0);
+  return [...suggestions].sort((a, b) => {
+    if (typeof opts.coverByeWeek === "number" && opts.coverByeWeek > 0) {
+      const byeDelta =
+        byeCoverageScore(b, opts.coverByeWeek, opts.needyPositions) -
+        byeCoverageScore(a, opts.coverByeWeek, opts.needyPositions);
+      if (byeDelta !== 0) return byeDelta;
+    }
+    if (opts.urgency !== "neutral") {
+      const urgDelta = urgencyScore(b, opts.urgency) - urgencyScore(a, opts.urgency);
+      if (Math.abs(urgDelta) > 0.05) return urgDelta;
+    }
+    return b.fit.tier - a.fit.tier || priority(b) - priority(a) || compareTradeFit(a.fit, b.fit);
+  });
 }

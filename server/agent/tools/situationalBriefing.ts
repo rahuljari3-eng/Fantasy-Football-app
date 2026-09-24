@@ -29,31 +29,6 @@ export function temporalAdviceFor(weeksUntil: number | null): TemporalAdvice {
   return "too_early_to_overcommit";
 }
 
-/** Volatility proxy from fields we already stamp — never invent ESPN boom/%. */
-export function volatilityProxy(p: {
-  status?: string;
-  tier?: 1 | 2 | 3;
-  scheduleEase?: number;
-}): { label: "higher_variance" | "steadier" | "unknown"; signals: string[] } {
-  const signals: string[] = [];
-  const status = p.status ?? "Healthy";
-  if (status !== "Healthy" && status !== "Active") signals.push(`status_${status}`);
-  if (p.tier === 3) signals.push("tier3_role_risk");
-  if (p.tier === 1) signals.push("tier1_stable_role");
-  if (typeof p.scheduleEase === "number") {
-    if (p.scheduleEase >= 1.05) signals.push("soft_remaining_schedule");
-    if (p.scheduleEase <= 0.95) signals.push("tough_remaining_schedule");
-  }
-  if (!signals.length) return { label: "unknown", signals: [] };
-  if (signals.some((s) => s.startsWith("status_") || s === "tier3_role_risk" || s === "tough_remaining_schedule")) {
-    return { label: "higher_variance", signals };
-  }
-  if (signals.includes("tier1_stable_role") || signals.includes("soft_remaining_schedule")) {
-    return { label: "steadier", signals };
-  }
-  return { label: "unknown", signals };
-}
-
 export const getSituationalBriefingTool: ToolDefinition = {
   name: "get_situational_briefing",
   description:
@@ -122,10 +97,6 @@ export const getSituationalBriefingTool: ToolDefinition = {
       count: onBye.length,
       byPos,
       names: onBye.slice(0, MAX_BYE_NAMES).map((p) => p.name),
-      sampleVolatility: onBye.slice(0, 4).map((p) => ({
-        name: p.name,
-        ...volatilityProxy(p),
-      })),
     };
 
     let playoff: Record<string, unknown> | null = null;
@@ -171,7 +142,7 @@ export const getSituationalBriefingTool: ToolDefinition = {
       citeHints.push(`Playoff: ${playoff.summary}`);
     }
     citeHints.push(
-      "Situation only — call suggest_trades / recommend_pickups / evaluate_trade for concrete actions. Do not invent ESPN boom/bust %; use volatilityProxy signals only."
+      "Situation only — call suggest_trades / recommend_pickups / evaluate_trade for concrete actions. Do not invent ESPN boom/bust percentages (not available via ESPN fantasy APIs)."
     );
 
     return {

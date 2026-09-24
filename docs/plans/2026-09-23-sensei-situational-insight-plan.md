@@ -27,8 +27,9 @@ Make Sensei consistently answer like a sharp fantasy analyst across a **wide var
 2. **No mega “answer_fantasy_question” tool.** Keep one-concern tools; Sensei remains the orchestrator (`docs/roster-sensei-agent-tools.md`).
 3. **Primary fix = intents / checklists / heuristics / prompt.** Secondary = one **thin** situational briefing DTO. Tertiary = optional knobs on `suggest_trades` (same coach engine).
 4. **Do not stuff standings + full schedule + all rosters into the system prompt.** Facts stay in tool results; history stays capped (`MAX_HISTORY_MESSAGES`).
-5. **Boom/bust:** research spike first; if ESPN exposes reliable fields, add a small tool/fields. Until then, use **proxies only** (matchup grade, status, tier, scheduleEase) and never invent ESPN boom/%.
+5. **Boom/bust:** researched — **not available** via ESPN fantasy APIs used here (`docs/plans/2026-09-23-espn-boom-bust-research.md`). Do **not** implement boom/bust fields or proxies. Prompt only: never invent ESPN boom/%.
 6. **Temporal judgment is explicit policy**, not vibes: weeks-until-event thresholds from briefing / bye calendar — applies to any target week, not only “week 11.”
+7. **`suggest_trades` situational knobs** (`coverByeWeek`, `urgency`) re-rank fair packages only — never bypass fairness / star gate.
 
 ---
 
@@ -244,9 +245,9 @@ Return a short `situationNote` echoing filters applied.
 
 ### Verification
 
-- [ ] Without new args, suggestions identical to today (regression).
-- [ ] With `coverByeWeek: 11`, returned packages skew toward covering that week (spot-check).
-- [ ] Fair window / star gate unchanged.
+- [x] Without new args, suggestions identical to today (regression).
+- [x] With `coverByeWeek: 11`, returned packages skew toward covering that week (spot-check).
+- [x] Fair window / star gate unchanged.
 
 ### Anti-pattern guards
 
@@ -261,21 +262,16 @@ Return a short `situationNote` echoing filters applied.
 
 1. **Spike:** Inspect live ESPN payloads (`kona_player_info` / `kona_playercard` / player `stats` / any `outlook` / `draftRanksByRankType`) for boom/bust or floor/ceiling % fields for a few players; document findings in the plan or a short `docs/` note.
 2. **If found:** add optional fields on serializePlayer / a tiny `get_player_volatility` tool; cite in Sensei notes.
-3. **If not found:** ship **proxy volatility** in briefing or compare_players:
+3. **If not found:** **skip all boom/bust implementation** (no proxy volatility fields either). Prompt/tool notes: never invent ESPN boom/bust %.
 
-   ```text
-   volatilityProxy: {
-     signals: ["matchup_grade_A"|"Q_tag"|"tier3"|"soft_scheduleEase"|…],
-     label: "higher_variance" | "steadier" | "unknown"
-   }
-   ```
+### Outcome (2026-09-23)
 
-   Prompt: phrase as “higher boom/bust *profile*” from these signals — **never** as ESPN boom%.
+Spike documented in `docs/plans/2026-09-23-espn-boom-bust-research.md` — **not found**. Per product decision: **no boom/bust fields, tools, or proxies**.
 
 ### Verification
 
-- [ ] Spike write-up checked in (found / not found).
-- [ ] No invented percentages in smoke or golden answers.
+- [x] Spike write-up checked in (found / not found).
+- [x] No invented percentages in smoke or golden answers.
 
 ---
 

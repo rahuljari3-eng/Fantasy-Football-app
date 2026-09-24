@@ -33,6 +33,7 @@ const ARGS: Record<string, Record<string, unknown>> = {
   get_player_projection_outlook: { query: mine[0].name },
   get_schedule_outlook: { players: [mine[0].name] },
   get_situational_briefing: { targetWeek: 11 },
+  suggest_trades: { max: 3, coverByeWeek: 11, urgency: "must_win" },
 };
 
 // Tool-defined error codes are snake_case; anything else came from a throw.
