@@ -1,5 +1,6 @@
-/** Multi-intent routing for Roster Sensei's structured research loop. */
-
+/** Intent allowlists + checklists for Roster Sensei's research loop.
+ * Situational insight is signal-driven (urgency, bye/week-N, planning ahead,
+ * playoff race) — not hardcoded to any sample query. */
 export const SENSEI_INTENTS = [
   "start_sit",
   "trades",
@@ -39,6 +40,8 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "get_schedule_outlook",
     "get_player_projection_outlook",
     "get_news_for_player",
+    "get_situational_briefing",
+    "get_playoff_odds",
   ],
   trades: [
     "suggest_trades",
@@ -54,6 +57,7 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "get_player_schedule",
     "get_player_projection_outlook",
     "get_playoff_odds",
+    "get_situational_briefing",
   ],
   waivers: [
     "analyze_roster_needs",
@@ -62,6 +66,11 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "get_news_feed",
     "get_news_for_player",
     "get_player_projection_outlook",
+    "get_bye_calendar",
+    "get_schedule_outlook",
+    "get_player_schedule",
+    "get_playoff_odds",
+    "get_situational_briefing",
   ],
   news: ["get_news_feed", "get_news_for_player", "get_player"],
   matchup: [
@@ -73,6 +82,7 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "get_player_schedule",
     "get_player_projection_outlook",
     "get_bye_calendar",
+    "get_situational_briefing",
   ],
   schedule: [
     "get_nfl_schedule",
@@ -81,8 +91,13 @@ const INTENT_TOOLS: Record<SenseiIntent, string[]> = {
     "get_player_projection_outlook",
     "get_playoff_weeks",
     "get_bye_calendar",
+    "analyze_roster_needs",
+    "recommend_pickups",
+    "suggest_trades",
+    "get_situational_briefing",
+    "get_playoff_odds",
   ],
-  standings: ["get_standings", "get_playoff_odds", "get_matchup"],
+  standings: ["get_standings", "get_playoff_odds", "get_matchup", "get_situational_briefing"],
   performance: [
     "get_player_performance",
     "get_week_scorers",
@@ -105,7 +120,7 @@ const INTENT_CHECKLISTS: Record<SenseiIntent, ChecklistItem[]> = {
     {
       id: "bye_or_schedule",
       description: "Check bye weeks and/or upcoming opponents",
-      satisfiedBy: ["get_bye_calendar", "get_player_schedule", "get_schedule_outlook"],
+      satisfiedBy: ["get_bye_calendar", "get_player_schedule", "get_schedule_outlook", "get_situational_briefing"],
     },
   ],
   trades: [
@@ -117,15 +132,15 @@ const INTENT_CHECKLISTS: Record<SenseiIntent, ChecklistItem[]> = {
     },
     {
       id: "needs_context",
-      description: "Understand roster needs before trading (skip when only asking for completed trade history)",
-      satisfiedBy: ["analyze_roster_needs", "get_my_roster", "get_completed_trades", "what_would_it_take"],
+      description: "Understand roster needs before recommending forward-looking packages",
+      satisfiedBy: ["analyze_roster_needs", "get_my_roster", "what_would_it_take", "get_situational_briefing"],
     },
   ],
   waivers: [
     {
       id: "needs",
       description: "Identify roster needs",
-      satisfiedBy: ["analyze_roster_needs"],
+      satisfiedBy: ["analyze_roster_needs", "get_situational_briefing"],
     },
     {
       id: "fa_pool",
@@ -150,7 +165,7 @@ const INTENT_CHECKLISTS: Record<SenseiIntent, ChecklistItem[]> = {
   schedule: [
     {
       id: "schedule_data",
-      description: "Load NFL schedule / outlook / byes / projection outlook",
+      description: "Load NFL schedule / outlook / byes / projection outlook / situational briefing",
       satisfiedBy: [
         "get_nfl_schedule",
         "get_player_schedule",
@@ -158,6 +173,7 @@ const INTENT_CHECKLISTS: Record<SenseiIntent, ChecklistItem[]> = {
         "get_player_projection_outlook",
         "get_bye_calendar",
         "get_playoff_weeks",
+        "get_situational_briefing",
       ],
     },
   ],
@@ -165,7 +181,7 @@ const INTENT_CHECKLISTS: Record<SenseiIntent, ChecklistItem[]> = {
     {
       id: "standings_table",
       description: "Load live standings and/or playoff-race odds",
-      satisfiedBy: ["get_standings", "get_playoff_odds"],
+      satisfiedBy: ["get_standings", "get_playoff_odds", "get_situational_briefing"],
     },
   ],
   performance: [
@@ -201,8 +217,6 @@ export function normalizeIntents(raw: unknown): SenseiIntent[] {
 export function toolsForIntents(intents: SenseiIntent[], allToolNames: string[]): string[] {
   if (intents.includes("general") && intents.length === 1) return [...allToolNames];
   if (intents.includes("general")) {
-    // general + specifics → still prefer union of specifics + core, not literally everything,
-    // unless ONLY general. When combined, expand to all for safety.
     return [...allToolNames];
   }
 
@@ -211,8 +225,6 @@ export function toolsForIntents(intents: SenseiIntent[], allToolNames: string[])
     for (const name of INTENT_TOOLS[intent]) set.add(name);
   }
 
-  // News-only asks: don't tempt the model into get_my_roster (it then invents
-  // "not on your roster so I can't help" and skips the news feed).
   const needsRoster =
     intents.includes("start_sit") || intents.includes("trades") || intents.includes("waivers");
   if (intents[0] === "news" && !needsRoster) {
@@ -220,7 +232,6 @@ export function toolsForIntents(intents: SenseiIntent[], allToolNames: string[])
     set.delete("list_teams");
   }
 
-  // Keep only tools that actually exist.
   return allToolNames.filter((n) => set.has(n));
 }
 
@@ -246,6 +257,56 @@ export function missingChecklistItems(
   return checklist.filter((item) => !item.satisfiedBy.some((t) => used.has(t)));
 }
 
+/** Extra checklist items when the user message shows situational signals
+ * (urgency, bye/week-N planning). Keeps simple "is this trade fair?" asks lean. */
+export function situationalChecklistExtras(message: string): ChecklistItem[] {
+  const m = message.toLowerCase();
+  const extras: ChecklistItem[] = [];
+
+  const urgency =
+    /\b(must[- ]?win|need to win|win out|playoff|standings|aggressive|desperate|before (?:this|next) week|smart moves?|big move|shake ?up)\b/.test(
+      m
+    );
+  const byeOrPlan =
+    /\b(bye|byes|pileup|pile-up|cover(?:age)?|accommodate|plan ahead|planning for|weeks? \d+|too early|upcoming schedule|ros schedule)\b/.test(
+      m
+    );
+
+  if (urgency) {
+    extras.push({
+      id: "race_or_urgency",
+      description: "Load playoff race / standings stakes (or a situational briefing) for urgency/stakes-aware advice",
+      satisfiedBy: ["get_playoff_odds", "get_standings", "get_situational_briefing"],
+    });
+  }
+  if (byeOrPlan || urgency) {
+    extras.push({
+      id: "bye_or_near_term_schedule",
+      description: "Check bye weeks / schedule / situational briefing so advice accounts for coverage and timing",
+      satisfiedBy: [
+        "get_bye_calendar",
+        "get_schedule_outlook",
+        "get_player_schedule",
+        "get_situational_briefing",
+      ],
+    });
+  }
+  return extras;
+}
+
+/** Merge base intent checklists with signal-driven situational extras. */
+export function checklistForMessage(intents: SenseiIntent[], message: string): ChecklistItem[] {
+  const base = checklistForIntents(intents);
+  const seen = new Set(base.map((c) => c.id));
+  const out = [...base];
+  for (const item of situationalChecklistExtras(message)) {
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    out.push(item);
+  }
+  return out;
+}
+
 export function looksLikeClarifyingQuestion(text: string): boolean {
   const t = text.trim();
   if (!t.includes("?")) return false;
@@ -253,7 +314,8 @@ export function looksLikeClarifyingQuestion(text: string): boolean {
   return t.length < 450 && qCount <= 3;
 }
 
-/** Cheap keyword boost so obvious asks don't get misclassified as `general`. */
+/** Cheap keyword boost so obvious asks don't get misclassified as `general`.
+ * Signal-driven (urgency, bye/week-N, planning) — not tied to sample queries. */
 export function heuristicIntents(message: string): SenseiIntent[] {
   const m = message.toLowerCase();
   const out: SenseiIntent[] = [];
@@ -269,14 +331,27 @@ export function heuristicIntents(message: string): SenseiIntent[] {
   if (
     /\b(trade|trades|package|offer|traded|trade history|completed trades?|what would it take|what.?d it take|how (?:much|do i) (?:to )?get)\b/.test(
       m
-    )
+    ) ||
+    /\b(smart moves?|make a move|moves? (?:before|this week)|shake ?up|big move)\b/.test(m)
   ) {
     out.push("trades");
   }
-  if (/\b(waiver|waivers|pickup|pickups|free agent|add\/drop|add or drop)\b/.test(m)) out.push("waivers");
+  if (/\b(waiver|waivers|pickup|pickups|free agent|add\/drop|add or drop|stream)\b/.test(m)) out.push("waivers");
   if (/\b(matchup|who am i playing|scoreboard|opponent this week)\b/.test(m)) out.push("matchup");
-  if (/\b(schedule|bye|playoff weeks|ros schedule|upcoming opponents)\b/.test(m)) out.push("schedule");
-  if (/\b(standing|standings|playoff race|playoff odds|clinch|eliminated|make the playoffs|record)\b/.test(m)) {
+  if (
+    /\b(schedule|bye|byes|pileup|pile-up|playoff weeks|ros schedule|upcoming opponents|cover(?:age)?|accommodate|plan ahead|planning for|weeks? \d+)\b/.test(
+      m
+    ) ||
+    /\b(too early|give it (?:a )?(?:few )?weeks?|revisit|down the (?:road|line))\b/.test(m)
+  ) {
+    out.push("schedule");
+  }
+  if (
+    /\b(standing|standings|playoff race|playoff odds|clinch|eliminated|make the playoffs|record)\b/.test(m) ||
+    /\b(must[- ]?win|need to win|win out|push for (?:the )?playoffs?|before (?:this|next) week|urgency|desperate|aggressive)\b/.test(
+      m
+    )
+  ) {
     out.push("standings");
   }
   if (

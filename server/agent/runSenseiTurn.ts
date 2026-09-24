@@ -13,7 +13,7 @@ import {
 } from "./discriminateSenseiAnswer.js";
 import { evidenceNudgeMessage, looksLikeEvidenceAnswer } from "./evidence.js";
 import {
-  checklistForIntents,
+  checklistForMessage,
   heuristicIntents,
   looksLikeClarifyingQuestion,
   mergeIntents,
@@ -103,7 +103,7 @@ export async function runSenseiTurn(input: {
 
   const classification = await classifySenseiIntents(client, latestUser, recentAssistant);
   const intents = mergeIntents(classification.intents, heuristicIntents(latestUser));
-  const checklist = checklistForIntents(intents);
+  const checklist = checklistForMessage(intents, latestUser);
   const allowlist = toolsForIntents(intents, listToolNames());
   const openAiTools = getOpenAiTools(allowlist);
 

@@ -29,6 +29,7 @@ import {
   getPlayoffWeeksTool,
   getScheduleOutlookTool,
 } from "./scheduleTools.js";
+import { getSituationalBriefingTool } from "./situationalBriefing.js";
 import type { ToolContext, ToolDefinition } from "./types.js";
 
 const TOOLS: ToolDefinition[] = [
@@ -60,6 +61,7 @@ const TOOLS: ToolDefinition[] = [
   getCompletedTradesTool,
   optimizeLineupTool,
   suggestTradesTool,
+  getSituationalBriefingTool,
 ];
 
 const byName = new Map(TOOLS.map((t) => [t.name, t]));
