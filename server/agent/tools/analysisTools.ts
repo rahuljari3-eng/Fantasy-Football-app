@@ -606,7 +606,7 @@ export const whatWouldItTakeTool: ToolDefinition = {
       (pos) => myNeeds[pos].tradeableDepth
     );
 
-    const options = findWhatItWouldTake(target, giveCandidates, depthCandidates, theirNeeds, baseline, SEASON_PRICER);
+    const options = findWhatItWouldTake(target, giveCandidates, depthCandidates, myRoster, theirNeeds, baseline, SEASON_PRICER);
 
     return {
       ok: true,

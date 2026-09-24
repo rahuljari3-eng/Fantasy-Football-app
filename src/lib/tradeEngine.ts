@@ -304,6 +304,13 @@ function starterTotal(needs: RosterNeeds): number {
   return POSITIONS.reduce((sum, pos) => sum + needs[pos].starters.reduce((s, p) => s + p.qScore, 0), 0);
 }
 
+/** Total quality of the lineup this roster would actually start (every
+ * required slot plus FLEX) -- for "does losing this player hurt who I
+ * start?" checks. */
+export function startingLineupScore(roster: Player[]): number {
+  return starterTotal(analyzeRosterNeeds(roster));
+}
+
 /** Quality of a position's fixed starting slots only. Deliberately NOT
  * PositionNeed.starterScore: that's a per-slot average that also counts FLEX
  * for whichever position won it, so losing a FLEX-starting TE shrinks the TE

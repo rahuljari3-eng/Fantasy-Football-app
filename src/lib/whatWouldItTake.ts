@@ -4,7 +4,7 @@
 // require -- see lib/tradeEngine.ts. It's the reverse of those: instead of
 // "is this trade fair?" or "here's a trade you might like", it's "what's the
 // minimum it'd cost me to get THIS specific guy?"
-import { needAdjustedPackageValue, fairnessRatio, ratioIsFair, starGateOk, needFactor, packageValue, MARKET_PRICER } from "./tradeEngine.js";
+import { needAdjustedPackageValue, fairnessRatio, ratioIsFair, starGateOk, needFactor, packageValue, startingLineupScore, MARKET_PRICER } from "./tradeEngine.js";
 import { NEED_MULTIPLIER_FILL } from "../config/trade.js";
 import type { PositionBaseline, Pricer } from "./tradeEngine.js";
 import type { Player, Position, RosterNeeds } from "../types.js";
@@ -24,6 +24,9 @@ export interface WhatWouldItTakeOption {
 
 const MAX_PIECES = 3;
 const MAX_OPTIONS = 4;
+/** How much (quality-score points) an add-on piece may cost your post-trade
+ * starting lineup and still count as a throw-in. A true bench piece costs 0. */
+const EXTRA_PIECE_LINEUP_TOLERANCE = 1;
 
 function combinations<T>(pool: T[], size: number): T[][] {
   if (size === 0) return [[]];
@@ -54,6 +57,22 @@ function buildCandidatePackages(corePool: Player[], depthPool: Player[], size: n
   });
 }
 
+/** Add-on pieces must be real throw-ins: once the core piece is gone (and
+ * the target arrives), losing them can't weaken the lineup you'd start.
+ * "Bench depth" alone wasn't enough -- a WR3 who just missed the FLEX spot
+ * is bench depth, but trade your WR2 as the core and he's your new WR2, so
+ * Waddle + DJ Moore for D'Andre Swift gave away two starters. Tried with
+ * each piece as the core, so a package passes if any split of it works. */
+function extrasAreThrowIns(combo: Player[], target: Player, myRoster: Player[]): boolean {
+  if (combo.length === 1) return true;
+  const comboIds = new Set(combo.map((p) => p.id));
+  const afterAll = startingLineupScore([...myRoster.filter((p) => !comboIds.has(p.id)), target]);
+  return combo.some((core) => {
+    const afterCoreOnly = startingLineupScore([...myRoster.filter((p) => p.id !== core.id), target]);
+    return afterCoreOnly - afterAll <= EXTRA_PIECE_LINEUP_TOLERANCE;
+  });
+}
+
 /** Every give candidate's value is scaled by the RECEIVING team's need, so a
  * package can clear the fairness bar with less raw value when it fills a real
  * hole for them -- surface which positions in `give` are doing that. */
@@ -77,6 +96,7 @@ export function findWhatItWouldTake(
   target: Player,
   coreCandidates: Player[],
   depthCandidates: Player[],
+  myRoster: Player[],
   theirNeeds: RosterNeeds,
   baseline: PositionBaseline,
   pricer: Pricer
@@ -101,6 +121,7 @@ export function findWhatItWouldTake(
       const key = combo.map((p) => p.id).sort((a, b) => a - b).join(",");
       if (seen.has(key)) continue;
       seen.add(key);
+      if (!extrasAreThrowIns(combo, target, myRoster)) continue;
       const giveVal = needAdjustedPackageValue(combo, theirNeeds, baseline, pricer);
       const ratio = fairnessRatio(giveVal, getVal);
       // Also fair on market value alone, so the answer is never a package the
