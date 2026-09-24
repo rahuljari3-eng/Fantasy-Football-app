@@ -13,12 +13,20 @@
 // shows: ESPN + Sleeper blend (lib/consensus.ts), then adjusted to
 // DraftKings yardage props when posted (applyPropLines).
 //
+// Also records each week's Vegas points (lib/bettingValue.ts) in
+// src/data/vegasHistory.json -- frozen at kickoff the same way, and
+// backfilled from closing lines for any past week missing -- and writes the
+// season averages to src/data/vegasValues.ts for the player valuation.
+//
 // Usage: npm run record:projections
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { LEAGUE_CONFIG } from "../src/config/league.js";
-import { applyPropLines, consensusFor, fetchConsensusSources } from "../src/lib/consensus.js";
+import { applyPropLines, consensusFor, fetchConsensusSources, propPointsDelta, sleeperKeyFor, type ConsensusSources } from "../src/lib/consensus.js";
+import { vegasSeasonValues, vegasWeek, type VegasHistory, type VegasWeekInput } from "../src/lib/bettingValue.js";
+import { ALL_TEAMS } from "../src/data/allTeams.js";
+import { FREE_AGENTS } from "../src/data/freeAgents.js";
 import {
   extractEspnWeekActual,
   fetchEspnFreeAgentProjections,
@@ -26,10 +34,13 @@ import {
   type EspnPlayerSnapshot,
   type EspnStatLine,
 } from "../src/lib/espn.js";
-import { fetchWeeklyMatchups } from "../src/lib/matchup.js";
+import { fetchWeeklyMatchups, type WeeklyMatchups } from "../src/lib/matchup.js";
 import type { ProjectionHistory } from "../src/lib/projectionAccuracy.js";
 
-const HISTORY_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), "../src/data/projectionHistory.json");
+const DATA_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "../src/data");
+const HISTORY_FILE = path.join(DATA_DIR, "projectionHistory.json");
+const VEGAS_HISTORY_FILE = path.join(DATA_DIR, "vegasHistory.json");
+const VEGAS_VALUES_FILE = path.join(DATA_DIR, "vegasValues.ts");
 const SKILL = new Set(["QB", "RB", "WR", "TE"]);
 const ESPN_PLAYERS_URL = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${LEAGUE_CONFIG.espnSeason}/players`;
 
@@ -115,3 +126,73 @@ for (const [w, players] of Object.entries(history.weeks)) {
 
 writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 1) + "\n");
 console.log(`Week ${period}: recorded ${recorded} players, ${frozen} frozen at kickoff; filled ${filled} actuals for finished weeks.`);
+
+// ---------- Vegas values ----------
+const vegasHistory = JSON.parse(readFileSync(VEGAS_HISTORY_FILE, "utf8")) as VegasHistory;
+if (vegasHistory.season !== LEAGUE_CONFIG.espnSeason) {
+  vegasHistory.season = LEAGUE_CONFIG.espnSeason;
+  vegasHistory.weeks = {};
+}
+// NFL team per player, from the synced roster files, to find his game's
+// implied total.
+const nflTeam = new Map<number, string>();
+[...ALL_TEAMS.flatMap((t) => t.roster), ...FREE_AGENTS].forEach((p) => nflTeam.set(p.id, p.team));
+
+function vegasInputs(src: ConsensusSources, lines: WeeklyMatchups, players: EspnPlayerSnapshot[]): VegasWeekInput[] {
+  const inputs: VegasWeekInput[] = [];
+  players.forEach((snap) => {
+    if (!SKILL.has(snap.pos)) return;
+    const key = sleeperKeyFor(src, snap.id, snap.name, snap.pos);
+    const model = key ? src.sleeperWeek.get(key) : undefined;
+    if (!model) return;
+    const team = nflTeam.get(snap.id);
+    const implied = team ? lines.teams[team]?.impliedTeamTotal : null;
+    inputs.push({ id: snap.id, pos: snap.pos, base: model.pts, delta: propPointsDelta(lines.playerProps[snap.id], model), ...(implied != null ? { implied } : {}) });
+  });
+  return inputs;
+}
+
+// This week: re-record everyone whose game hasn't kicked off; keep the rest.
+if (matchups) {
+  const current = vegasWeek(vegasInputs(sources, matchups, [...snapshots.values()]));
+  const kept = vegasHistory.weeks[String(period)] ?? {};
+  const next: Record<string, (typeof kept)[string]> = {};
+  snapshots.forEach((snap) => {
+    const key = String(snap.id);
+    const record = snap.weekActual != null ? kept[key] : current[key];
+    if (record) next[key] = record;
+  });
+  vegasHistory.weeks[String(period)] = next;
+}
+
+// Past weeks with nothing recorded: backfill from closing lines.
+for (let w = 1; w < period; w++) {
+  if (Object.keys(vegasHistory.weeks[String(w)] ?? {}).length) continue;
+  try {
+    const [pastSources, pastLines] = await Promise.all([
+      fetchConsensusSources(LEAGUE_CONFIG.espnSeason, w),
+      fetchWeeklyMatchups({ week: w, season: LEAGUE_CONFIG.espnSeason }),
+    ]);
+    vegasHistory.weeks[String(w)] = vegasWeek(vegasInputs(pastSources, pastLines, [...snapshots.values()]));
+    console.log(`Vegas: backfilled week ${w} (${Object.keys(vegasHistory.weeks[String(w)]).length} players).`);
+  } catch (err) {
+    console.warn(`Vegas: couldn't backfill week ${w}:`, err instanceof Error ? err.message : err);
+  }
+}
+
+writeFileSync(VEGAS_HISTORY_FILE, JSON.stringify(vegasHistory, null, 1) + "\n");
+const seasonValues = vegasSeasonValues(vegasHistory);
+writeFileSync(
+  VEGAS_VALUES_FILE,
+  [
+    "// Generated by scripts/recordProjections.ts -- do not edit by hand.",
+    "// Season-average Vegas points per player (lib/bettingValue.ts), keyed by ESPN id.",
+    'import type { VegasSeasonValue } from "../lib/bettingValue.js";',
+    "",
+    "export const VEGAS_VALUES: Record<number, VegasSeasonValue> = {",
+    ...Object.entries(seasonValues).map(([id, v]) => `  ${id}: { pts: ${v.pts}, weeks: ${v.weeks} },`),
+    "};",
+    "",
+  ].join("\n")
+);
+console.log(`Vegas: ${Object.keys(vegasHistory.weeks[String(period)] ?? {}).length} players this week; season values for ${Object.keys(seasonValues).length}.`);

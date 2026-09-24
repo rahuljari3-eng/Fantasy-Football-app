@@ -32,7 +32,8 @@ jobs:
       - run: npm run sync:snapshot
 
       # Custom vs ESPN projection history for the Build roster tab's accuracy
-      # comparison -- see scripts/recordProjections.ts. Best-effort: a failed
+      # comparison, plus the weekly Vegas lines behind each player's Vegas
+      # value -- see scripts/recordProjections.ts. Best-effort: a failed
       # recording shouldn't block the roster sync.
       - run: npm run record:projections
         continue-on-error: true
@@ -45,6 +46,6 @@ jobs:
             echo "No roster changes since last sync."
             exit 0
           fi
-          git add src/data/leagueTeams.ts src/data/myTeam.ts src/data/freeAgents.ts src/data/projectionHistory.json
+          git add src/data/leagueTeams.ts src/data/myTeam.ts src/data/freeAgents.ts src/data/projectionHistory.json src/data/vegasHistory.json src/data/vegasValues.ts
           git commit -m "Sync league snapshot and projection history from ESPN [automated]"
           git push

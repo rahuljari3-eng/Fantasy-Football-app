@@ -82,6 +82,11 @@ export interface PlayerPropLines {
   /** "Rush + receiving yards" -- offered mainly for pass-catching RBs; a
    * better PPR-relevant volume signal than rushing yards alone when present. */
   rushRecYards?: number;
+  /** Receptions line -- a full point each in PPR. */
+  receptions?: number;
+  /** QB lines: passing touchdowns and interceptions thrown. */
+  passTds?: number;
+  passInts?: number;
 }
 
 export interface WeeklyMatchups {
@@ -105,9 +110,13 @@ interface EspnPropBetItem {
 }
 interface EspnPropBetsResponse {
   items?: EspnPropBetItem[];
+  pageCount?: number;
 }
 
-const PROP_TYPE_ID = { pass: "8", rush: "12", rec: "13", rushRec: "20" } as const;
+const PROP_TYPE_ID = { pass: "8", passTds: "10", rush: "12", rec: "13", receptions: "14", passInts: "15", rushRec: "20" } as const;
+// A game's board runs 1,000+ entries (milestones, quarter lines, TD scorers),
+// so it has to be paged -- a single capped request silently dropped lines.
+const PROP_PAGE_SIZE = 1000;
 
 function extractAthleteId(ref: string | undefined): number | null {
   const match = ref?.match(/\/athletes\/(\d+)/);
@@ -118,13 +127,19 @@ function extractAthleteId(ref: string | undefined): number | null {
  * care about and keyed by athlete id. Best-effort -- a game whose props
  * haven't posted, or that 404s, just contributes nothing. */
 async function fetchGamePropLines(eventId: string): Promise<Record<number, PlayerPropLines>> {
-  const url = `${CORE_API_BASE}/events/${eventId}/competitions/${eventId}/odds/${ODDS_PROVIDER_ID}/propBets?lang=en&region=us&limit=500`;
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`ESPN prop odds request failed (${res.status})`);
-  const data = (await res.json()) as EspnPropBetsResponse;
+  const pageUrl = (page: number) =>
+    `${CORE_API_BASE}/events/${eventId}/competitions/${eventId}/odds/${ODDS_PROVIDER_ID}/propBets?lang=en&region=us&limit=${PROP_PAGE_SIZE}&page=${page}`;
+  const fetchPage = async (page: number) => {
+    const res = await fetch(pageUrl(page), { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error(`ESPN prop odds request failed (${res.status})`);
+    return (await res.json()) as EspnPropBetsResponse;
+  };
+  const first = await fetchPage(1);
+  const items = [...(first.items || [])];
+  for (let page = 2; page <= (first.pageCount ?? 1); page++) items.push(...((await fetchPage(page)).items || []));
   const props: Record<number, PlayerPropLines> = {};
 
-  (data.items || []).forEach((item) => {
+  items.forEach((item) => {
     const typeId = item.type?.id;
     if (!typeId || !Object.values(PROP_TYPE_ID).includes(typeId as (typeof PROP_TYPE_ID)[keyof typeof PROP_TYPE_ID])) return;
     const athleteId = extractAthleteId(item.athlete?.$ref);
@@ -136,6 +151,9 @@ async function fetchGamePropLines(eventId: string): Promise<Record<number, Playe
     else if (typeId === PROP_TYPE_ID.rush) entry.rushYards = value;
     else if (typeId === PROP_TYPE_ID.rec) entry.recYards = value;
     else if (typeId === PROP_TYPE_ID.rushRec) entry.rushRecYards = value;
+    else if (typeId === PROP_TYPE_ID.receptions) entry.receptions = value;
+    else if (typeId === PROP_TYPE_ID.passTds) entry.passTds = value;
+    else if (typeId === PROP_TYPE_ID.passInts) entry.passInts = value;
     props[athleteId] = entry;
   });
 
@@ -153,13 +171,26 @@ async function fetchAllPlayerPropLines(eventIds: string[]): Promise<Record<numbe
   return merged;
 }
 
-/** Pulls this week's full NFL schedule + lines (team totals AND every
- * player's own yardage prop) and turns it into the lookup gradeMatchup uses.
- * ESPN's scoreboard defaults to "this week" based on today's date, so no
- * week number needs to be computed here. */
-export async function fetchWeeklyMatchups(): Promise<WeeklyMatchups> {
+/** A finished game's closing line. The scoreboard drops odds once a game is
+ * final, but the core odds endpoint keeps them -- what backfilling past
+ * weeks' Vegas values (scripts/recordProjections.ts) needs. */
+async function fetchGameOdds(eventId: string): Promise<EspnOdds | undefined> {
+  const res = await fetch(`${CORE_API_BASE}/events/${eventId}/competitions/${eventId}/odds?lang=en&region=us`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) return undefined;
+  const data = (await res.json()) as { items?: (EspnOdds & { provider?: { id?: string } })[] };
+  return data.items?.find((i) => i.provider?.id === ODDS_PROVIDER_ID) ?? data.items?.[0];
+}
+
+/** Pulls a week's full NFL schedule + lines (team totals AND every player's
+ * own prop lines) and turns it into the lookup gradeMatchup uses. With no
+ * `week`, ESPN's scoreboard defaults to "this week" based on today's date;
+ * pass `week` (and `season`) to pull a past week's closing lines instead. */
+export async function fetchWeeklyMatchups(options: { week?: number; season?: number } = {}): Promise<WeeklyMatchups> {
+  const url = options.week != null ? `${SCOREBOARD_URL}?week=${options.week}&seasontype=2&dates=${options.season ?? ""}` : SCOREBOARD_URL;
   const [res, periodRes] = await Promise.all([
-    fetch(SCOREBOARD_URL, { headers: { Accept: "application/json" } }),
+    fetch(url, { headers: { Accept: "application/json" } }),
     // Cross-checked against the FANTASY side's own current scoring period --
     // see scoreboardIsStale below. Best-effort: if this fails, just skip the
     // cross-check rather than blocking the whole matchup refresh over it.
@@ -187,12 +218,24 @@ export async function fetchWeeklyMatchups(): Promise<WeeklyMatchups> {
       // Malformed response -- skip the cross-check, same as a failed fetch.
     }
   }
-  const scoreboardIsStale = currentFantasyPeriod != null && data.week?.number != null && data.week.number !== currentFantasyPeriod;
+  const scoreboardIsStale =
+    options.week == null && currentFantasyPeriod != null && data.week?.number != null && data.week.number !== currentFantasyPeriod;
 
   const teams: Record<string, TeamMatchup> = {};
   const eventIds: string[] = [];
 
-  (data.events || []).forEach((ev) => {
+  const events = data.events || [];
+  // A past week's scoreboard has no odds on its finished games; fetch them.
+  const pastOdds = new Map<string, EspnOdds | undefined>();
+  if (options.week != null) {
+    await Promise.all(
+      events.map(async (ev) => {
+        if (ev.id && ev.competitions?.[0]?.odds?.[0]?.overUnder == null) pastOdds.set(ev.id, await fetchGameOdds(ev.id).catch(() => undefined));
+      })
+    );
+  }
+
+  events.forEach((ev) => {
     const comp = ev.competitions?.[0];
     const home = comp?.competitors?.find((c) => c.homeAway === "home");
     const away = comp?.competitors?.find((c) => c.homeAway === "away");
@@ -202,7 +245,7 @@ export async function fetchWeeklyMatchups(): Promise<WeeklyMatchups> {
     if (ev.id) eventIds.push(ev.id);
 
     // ESPN's spread is relative to the home team (negative = home favored).
-    const odds = comp.odds?.[0];
+    const odds = comp.odds?.[0]?.overUnder != null ? comp.odds[0] : (ev.id ? pastOdds.get(ev.id) : undefined);
     let homeImplied: number | null = null;
     let awayImplied: number | null = null;
     if (odds?.overUnder != null && odds?.spread != null) {

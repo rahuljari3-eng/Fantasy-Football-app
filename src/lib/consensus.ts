@@ -19,7 +19,10 @@
 //  - Sportsbook prop lines (DraftKings via ESPN, see lib/matchup.ts): when a
 //    player's yardage prop has posted for the week, the market's yardage
 //    number replaces the projections' yardage number in his WEEKLY projection
-//    (see applyPropLines).
+//    (see applyPropLines). Across the season, every prop line (yards,
+//    receptions, passing TDs, interceptions) plus the game lines also build a
+//    Vegas value that joins FantasyCalc in the market half of season value --
+//    see lib/bettingValue.ts and rankPlayerPool below.
 //
 // Every fetch is best-effort: a source that fails or doesn't know a player
 // just drops out of that player's blend, never blocks the refresh.
@@ -34,7 +37,10 @@ import {
   MARKET_CALIBRATION_MIN_PLAYERS,
   PROP_ADJUST_MAX_FRACTION,
   SLEEPER_ROS_WEEKS,
+  VEGAS_MARKET_SHARE,
+  VEGAS_SHRINK_WEEKS,
 } from "../config/scoring.js";
+import { VEGAS_VALUES } from "../data/vegasValues.js";
 import type { EspnPlayerSnapshot } from "./espn.js";
 import { seasonModelValue } from "./scoring.js";
 import type { PlayerPropLines } from "./matchup.js";
@@ -115,7 +121,7 @@ async function fetchFantasyCalc(): Promise<{ market: Map<number, MarketValue>; e
 
 interface SleeperProjRow {
   player_id?: string;
-  stats?: { pts_ppr?: number; pass_yd?: number; rush_yd?: number; rec_yd?: number };
+  stats?: { pts_ppr?: number; pass_yd?: number; rush_yd?: number; rec_yd?: number; rec?: number; pass_td?: number; pass_int?: number };
   player?: { first_name?: string; last_name?: string; position?: string };
 }
 
@@ -152,7 +158,15 @@ export async function fetchConsensusSources(season: number, week: number): Promi
       const pos = row.player?.position;
       if (first && last && pos) sleeperByName.set(nameKey(`${first} ${last}`, pos), id);
       if (i === 0) {
-        sleeperWeek.set(id, { pts, pass: row.stats?.pass_yd, rush: row.stats?.rush_yd, rec: row.stats?.rec_yd });
+        sleeperWeek.set(id, {
+          pts,
+          pass: row.stats?.pass_yd,
+          rush: row.stats?.rush_yd,
+          rec: row.stats?.rec_yd,
+          receptions: row.stats?.rec,
+          passTds: row.stats?.pass_td,
+          passInts: row.stats?.pass_int,
+        });
       }
       // Zero = bye (or ruled out) that week; averaging it in would make a
       // player look worse per-game just for having his bye inside the window.
@@ -218,6 +232,40 @@ export function blendSeasonProj(input: {
 }
 
 const POINTS_PER_YARD = { pass: 0.04, rush: 0.1, rec: 0.1 } as const;
+/** PPR league scoring for the count props. */
+const POINTS_PER = { reception: 1, passTd: 4, passInt: -2 } as const;
+
+/** Fantasy points the sportsbook's lines imply beyond (or short of) the
+ * projection model's own stat line: every stat with a posted line -- yardage,
+ * receptions, passing TDs, interceptions -- swapped from the model's number
+ * to the book's. Stats without a line (rushing/receiving TDs, a QB's rushing)
+ * contribute nothing, i.e. stay as the model has them. Null when no line
+ * lines up with a model stat. Used for the season-long Vegas value
+ * (lib/bettingValue.ts); the weekly projection (applyPropLines) keeps to
+ * yardage, since count lines are posted at x.5 medians -- 1.5 passing TDs
+ * for a 1.7 expectation -- which is noise for one week but washes out once
+ * calibrated per position across a season. */
+export function propPointsDelta(props: PlayerPropLines | undefined, model: ModelYards | undefined): number | null {
+  if (!props || !model) return null;
+  let delta = 0;
+  let matched = false;
+  const add = (line: number | undefined, modelStat: number | undefined, points: number) => {
+    if (line == null || modelStat == null) return;
+    delta += (line - modelStat) * points;
+    matched = true;
+  };
+  add(props.passYards, model.pass, POINTS_PER_YARD.pass);
+  add(props.passTds, model.passTds, POINTS_PER.passTd);
+  add(props.passInts, model.passInts, POINTS_PER.passInt);
+  if (props.rushRecYards != null && (model.rush != null || model.rec != null)) {
+    add(props.rushRecYards, (model.rush ?? 0) + (model.rec ?? 0), POINTS_PER_YARD.rush);
+  } else {
+    add(props.rushYards, model.rush, POINTS_PER_YARD.rush);
+    add(props.recYards, model.rec, POINTS_PER_YARD.rec);
+  }
+  add(props.receptions, model.receptions, POINTS_PER.reception);
+  return matched ? delta : null;
+}
 
 /** Swap the projections' yardage expectation for the sportsbook's, when a
  * prop line is posted: proj += (propYards - modelYards) * points-per-yard.
@@ -286,7 +334,7 @@ export function consensusFor(
     valueSources,
     ...(seasonProj != null ? { seasonProj } : {}),
     ...(market ? { marketPosRank: market.posRank, marketValue: market.value } : {}),
-    ...(week ? { modelYards: { pass: week.pass, rush: week.rush, rec: week.rec } } : {}),
+    ...(week ? { modelYards: { pass: week.pass, rush: week.rush, rec: week.rec, receptions: week.receptions, passTds: week.passTds, passInts: week.passInts } } : {}),
   };
 }
 
@@ -344,11 +392,40 @@ export function rankPlayerPool<P extends Player>(pool: P[]): P[] {
     positionScale.set(pos, Math.min(MARKET_CALIBRATION_MAX, Math.max(MARKET_CALIBRATION_MIN, median)));
   });
 
-  return ranked.map((p) => ({
-    ...p,
-    ...(marketQuality.has(p.id) ? { marketQuality: marketQuality.get(p.id) } : {}),
-    ...(positionScale.has(p.pos) ? { positionScale: positionScale.get(p.pos) } : {}),
-  }));
+  // The betting market (lib/bettingValue.ts): season-average Vegas points,
+  // valued on the model's own curve -- ranked against everyone else's best
+  // points number so a player with lines isn't only compared to the other
+  // players with lines -- and re-leveled by the same positionScale.
+  const bestPoints = (p: P) => VEGAS_VALUES[p.id]?.pts ?? p.seasonProj ?? p.proj;
+  const vegasRank = new Map<number, number>();
+  byPos.forEach((list) => {
+    [...list].sort((a, b) => bestPoints(b) - bestPoints(a)).forEach((p, i) => vegasRank.set(p.id, i + 1));
+  });
+
+  return ranked.map((p) => {
+    const scale = positionScale.get(p.pos);
+    const vegas = VEGAS_VALUES[p.id];
+    const vegasQuality = vegas
+      ? seasonModelValue({ ...p, seasonProj: vegas.pts, seasonPosRank: vegasRank.get(p.id) }) * (scale ?? 1)
+      : undefined;
+    // FantasyCalc and Vegas together are "the market": Vegas's share grows
+    // with the weeks of lines behind it. A player FantasyCalc doesn't value
+    // blends Vegas with the model instead, so a single signal never jumps
+    // straight to the market's full weight.
+    const fc = marketQuality.get(p.id);
+    const share = vegas ? VEGAS_MARKET_SHARE * (vegas.weeks / (vegas.weeks + VEGAS_SHRINK_WEEKS)) : 0;
+    const market =
+      vegasQuality != null
+        ? (fc ?? seasonModelValue(p) * (scale ?? 1)) * (1 - share) + vegasQuality * share
+        : fc;
+    return {
+      ...p,
+      ...(market != null ? { marketQuality: market } : {}),
+      ...(fc != null ? { fantasyCalcQuality: fc } : {}),
+      ...(vegas && vegasQuality != null ? { vegasQuality, vegasProj: vegas.pts, vegasWeeks: vegas.weeks } : {}),
+      ...(scale != null ? { positionScale: scale } : {}),
+    };
+  });
 }
 
 /** Replace raw ESPN overrides with consensus ones for every player we have an

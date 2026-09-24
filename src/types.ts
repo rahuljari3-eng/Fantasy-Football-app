@@ -15,12 +15,16 @@ export interface ValueSources {
   gamesPlayed?: number;
 }
 
-/** A projection model's expected yardage for one week -- what a posted
- * sportsbook prop line is compared against (lib/consensus.ts). */
+/** A projection model's expected stat line for one week -- what posted
+ * sportsbook prop lines are compared against (lib/consensus.ts). Yardage is
+ * pass/rush/rec; the rest are counts. */
 export interface ModelYards {
   pass?: number;
   rush?: number;
   rec?: number;
+  receptions?: number;
+  passTds?: number;
+  passInts?: number;
 }
 
 // Statuses are mostly the human-readable labels used across the app ("Healthy",
@@ -69,6 +73,16 @@ export interface Player {
    * mapped onto the pool's projection-model values at the same rank. Stamped
    * at runtime by lib/consensus.ts rankPlayerPool; blended into qualityScore. */
   marketQuality?: number;
+  /** The betting market's view on the same scale: season-average Vegas
+   * points (lib/bettingValue.ts) run through the projection model's value
+   * curve. Blended into marketQuality alongside FantasyCalc. */
+  vegasQuality?: number;
+  /** Season-average fantasy points implied by sportsbook prop + game lines,
+   * and how many weeks of lines it averages. */
+  vegasProj?: number;
+  vegasWeeks?: number;
+  /** FantasyCalc's part of marketQuality alone -- for display. */
+  fantasyCalcQuality?: number;
   /** Per-position correction to the projection model's value level, learned
    * from the trade market (median market/model ratio at the position). */
   positionScale?: number;

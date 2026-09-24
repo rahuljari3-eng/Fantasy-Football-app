@@ -65,8 +65,12 @@ function ValueBreakdown({ player }: { player: Player }) {
           value={quality.toFixed(0)}
           detail={
             hasMarket
-              ? `${Math.round(MARKET_VALUE_WEIGHT * 100)}% trade market (${player.marketQuality!.toFixed(0)}) · ${Math.round((1 - MARKET_VALUE_WEIGHT) * 100)}% projections (${model.toFixed(0)})`
-              : "Projections only — no trade-market value for this player"
+              ? `${Math.round(MARKET_VALUE_WEIGHT * 100)}% market (${player.marketQuality!.toFixed(0)}${
+                  player.vegasQuality != null
+                    ? `: FantasyCalc ${player.fantasyCalcQuality != null ? player.fantasyCalcQuality.toFixed(0) : "—"} + Vegas ${player.vegasQuality.toFixed(0)}`
+                    : ""
+                }) · ${Math.round((1 - MARKET_VALUE_WEIGHT) * 100)}% projections (${model.toFixed(0)})`
+              : "Projections only — no market value for this player"
           }
         />
         <SourceRow
@@ -95,6 +99,13 @@ function ValueBreakdown({ player }: { player: Player }) {
         />
         {player.marketPosRank != null && (
           <SourceRow label="Trade market" value={`${player.pos}${player.marketPosRank}`} detail="FantasyCalc redraft value, from real trades" />
+        )}
+        {player.vegasProj != null && (
+          <SourceRow
+            label="Vegas pts/game"
+            value={player.vegasProj.toFixed(1)}
+            detail={`Sportsbook prop + game lines, ${player.vegasWeeks} week${player.vegasWeeks === 1 ? "" : "s"}`}
+          />
         )}
       </div>
     </div>

@@ -138,3 +138,23 @@ export const MARKET_CALIBRATION_MAX = 1.5;
 /** A posted sportsbook yardage prop can move a weekly projection by at most
  * this fraction of it. */
 export const PROP_ADJUST_MAX_FRACTION = 0.3;
+
+/** VEGAS VALUE (lib/bettingValue.ts): the betting market's season-long view
+ * of a player, built from every week's prop lines and game lines, joins
+ * FantasyCalc inside the market half of qualityScore. Its share of that half
+ * is VEGAS_MARKET_SHARE * weeks / (weeks + VEGAS_SHRINK_WEEKS) -- shrunk
+ * toward FantasyCalc while only a few weeks of lines exist (3 weeks: 20% of
+ * the market half, ~13% of total value; 12 weeks: 32%). */
+export const VEGAS_MARKET_SHARE = 0.4;
+export const VEGAS_SHRINK_WEEKS = 3;
+
+/** One week's Vegas points can move off the projection model's by at most
+ * this fraction, so a stray or mis-matched line can't swing a player. */
+export const VEGAS_WEEK_MAX_ADJUST = 0.5;
+
+/** Game-line normalization: a week's Vegas points are scaled by
+ * (team's usual implied total / that week's implied total) ^ this, so a
+ * single shootout or slog doesn't read as a season-long role change. 0.5
+ * because only part of a player's points (mostly TDs) moves with team
+ * scoring. */
+export const VEGAS_GAME_SCRIPT_ELASTICITY = 0.5;
