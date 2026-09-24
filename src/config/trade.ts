@@ -19,11 +19,11 @@ export const EXTRA_PIECE_DISCOUNT = 0.4;
 export const FAIR_RATIO_MIN = 0.92;
 export const FAIR_RATIO_MAX = 1.12;
 
-/** Wider band used only to LABEL a trade in the UI. Inside LOPSIDED_* but
- * outside FAIR_* reads as "slightly favors X"; outside LOPSIDED_* reads as
- * "lopsided -- context matters". */
-export const LOPSIDED_RATIO_MIN = 0.9;
-export const LOPSIDED_RATIO_MAX = 1.1;
+/** Wider band used only to LABEL a trade in the UI. Must be strictly wider
+ * than FAIR_*: inside LOPSIDED_* but outside FAIR_* reads as "slightly favors
+ * X"; outside LOPSIDED_* reads as "lopsided -- context matters". */
+export const LOPSIDED_RATIO_MIN = 0.85;
+export const LOPSIDED_RATIO_MAX = 1.15;
 
 /** STAR GATE: if either side of a trade sends a genuine difference-maker, the
  * other side must send back BOTH (a) at least one Tier-1 or Tier-2 player,

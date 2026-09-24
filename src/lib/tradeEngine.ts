@@ -21,6 +21,8 @@ import {
   EXTRA_PIECE_DISCOUNT,
   FAIR_RATIO_MIN,
   FAIR_RATIO_MAX,
+  LOPSIDED_RATIO_MIN,
+  LOPSIDED_RATIO_MAX,
   REQUIRE_STAR_RETURN,
   STAR_RETURN_MIN_TOP_FRACTION,
   STAR_RANK_THRESHOLD,
@@ -33,7 +35,8 @@ import {
 import { POSITIONS, REQUIRED_STARTERS } from "../config/league.js";
 import { analyzeRosterNeeds } from "./rosterNeeds.js";
 import { VOR_BASELINE } from "../config/scoring.js";
-import { playerValue, qualityScore } from "./scoring.js";
+import { playerValue, qualityScore, rosValue } from "./scoring.js";
+import { remainingRosWeeks } from "./rosHorizon.js";
 import type { Player, Position, RosterNeeds, TradeFit } from "../types.js";
 
 /** Which "how good is this player" number a piece of trade math prices
@@ -65,6 +68,52 @@ export const WEEK_PRICER: Pricer = { value: playerValue, rank: (p) => p.posRank 
  * up -- exactly backwards for a season-long recommendation. */
 export const SEASON_PRICER: Pricer = { value: qualityScore, rank: (p) => p.seasonPosRank ?? p.posRank };
 
+/** Absolute rest-of-season package scale (qualityScore × remaining weeks).
+ * Ratios match SEASON_PRICER; use rosPackageFloor() as the packageValue floor. */
+export const ROS_PRICER: Pricer = {
+  value: (p) => rosValue(p),
+  rank: (p) => p.seasonPosRank ?? p.posRank,
+};
+
+/** Replacement floor on the ROS-scaled value axis (no per-player bye — package
+ * level). */
+export function rosPackageFloor(): number {
+  return VOR_BASELINE * remainingRosWeeks();
+}
+
+/** Shared trade-label ladder: fair window first, then slightly-favors band
+ * (LOPSIDED wider than FAIR), then strong lean. */
+export function verdictFromRatio(
+  ratio: number,
+  gateOk: boolean,
+  labels: { you: string; them: string; even: string; slightlyYou: string; slightlyThem: string; star: string } = {
+    star: "likely_unfair_star_gate",
+    even: "roughly_even",
+    you: "favors_you",
+    them: "favors_them",
+    slightlyYou: "slightly_favors_you",
+    slightlyThem: "slightly_favors_them",
+  }
+): string {
+  if (!gateOk) return labels.star;
+  if (ratioIsFair(ratio)) return labels.even;
+  if (ratio > LOPSIDED_RATIO_MAX) return labels.you;
+  if (ratio < LOPSIDED_RATIO_MIN) return labels.them;
+  if (ratio > FAIR_RATIO_MAX) return labels.slightlyYou;
+  if (ratio < FAIR_RATIO_MIN) return labels.slightlyThem;
+  return labels.even;
+}
+
+/** Human-facing verdict for Coach / Analyzer UI. */
+export function ratioVerdictLabel(ratio: number): { label: string; className: string } {
+  const pct = Math.round((ratio - 1) * 100);
+  const magnitude = `${Math.abs(pct)}%`;
+  if (ratioIsFair(ratio)) return { label: "Fair both ways", className: "text-emerald-400" };
+  if (ratio < LOPSIDED_RATIO_MIN) return { label: `Favors them ${magnitude} — context matters`, className: "text-amber-400" };
+  if (ratio > LOPSIDED_RATIO_MAX) return { label: `Favors you ${magnitude} — context matters`, className: "text-amber-400" };
+  return { label: pct >= 0 ? `Leans your way ${magnitude}` : `Leans their way ${magnitude}`, className: "text-[#98989D]" };
+}
+
 /** A genuine difference-maker: true league-wide positional rank inside
  * STAR_RANK_THRESHOLD. NOT the same thing as Tier -- Tier is derived from
  * ESPN ownership% (>=80% owned = Tier 1), which covers roughly two-thirds of
@@ -84,8 +133,8 @@ export function hasStar(players: Player[], pricer: Pricer): boolean {
 /** The above-replacement portion of a player's value -- what he's really worth
  * as an extra piece, since the roster spot and replacement-level baseline come
  * "for free" from anyone. */
-function marginalValue(p: Player, pricer: Pricer): number {
-  return Math.max(0, pricer.value(p) - VOR_BASELINE);
+function marginalValue(p: Player, pricer: Pricer, floor: number): number {
+  return Math.max(0, pricer.value(p) - floor);
 }
 
 /** The star gate. If a side sends a genuine star (see isStar), the other side
@@ -109,13 +158,14 @@ export type PositionBaseline = Record<Position, number>;
 
 /** Value of one whole side of a trade: best piece full, every extra piece only
  * its marginal (above-replacement) value, discounted compounding by
- * EXTRA_PIECE_DISCOUNT. */
-export function packageValue(players: Player[], pricer: Pricer): number {
+ * EXTRA_PIECE_DISCOUNT. Pass `floor` when the pricer is ROS-scaled
+ * (use rosPackageFloor()); defaults to VOR_BASELINE for week/quality scales. */
+export function packageValue(players: Player[], pricer: Pricer, floor: number = VOR_BASELINE): number {
   const sorted = [...players].sort((a, b) => pricer.value(b) - pricer.value(a));
   if (!sorted.length) return 0;
   let total = pricer.value(sorted[0]);
   for (let i = 1; i < sorted.length; i++) {
-    total += marginalValue(sorted[i], pricer) * Math.pow(EXTRA_PIECE_DISCOUNT, i);
+    total += marginalValue(sorted[i], pricer, floor) * Math.pow(EXTRA_PIECE_DISCOUNT, i);
   }
   return total;
 }
@@ -183,13 +233,17 @@ export function needAdjustedPackageValue(
   players: Player[],
   needs: RosterNeeds,
   baseline: PositionBaseline,
-  pricer: Pricer
+  pricer: Pricer,
+  floor: number = VOR_BASELINE
 ): number {
   const sorted = [...players].sort((a, b) => pricer.value(b) - pricer.value(a));
   if (!sorted.length) return 0;
   let total = pricer.value(sorted[0]) * needFactor(needs, baseline, sorted[0], pricer);
   for (let i = 1; i < sorted.length; i++) {
-    total += marginalValue(sorted[i], pricer) * Math.pow(EXTRA_PIECE_DISCOUNT, i) * needFactor(needs, baseline, sorted[i], pricer);
+    total +=
+      marginalValue(sorted[i], pricer, floor) *
+      Math.pow(EXTRA_PIECE_DISCOUNT, i) *
+      needFactor(needs, baseline, sorted[i], pricer);
   }
   return total;
 }

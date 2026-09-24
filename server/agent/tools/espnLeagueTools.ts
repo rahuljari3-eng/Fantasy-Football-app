@@ -1,4 +1,4 @@
-import { FAIR_RATIO_MAX, FAIR_RATIO_MIN, LOPSIDED_RATIO_MAX, LOPSIDED_RATIO_MIN } from "../../../src/config/trade.js";
+import { FAIR_RATIO_MAX, FAIR_RATIO_MIN } from "../../../src/config/trade.js";
 import { ALL_TEAMS } from "../../../src/data/allTeams.js";
 import { FREE_AGENTS } from "../../../src/data/freeAgents.js";
 import { fetchEspnCompletedTrades } from "../../../src/lib/espn.js";
@@ -16,7 +16,7 @@ import {
   fetchTopScorers,
 } from "../../../src/lib/playerPerformance.js";
 import { computePlayoffOutlook } from "../../../src/lib/playoffOdds.js";
-import { fairnessRatio, packageValue, ratioIsFair, SEASON_PRICER, starGateOk } from "../../../src/lib/tradeEngine.js";
+import { fairnessRatio, packageValue, SEASON_PRICER, starGateOk, verdictFromRatio } from "../../../src/lib/tradeEngine.js";
 import type { LeagueTeam, Player } from "../../../src/types.js";
 import {
   activeTeams,
@@ -52,17 +52,15 @@ function resolveFantasyTeam(query: string | number | undefined, fallbackId?: num
   return null;
 }
 
-function completedTradeVerdict(
-  ratio: number,
-  gateOk: boolean
-): "roughly_even" | "favors_team_a" | "favors_team_b" | "slightly_favors_team_a" | "slightly_favors_team_b" | "likely_unfair_star_gate" {
-  if (!gateOk) return "likely_unfair_star_gate";
-  if (ratioIsFair(ratio)) return "roughly_even";
-  if (ratio > LOPSIDED_RATIO_MAX) return "favors_team_a";
-  if (ratio < LOPSIDED_RATIO_MIN) return "favors_team_b";
-  if (ratio > FAIR_RATIO_MAX) return "slightly_favors_team_a";
-  if (ratio < FAIR_RATIO_MIN) return "slightly_favors_team_b";
-  return "roughly_even";
+function completedTradeVerdict(ratio: number, gateOk: boolean): string {
+  return verdictFromRatio(ratio, gateOk, {
+    star: "likely_unfair_star_gate",
+    even: "roughly_even",
+    you: "favors_team_a",
+    them: "favors_team_b",
+    slightlyYou: "slightly_favors_team_a",
+    slightlyThem: "slightly_favors_team_b",
+  });
 }
 
 function playersFromIds(ids: number[], byId: Map<number, Player>): Player[] {

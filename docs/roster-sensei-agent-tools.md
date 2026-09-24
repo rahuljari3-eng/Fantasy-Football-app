@@ -165,9 +165,11 @@ server/
 
 | Area | Module | Key exports |
 |------|--------|-------------|
-| Player value | `src/lib/scoring.ts` | `playerValue`, `rosValue`, `qualityScore`, `vorPoints`, … |
+| Player value | `src/lib/scoring.ts` | `playerValue`, `rosValue` (quality × remaining weeks), `qualityScore`, `vorPoints`, `effectiveSeasonProj`, … |
 | Needs | `src/lib/rosterNeeds.ts` | `analyzeRosterNeeds` |
-| Trades | `src/lib/tradeEngine.ts` | `packageValue`, `needAdjustedPackageValue`, `fairnessRatio`, `starGateOk`, `balancePackage`, … |
+| Trades | `src/lib/tradeEngine.ts` | `packageValue`, `needAdjustedPackageValue`, `fairnessRatio`, `verdictFromRatio`, `ROS_PRICER`, `starGateOk`, `balancePackage`, … |
+| ROS horizon | `src/lib/rosHorizon.ts` | `remainingRosWeeks`, `setRosHorizon` |
+| Schedule ease | `src/lib/scheduleEase.ts` | `applyScheduleEase` (±~10% on qualityScore) |
 | ESPN fantasy | `src/lib/espn.ts` | `fetchEspnRosteredProjections`, `fetchEspnLineups`, `fetchEspnFreeAgentProjections` |
 | News | `src/lib/news.ts` | `fetchLeagueNewsFeed` |
 | Lineup map | `src/lib/teamRoster.ts` | `deriveAssignments`, `deriveAssignmentsFromEspnSlots` |

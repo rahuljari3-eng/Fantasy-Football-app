@@ -14,6 +14,12 @@ import {
   extractEspnSeasonProjection,
 } from "./espn.js";
 import { getNflSchedule } from "./nflSchedule.js";
+import { setRosHorizon } from "./rosHorizon.js";
+import { applyScheduleEase } from "./scheduleEase.js";
+import type { VegasHistory } from "./bettingValue.js";
+import vegasHistoryJson from "../data/vegasHistory.json" with { type: "json" };
+
+const VEGAS_HISTORY = vegasHistoryJson as VegasHistory;
 
 export { ESPN_POS };
 
@@ -418,6 +424,24 @@ export async function syncLiveRosters(knownPlayers: Player[]): Promise<LiveLeagu
     (p) => !rosteredIds.has(p.id)
   );
 
+  setRosHorizon(scoringPeriodId, schedule.maxWeek);
+  const easedPool = applyScheduleEase([...teams.flatMap((t) => t.roster), ...freeAgents], {
+    schedule,
+    currentWeek: scoringPeriodId,
+    history: VEGAS_HISTORY,
+  });
+  const easedById = new Map(easedPool.map((p) => [p.id, p]));
+  for (const t of teams) {
+    t.roster = t.roster.map((p) => {
+      const e = easedById.get(p.id);
+      return e ? { ...p, scheduleEase: e.scheduleEase } : p;
+    });
+  }
+  const easedFreeAgents = freeAgents.map((p) => {
+    const e = easedById.get(p.id);
+    return e ? { ...p, scheduleEase: e.scheduleEase } : p;
+  });
+
   // Standings from the same payload when present; otherwise a light refetch.
   let standings: StandingRow[];
   if (data.teams?.some((t) => t.record?.overall)) {
@@ -457,7 +481,7 @@ export async function syncLiveRosters(knownPlayers: Player[]): Promise<LiveLeagu
     fetchedAt: Date.now(),
     scoringPeriodId,
     teams,
-    freeAgents,
+    freeAgents: easedFreeAgents,
     standings,
   };
   return liveCache;

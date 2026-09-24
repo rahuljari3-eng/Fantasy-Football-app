@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, Plus, TrendingDown, TrendingUp, X } from "lucide-react";
-import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX } from "../config/trade";
+import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX, FAIR_RATIO_MIN, FAIR_RATIO_MAX } from "../config/trade";
 import { HowItWorks } from "../components/HowItWorks";
 import { MarketCheckBadge } from "../components/MarketCheckBadge";
 import { PosBadge } from "../components/PosBadge";
@@ -8,7 +8,7 @@ import { PlayerNameLink } from "../components/PlayerNameLink";
 import { SearchInput } from "../components/SearchInput";
 import { CompletedTradesPanel } from "../components/CompletedTradesPanel";
 import { WhatWouldItTakePanel } from "../components/WhatWouldItTakePanel";
-import { SEASON_PRICER, WEEK_PRICER } from "../lib/tradeEngine";
+import { ratioIsFair, SEASON_PRICER, WEEK_PRICER } from "../lib/tradeEngine";
 import type { FantasyApp } from "../hooks/useFantasyApp";
 import type { LeaguePlayer, Player, TradeHorizon } from "../types";
 import type { WhatWouldItTakeOption } from "../lib/whatWouldItTake";
@@ -151,6 +151,8 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
   const {
     tradeHorizon,
     setTradeHorizon,
+    tradeNeedAdjust,
+    setTradeNeedAdjust,
     effectiveLeagueTeams,
     tradeOpponentId,
     setTradeOpponentId,
@@ -270,7 +272,7 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
             <HowItWorks summary="How trades are valued">
               <p>
                 {tradeHorizon === "season"
-                  ? "Rest of season: each player's season value — ESPN and Sleeper projections plus actual points so far, blended with the FantasyCalc trade market — across the remaining games, adjusted for injury risk."
+                  ? "Rest of season: each player's season quality (ESPN + Sleeper ROS PPG, actuals, FantasyCalc/Vegas market) × remaining games (bye excluded), with a small schedule-ease nudge. Optional need-adjusted mode matches the AI Coach."
                   : "This week: each player's value for this week only, from consensus projections (ESPN, Sleeper, and DraftKings yardage props when posted)."}{" "}
                 Elite players are worth more than their raw points suggest, and each extra player in a package is discounted — you can't out-total a stud
                 with role players.
@@ -291,6 +293,24 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
             </button>
           ))}
         </div>
+
+        {tradeHorizon === "season" && (
+          <label className="flex items-center gap-2 text-xs text-[#98989D] cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={tradeNeedAdjust}
+              onChange={(e) => setTradeNeedAdjust(e.target.checked)}
+              disabled={tradeOpponentId == null}
+              className="rounded border-[#38383A]"
+            />
+            Need-adjusted values
+            {tradeOpponentId == null ? (
+              <span className="text-[#636366]">(pick an opponent first)</span>
+            ) : (
+              <span className="text-[#636366]">— same as AI Coach / Sensei</span>
+            )}
+          </label>
+        )}
 
         <div className="bg-[#1C1C1E] border border-[#38383A] rounded-xl p-4">
           <div className="text-sm font-medium mb-2.5">Who are you trading with?</div>
@@ -348,6 +368,7 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
         </div>
 
         {(tradeGive.length > 0 || tradeGet.length > 0) && (() => {
+          const even = !tradeStarGateViolation && tradeRatio != null && ratioIsFair(tradeRatio);
           const favorsYou = !tradeStarGateViolation && tradeRatio != null && tradeRatio > LOPSIDED_RATIO_MAX;
           const favorsThem = tradeStarGateViolation || (tradeRatio != null && tradeRatio < LOPSIDED_RATIO_MIN);
           return (
@@ -357,12 +378,16 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
               <div>
                 <div className="font-medium">
                   {tradeStarGateViolation
-                    ? "Likely unfair — no star coming back"
-                    : favorsYou
-                    ? "This trade favors you"
-                    : favorsThem
-                    ? "This trade favors the other side"
-                    : "This trade is roughly even"}
+                    ? "Likely unfair — star gate"
+                    : even
+                      ? "Roughly even"
+                      : favorsYou
+                        ? tradeRatio != null && tradeRatio > FAIR_RATIO_MAX && tradeRatio <= LOPSIDED_RATIO_MAX
+                          ? "Slightly favors you"
+                          : "Favors you"
+                        : tradeRatio != null && tradeRatio < FAIR_RATIO_MIN && tradeRatio >= LOPSIDED_RATIO_MIN
+                          ? "Slightly favors them"
+                          : "Favors them"}
                   {tradeRatio != null && <span className="mono-font text-[#C9A227] ml-2">ratio {tradeRatio.toFixed(2)}</span>}
                 </div>
                 <div className="mt-1">

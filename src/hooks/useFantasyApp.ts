@@ -7,8 +7,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FREE_AGENTS } from "../data/freeAgents";
 import { ALL_TEAMS, DEFAULT_TEAM_ID } from "../data/allTeams";
 import { POSITIONS, REQUIRED_STARTERS, SLOTS, SLOT_ELIGIBILITY } from "../config/league";
-import { EXTRA_PIECE_DISCOUNT } from "../config/trade";
-import { VOR_BASELINE, ROS_WEEKS } from "../config/scoring";
 import { DEFAULT_TAB } from "../config/pages";
 import { playerValue, qualityScore, rosValue } from "../lib/scoring";
 import { analyzeRosterNeeds } from "../lib/rosterNeeds";
@@ -31,7 +29,21 @@ import {
 import { deriveAssignments, deriveAssignmentsFromEspnSlots } from "../lib/teamRoster";
 import { fetchEspnCompletedTrades, fetchEspnLineups, type CompletedTrade } from "../lib/espn";
 import { fetchLiveFreeAgents } from "../lib/espnLeague";
-import { starGateOk, SEASON_PRICER, WEEK_PRICER } from "../lib/tradeEngine";
+import {
+  starGateOk,
+  SEASON_PRICER,
+  WEEK_PRICER,
+  ROS_PRICER,
+  packageValue,
+  needAdjustedPackageValue,
+  rosPackageFloor,
+  fairnessRatio,
+} from "../lib/tradeEngine";
+import { setRosHorizon } from "../lib/rosHorizon";
+import { applyScheduleEase } from "../lib/scheduleEase";
+import { getNflSchedule, type NflScheduleSnapshot } from "../lib/nflSchedule";
+import type { VegasHistory } from "../lib/bettingValue";
+import vegasHistoryJson from "../data/vegasHistory.json" with { type: "json" };
 import { findWhatItWouldTake as solveWhatItWouldTake, type WhatWouldItTakeOption } from "../lib/whatWouldItTake";
 import { optimizeLineup } from "../lib/optimizeLineup";
 import { useProjectionRefresh } from "./useProjectionRefresh";
@@ -90,6 +102,8 @@ const RELEVANT_PLAYER_IDS = new Set<number>([
   ...FREE_AGENTS.map((p) => p.id),
 ]);
 
+const VEGAS_HISTORY = vegasHistoryJson as VegasHistory;
+
 export function useFantasyApp() {
   const [tab, setTab] = useState<TabId>(DEFAULT_TAB);
 
@@ -120,6 +134,9 @@ export function useFantasyApp() {
   const [tradeGet, setTradeGet] = useState<number[]>([]);
   const [tradeHorizon, setTradeHorizon] = useState<TradeHorizon>("week");
   const [tradeOpponentId, setTradeOpponentId] = useState<number | null>(null);
+  /** When true (season mode), package values use needAdjustedPackageValue like Coach/Sensei. */
+  const [tradeNeedAdjust, setTradeNeedAdjust] = useState(false);
+  const [nflScheduleSnap, setNflScheduleSnap] = useState<NflScheduleSnapshot | null>(null);
 
   // Completed (accepted) trades league-wide, reconstructed from public ESPN
   // data -- see fetchEspnCompletedTrades. Not scoped to whichever team you're
@@ -236,6 +253,28 @@ export function useFantasyApp() {
 
   const standingsState = useStandings();
   const { leagueSchedule, refreshStandings } = standingsState;
+
+  useEffect(() => {
+    const week = leagueSchedule?.currentWeek;
+    if (week != null && week > 0) setRosHorizon(week);
+  }, [leagueSchedule?.currentWeek]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getNflSchedule()
+      .then((snap) => {
+        if (!cancelled) {
+          setNflScheduleSnap(snap);
+          if (leagueSchedule?.currentWeek) setRosHorizon(leagueSchedule.currentWeek, snap.maxWeek);
+        }
+      })
+      .catch(() => {
+        /* best-effort — schedule ease stays neutral */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [leagueSchedule?.currentWeek]);
 
   const matchupCenterState = useMatchupCenter();
   const { liveLineups, refreshLiveLineups } = matchupCenterState;
@@ -510,7 +549,7 @@ export function useFantasyApp() {
         // when there's no season projection for this player, so it's never
         // less current than proj itself -- just insulated from a single
         // bad/injured week the way proj isn't.
-        seasonProj: ov.seasonProj ?? player.seasonProj ?? ov.proj ?? player.proj,
+        seasonProj: ov.seasonProj ?? player.seasonProj,
         ...(ov.marketPosRank != null ? { marketPosRank: ov.marketPosRank, marketValue: ov.marketValue } : {}),
         ...(ov.modelYards ? { modelYards: ov.modelYards } : {}),
         ...(ov.valueSources ? { valueSources: ov.valueSources } : {}),
@@ -529,8 +568,15 @@ export function useFantasyApp() {
   // rankPlayerPool).
   const ranksById = useMemo(() => {
     const pool = [...ALL_TEAMS.flatMap((t) => t.roster), ...(liveFreeAgents ?? FREE_AGENTS)].map(applyOverrideRaw);
-    return new Map(rankPlayerPool(pool).map((p) => [p.id, p]));
-  }, [applyOverrideRaw, liveFreeAgents]);
+    const ranked = rankPlayerPool(pool);
+    const week = leagueSchedule?.currentWeek ?? 1;
+    const eased = applyScheduleEase(ranked, {
+      schedule: nflScheduleSnap,
+      currentWeek: week,
+      history: VEGAS_HISTORY,
+    });
+    return new Map(eased.map((p) => [p.id, p]));
+  }, [applyOverrideRaw, liveFreeAgents, leagueSchedule?.currentWeek, nflScheduleSnap]);
 
   // applyOverride also stamps the pool-relative fields above, so every
   // "effective*" array carries them and playerValue/qualityScore price
@@ -542,6 +588,11 @@ export function useFantasyApp() {
       seasonPosRank: ranksById.get(player.id)?.seasonPosRank,
       marketQuality: ranksById.get(player.id)?.marketQuality,
       positionScale: ranksById.get(player.id)?.positionScale,
+      vegasQuality: ranksById.get(player.id)?.vegasQuality,
+      vegasProj: ranksById.get(player.id)?.vegasProj,
+      vegasWeeks: ranksById.get(player.id)?.vegasWeeks,
+      fantasyCalcQuality: ranksById.get(player.id)?.fantasyCalcQuality,
+      scheduleEase: ranksById.get(player.id)?.scheduleEase,
     }),
     [applyOverrideRaw, ranksById]
   );
@@ -1264,35 +1315,62 @@ export function useFantasyApp() {
 
   // ---------- Trade analyzer ----------
   // Same curved value-over-replacement the AI Coach uses. Week mode prices a
-  // single week; Season mode projects it across the remaining schedule.
+  // single week; Season mode projects quality across remaining weeks (rosValue).
   const tradeValueOf = useCallback(
     (p: Player): number => (tradeHorizon === "season" ? rosValue(p) : playerValue(p)),
     [tradeHorizon]
   );
 
-  // A whole side's value: best piece in full, every EXTRA piece only its
-  // above-replacement portion, steeply discounted -- so stacking bench bodies
-  // on one side can't inflate it toward a stud's value.
-  const tradeValue = useCallback(
-    (list: number[]): number => {
-      const floor = tradeHorizon === "season" ? VOR_BASELINE * ROS_WEEKS : VOR_BASELINE;
-      const vals = list
-        .map((id) => playerById(id))
-        .filter((p): p is Player => !!p)
-        .map(tradeValueOf)
-        .sort((a, b) => b - a);
-      if (!vals.length) return 0;
-      return vals.reduce((sum, v, i) => sum + (i === 0 ? v : Math.max(0, v - floor) * Math.pow(EXTRA_PIECE_DISCOUNT, i)), 0);
-    },
-    [playerById, tradeValueOf, tradeHorizon]
+  const tradePlayers = useCallback(
+    (list: number[]) => list.map((id) => playerById(id)).filter((p): p is Player => !!p),
+    [playerById]
   );
 
-  const giveVal = tradeValue(tradeGive);
-  const getVal = tradeValue(tradeGet);
+  // Package value via shared tradeEngine helpers (no duplicated discount math).
+  // Optional need-adjust (season mode) matches Coach / Sensei evaluate_trade.
+  const tradeValue = useCallback(
+    (list: number[], side: "give" | "get"): number => {
+      const players = tradePlayers(list);
+      if (!players.length) return 0;
+      if (tradeHorizon === "week") return packageValue(players, WEEK_PRICER);
+      if (tradeNeedAdjust && tradeOpponentId != null) {
+        const myNeeds = analyzeRosterNeeds(effectiveMyTeamPlayers);
+        const oppTeam = ALL_TEAMS.find((t) => t.id === tradeOpponentId);
+        const theirNeeds = analyzeRosterNeeds((oppTeam?.roster ?? []).map(applyOverride));
+        // Give side is valued for the opponent's needs; get side for yours.
+        const needs = side === "give" ? theirNeeds : myNeeds;
+        return needAdjustedPackageValue(players, needs, leagueBaseline, ROS_PRICER, rosPackageFloor());
+      }
+      return packageValue(players, ROS_PRICER, rosPackageFloor());
+    },
+    [
+      tradePlayers,
+      tradeHorizon,
+      tradeNeedAdjust,
+      tradeOpponentId,
+      effectiveMyTeamPlayers,
+      applyOverride,
+      leagueBaseline,
+    ]
+  );
+
+  const giveVal = tradeValue(tradeGive, "give");
+  const getVal = tradeValue(tradeGet, "get");
   const diff = getVal - giveVal;
   const diffPct = giveVal + getVal > 0 ? (diff / ((giveVal + getVal) / 2)) * 100 : 0;
   // Fairness ratio: what you get / what you give. 1.0 = dead even.
-  const tradeRatio = giveVal > 0 && getVal > 0 ? getVal / giveVal : null;
+  const tradeRatio = giveVal > 0 && getVal > 0 ? fairnessRatio(giveVal, getVal) : null;
+
+  /** Raw package value for arbitrary id lists (completed trades) — never need-adjusted. */
+  const tradeSideValue = useCallback(
+    (list: number[]): number => {
+      const players = tradePlayers(list);
+      if (!players.length) return 0;
+      if (tradeHorizon === "week") return packageValue(players, WEEK_PRICER);
+      return packageValue(players, ROS_PRICER, rosPackageFloor());
+    },
+    [tradePlayers, tradeHorizon]
+  );
   // Star gate: a Tier-1 player on one side with no Tier-1/2 coming back is
   // "likely unfair" no matter what the value ratio says. Priced by whichever
   // horizon is active, same as giveVal/getVal above -- a stud who's merely
@@ -1417,6 +1495,8 @@ export function useFantasyApp() {
     setTradeGet,
     tradeHorizon,
     setTradeHorizon,
+    tradeNeedAdjust,
+    setTradeNeedAdjust,
     tradeOpponentId,
     setTradeOpponentId,
     tradeValueOf,
@@ -1428,9 +1508,8 @@ export function useFantasyApp() {
     tradeStarGateViolation,
     toggleTradeList,
     // Value of an arbitrary package of player ids -- same curve as
-    // giveVal/getVal above, usable for any list (e.g. a completed trade's
-    // side), not just the interactive tradeGive/tradeGet state.
-    tradeSideValue: tradeValue,
+    // giveVal/getVal above (without need-adjust), usable for completed trades.
+    tradeSideValue,
     completedEspnTrades,
     refreshCompletedTrades: syncCompletedTradesFromEspn,
     findWhatItWouldTake,

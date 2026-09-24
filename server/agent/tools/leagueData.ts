@@ -193,10 +193,11 @@ export function serializePlayer(p: Player) {
     vor: Math.round(vorPoints(p) * 10) / 10,
     /** This-week trade/start metric (not raw proj). Prefer for start/sit. */
     weekValue: Math.round(playerValue(p) * 10) / 10,
-    /** Rest-of-season trade metric. Prefer for holds/trades. */
+    /** Rest-of-season trade metric (qualityScore × remaining weeks). Prefer for holds/trades. */
     rosValue: Math.round(rosValue(p) * 10) / 10,
-    /** Asset quality used by needs / FA / coach. */
+    /** Asset quality used by needs / FA / coach (includes schedule ease when stamped). */
     qualityScore: Math.round(qualityScore(p) * 10) / 10,
+    scheduleEase: p.scheduleEase ?? 1,
     ownedBy: owner,
     isFreeAgent: !owner,
   };

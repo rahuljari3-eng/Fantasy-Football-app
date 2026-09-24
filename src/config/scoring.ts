@@ -79,24 +79,40 @@ export const RANK_DECAY_K: Record<Position, number> = {
 export const RANK_WEIGHT = 0.55;
 export const POINTS_WEIGHT = 0.45;
 
-/** Rest-of-season projection: a 16-game season total (17 weeks minus one bye)
- * built from the same weekly value. */
+/** Fallback ROS length when the current scoring week is unknown (e.g. static
+ * bundled data before a live ESPN sync): ~17 weeks minus one bye. Live paths
+ * use remainingRosWeeks() in lib/rosHorizon.ts instead. */
 export const ROS_WEEKS = 16;
 
-/** Season-outlook multiplier for current injury status -- a "Questionable" tag
- * barely dents a season outlook, but "Doubtful"/"Out" implies real missed-time
- * risk if it lingers. */
+/** Default last fantasy-relevant NFL week for remaining-ROS counts (regular
+ * season through week 18 on ESPN/Sleeper calendars). */
+export const ROS_HORIZON_THROUGH_WEEK = 18;
+
+/** Season-outlook multiplier for current injury status. Questionable barely
+ * dents a multi-week outlook; Out / IR imply real missed-time risk. IR is
+ * harsher than a one-week Out designation. */
 export const ROS_STATUS_MULTIPLIER: Record<string, number> = {
-  Out: 0.75,
-  Doubtful: 0.85,
+  IR: 0.45,
+  Out: 0.55,
+  Doubtful: 0.75,
   Questionable: 0.97,
 };
 export const ROS_STATUS_MULTIPLIER_DEFAULT = 1;
 
 /** Season-outlook multiplier for tier trajectory -- elite players tend to hold
  * or grow their role over a season, while deep bench/flex players carry more
- * bust risk across 16 games than in any one week. */
+ * bust risk across a full schedule than in any one week. */
 export const ROS_TIER_TREND: Record<1 | 2 | 3, number> = { 1: 1.05, 2: 1.0, 3: 0.92 };
+
+/** Coarse remaining-schedule ease clamp applied inside qualityScore when a
+ * player has scheduleEase stamped (lib/scheduleEase.ts). */
+export const SCHEDULE_EASE_MIN = 0.9;
+export const SCHEDULE_EASE_MAX = 1.1;
+
+/** Minimum season PPG we'll accept as a seasonProj fallback from this week's
+ * proj. Below this we treat the week number as collapsed (bye / Out) and do
+ * not let it poison seasonModelValue. */
+export const SEASON_PROJ_WEEK_FALLBACK_MIN = 3;
 
 /** CONSENSUS PROJECTIONS (lib/consensus.ts). Relative weights, renormalized
  * over whichever sources actually have a number for the player. ESPN and
@@ -113,9 +129,9 @@ export const CONSENSUS_ACTUAL_MAX_WEIGHT = 1;
 export const CONSENSUS_ACTUAL_SHRINK_GAMES = 4;
 
 /** How many upcoming weeks of Sleeper projections to average into its
- * rest-of-season number. 8 covers any bye and keeps the browser refresh to a
- * handful of requests. */
-export const SLEEPER_ROS_WEEKS = 8;
+ * rest-of-season number. Large enough to cover the full remaining regular
+ * season (capped at LAST_REGULAR_SEASON_WEEK in lib/consensus.ts). */
+export const SLEEPER_ROS_WEEKS = 18;
 
 /** Share of season-long value (qualityScore/rosValue) taken from the trade
  * market -- FantasyCalc redraft values, built from real trades -- vs the
