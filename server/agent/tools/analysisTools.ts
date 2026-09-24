@@ -1,17 +1,18 @@
 import { POSITIONS, REQUIRED_STARTERS } from "../../../src/config/league.js";
-import { EXTRA_PIECE_DISCOUNT, FAIR_RATIO_MAX, FAIR_RATIO_MIN, LOPSIDED_RATIO_MAX, LOPSIDED_RATIO_MIN } from "../../../src/config/trade.js";
-import { ROS_WEEKS, VOR_BASELINE } from "../../../src/config/scoring.js";
+import { FAIR_RATIO_MAX, FAIR_RATIO_MIN } from "../../../src/config/trade.js";
 import { fetchWeeklyMatchups, gradeMatchup } from "../../../src/lib/matchup.js";
 import { analyzeRosterNeeds } from "../../../src/lib/rosterNeeds.js";
 import { fetchLeagueNewsFeed } from "../../../src/lib/news.js";
-import { playerValue, qualityScore, rosValue } from "../../../src/lib/scoring.js";
+import { qualityScore } from "../../../src/lib/scoring.js";
 import {
   fairnessRatio,
   needAdjustedPackageValue,
   packageValue,
-  ratioIsFair,
+  ROS_PRICER,
+  rosPackageFloor,
   SEASON_PRICER,
   starGateOk,
+  verdictFromRatio,
   WEEK_PRICER,
 } from "../../../src/lib/tradeEngine.js";
 import { findWhatItWouldTake } from "../../../src/lib/whatWouldItTake.js";
@@ -50,22 +51,6 @@ function serializeWithMatchup(p: Player, matchups: Awaited<ReturnType<typeof fet
       ? { opponent: m.opponent, homeAway: m.homeAway, isBye: m.isBye, grade: m.grade, impliedTotal: m.impliedTotal, label: m.label }
       : null,
   };
-}
-
-function packageWithValues(players: Player[], valueFn: (p: Player) => number, floor: number): number {
-  const vals = players.map(valueFn).sort((a, b) => b - a);
-  if (!vals.length) return 0;
-  return vals.reduce((sum, v, i) => sum + (i === 0 ? v : Math.max(0, v - floor) * Math.pow(EXTRA_PIECE_DISCOUNT, i)), 0);
-}
-
-function verdictFromRatio(ratio: number, gateOk: boolean): string {
-  if (!gateOk) return "likely_unfair_star_gate";
-  if (ratioIsFair(ratio)) return "roughly_even";
-  if (ratio > LOPSIDED_RATIO_MAX) return "favors_you";
-  if (ratio < LOPSIDED_RATIO_MIN) return "favors_them";
-  if (ratio > FAIR_RATIO_MAX) return "slightly_favors_you";
-  if (ratio < FAIR_RATIO_MIN) return "slightly_favors_them";
-  return "roughly_even";
 }
 
 function resolvePlayerList(queries: unknown): { ok: true; players: Player[] } | { ok: false; error: string; detail?: unknown } {
@@ -224,7 +209,7 @@ export const comparePlayersTool: ToolDefinition = {
       rosLeaderId: byRos[0]?.id ?? null,
       weekValueDeltaTopVsSecond: weekDelta,
       citeHints,
-      note: "Cite weekValue/proj/matchup grade for start/sit; cite rosValue for ROS. Do not invent extras.",
+      note: "Cite weekValue/proj/matchup grade for start/sit; cite rosValue for ROS (remaining weeks × quality, not a fixed 16-week season). Do not invent extras.",
     };
   },
 };
@@ -273,8 +258,9 @@ export const evaluateTradeTool: ToolDefinition = {
     const weekGet = packageValue(get, WEEK_PRICER);
     const weekRatio = fairnessRatio(weekGive, weekGet);
 
-    const seasonGive = packageWithValues(give, rosValue, VOR_BASELINE * ROS_WEEKS);
-    const seasonGet = packageWithValues(get, rosValue, VOR_BASELINE * ROS_WEEKS);
+    const rosFloor = rosPackageFloor();
+    const seasonGive = packageValue(give, ROS_PRICER, rosFloor);
+    const seasonGet = packageValue(get, ROS_PRICER, rosFloor);
     const seasonRatio = fairnessRatio(seasonGive, seasonGet);
 
     const matchups = await fetchMatchupsSafe();
@@ -325,7 +311,7 @@ export const evaluateTradeTool: ToolDefinition = {
       fairWindow: { min: FAIR_RATIO_MIN, max: FAIR_RATIO_MAX },
       citeHints: [
         `Week: give ${weekBlock.giveValue} vs get ${weekBlock.getValue} (ratio ${weekBlock.ratio}, verdict ${weekBlock.verdict}).`,
-        `ROS: give ${seasonBlock.giveValue} vs get ${seasonBlock.getValue} (ratio ${seasonBlock.ratio}, verdict ${seasonBlock.verdict}).`,
+        `ROS: give ${seasonBlock.giveValue} vs get ${seasonBlock.getValue} (ratio ${seasonBlock.ratio}, verdict ${seasonBlock.verdict}). Absolute ROS totals use remaining weeks; needAdjusted uses quality×need on the same fairness window.`,
         `Star gate OK: ${gateOk}. Fair ratio window ${FAIR_RATIO_MIN}–${FAIR_RATIO_MAX}.`,
         `Give: ${giveSerialized.map((p) => `${p.name} (proj ${p.proj}, weekValue ${p.weekValue}, bye ${p.bye}, status ${p.status})${matchupLine(p)}`).join("; ")}.`,
         `Get: ${getSerialized.map((p) => `${p.name} (proj ${p.proj}, weekValue ${p.weekValue}, bye ${p.bye}, status ${p.status})${matchupLine(p)}`).join("; ")}.`,

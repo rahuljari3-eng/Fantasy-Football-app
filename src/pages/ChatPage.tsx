@@ -133,7 +133,7 @@ function ModelPicker({
 
 /** Roster Sensei chat — talks to POST /api/chat (server-side OpenAI + tools). */
 export function ChatPage({ app }: { app: FantasyApp }) {
-  const { selectedTeamId, selectedTeam, roster, bench } = app;
+  const { selectedTeamId, selectedTeam, roster, bench, leagueSchedule } = app;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -185,6 +185,7 @@ export function ChatPage({ app }: { app: FantasyApp }) {
           model,
           leagueContext: {
             managedTeamId: selectedTeamId,
+            scoringPeriodId: leagueSchedule?.currentWeek,
             localLineup: {
               roster,
               bench,

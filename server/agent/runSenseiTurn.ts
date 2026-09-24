@@ -83,6 +83,10 @@ export async function runSenseiTurn(input: {
   if (scoringPeriodId == null) {
     scoringPeriodId = getLiveLeagueCache()?.scoringPeriodId;
   }
+  if (typeof scoringPeriodId === "number" && scoringPeriodId > 0) {
+    const { setRosHorizon } = await import("../../src/lib/rosHorizon.js");
+    setRosHorizon(scoringPeriodId);
+  }
 
   const leagueContext: LeagueContext = {
     ...input.leagueContext,

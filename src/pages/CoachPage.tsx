@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { AlertTriangle, ArrowRightLeft, Bookmark, BookmarkCheck, Copy, EyeOff, Repeat, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
 import { POSITIONS } from "../config/league";
 import { suggestionKey } from "../lib/coachTrades";
-import { LOPSIDED_RATIO_MIN, LOPSIDED_RATIO_MAX, FAIR_RATIO_MIN, FAIR_RATIO_MAX } from "../config/trade";
+import { FAIR_RATIO_MIN, FAIR_RATIO_MAX } from "../config/trade";
+import { ratioVerdictLabel } from "../lib/tradeEngine";
 import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
 import { HowItWorks } from "../components/HowItWorks";
@@ -28,14 +29,7 @@ function fitSummary(s: TradeSuggestion): { text: string; className: string } {
 }
 
 /** Turn a get/give value ratio into a short verdict + a tailwind text color. */
-function ratioVerdict(ratio: number): { label: string; className: string } {
-  const pct = Math.round((ratio - 1) * 100);
-  const magnitude = `${Math.abs(pct)}%`;
-  if (ratio >= FAIR_RATIO_MIN && ratio <= FAIR_RATIO_MAX) return { label: "Fair both ways", className: "text-emerald-400" };
-  if (ratio < LOPSIDED_RATIO_MIN) return { label: `Favors them ${magnitude} — context matters`, className: "text-amber-400" };
-  if (ratio > LOPSIDED_RATIO_MAX) return { label: `Favors you ${magnitude} — context matters`, className: "text-amber-400" };
-  return { label: pct >= 0 ? `Leans your way ${magnitude}` : `Leans their way ${magnitude}`, className: "text-[#98989D]" };
-}
+const ratioVerdict = ratioVerdictLabel;
 
 /** What each card badge means -- shown as its tooltip. */
 const BADGE_HELP = {

@@ -62,8 +62,8 @@ export interface Player {
    * doesn't collapse toward 0 for a player who's Questionable/Doubtful/Out
    * this week but expected back soon, so it's what qualityScore/rosValue (AI
    * Coach needs outlook, recommended trades) use instead of `proj`/`posRank`.
-   * Falls back to `proj` when absent (no live refresh yet, or ESPN didn't
-   * have a season projection for this player). */
+   * When absent, qualityScore uses Sleeper ROS (valueSources.sleeperRos) or a
+   * guarded week-proj fallback -- never a near-zero bye/Out week alone. */
   seasonProj?: number;
   /** Same idea as posRank, but ranked by seasonProj -- what qualityScore/
    * rosValue use for the rank-chart component instead of posRank. */
@@ -86,6 +86,9 @@ export interface Player {
   /** Per-position correction to the projection model's value level, learned
    * from the trade market (median market/model ratio at the position). */
   positionScale?: number;
+  /** Coarse remaining-schedule ease (≈0.9–1.1), stamped by lib/scheduleEase.ts.
+   * Multiplies qualityScore / rosValue; absent or 1 = neutral. */
+  scheduleEase?: number;
   /** Rank at the position by FantasyCalc redraft trade value (real trades,
    * 1QB/12-team/PPR) -- see lib/consensus.ts. Absent when the market doesn't
    * value the player. */

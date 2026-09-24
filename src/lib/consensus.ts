@@ -42,7 +42,7 @@ import {
 } from "../config/scoring.js";
 import { VEGAS_VALUES } from "../data/vegasValues.js";
 import type { EspnPlayerSnapshot } from "./espn.js";
-import { seasonModelValue } from "./scoring.js";
+import { seasonModelValue, effectiveSeasonProj } from "./scoring.js";
 import type { PlayerPropLines } from "./matchup.js";
 import type { ModelYards, Player, Position, ProjectionOverrides, ValueSources } from "../types.js";
 
@@ -360,7 +360,7 @@ export function rankPlayerPool<P extends Player>(pool: P[]): P[] {
   });
   byPos.forEach((list) => {
     [...list].sort((a, b) => b.proj - a.proj).forEach((p, i) => weekRank.set(p.id, i + 1));
-    [...list].sort((a, b) => (b.seasonProj ?? b.proj) - (a.seasonProj ?? a.proj)).forEach((p, i) => seasonRank.set(p.id, i + 1));
+    [...list].sort((a, b) => effectiveSeasonProj(b) - effectiveSeasonProj(a)).forEach((p, i) => seasonRank.set(p.id, i + 1));
   });
   const ranked = pool.map((p) => ({ ...p, posRank: weekRank.get(p.id), seasonPosRank: seasonRank.get(p.id) }));
 
@@ -396,7 +396,7 @@ export function rankPlayerPool<P extends Player>(pool: P[]): P[] {
   // valued on the model's own curve -- ranked against everyone else's best
   // points number so a player with lines isn't only compared to the other
   // players with lines -- and re-leveled by the same positionScale.
-  const bestPoints = (p: P) => VEGAS_VALUES[p.id]?.pts ?? p.seasonProj ?? p.proj;
+  const bestPoints = (p: P) => VEGAS_VALUES[p.id]?.pts ?? effectiveSeasonProj(p);
   const vegasRank = new Map<number, number>();
   byPos.forEach((list) => {
     [...list].sort((a, b) => bestPoints(b) - bestPoints(a)).forEach((p, i) => vegasRank.set(p.id, i + 1));

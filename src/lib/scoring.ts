@@ -15,12 +15,15 @@ import {
   RANK_DECAY_K,
   RANK_WEIGHT,
   POINTS_WEIGHT,
-  ROS_WEEKS,
   ROS_STATUS_MULTIPLIER,
   ROS_STATUS_MULTIPLIER_DEFAULT,
   ROS_TIER_TREND,
   MARKET_VALUE_WEIGHT,
+  SEASON_PROJ_WEEK_FALLBACK_MIN,
+  SCHEDULE_EASE_MIN,
+  SCHEDULE_EASE_MAX,
 } from "../config/scoring.js";
+import { remainingRosWeeks } from "./rosHorizon.js";
 import type { Player, PlayerStatus, Position, RosterNeeds, Tier } from "../types.js";
 
 /** Per-game points a replacement-level (waiver-wire) player scores at a position. */
@@ -55,6 +58,19 @@ function valueFromProjAndRank(pos: Position, proj: number, rank: number | undefi
   return Math.max(1, pointsPart * POINTS_WEIGHT + rankPart * RANK_WEIGHT);
 }
 
+/** Season PPG input for the model: prefer a real season line (or Sleeper ROS
+ * stamped on valueSources), and only fall back to this week's proj when it
+ * looks like a healthy game projection -- never let a bye/Out collapse (~0)
+ * poison rest-of-season quality. */
+export function effectiveSeasonProj(p: Player): number {
+  if (p.seasonProj != null && Number.isFinite(p.seasonProj)) return p.seasonProj;
+  const sleeperRos = p.valueSources?.sleeperRos;
+  if (sleeperRos != null && Number.isFinite(sleeperRos) && sleeperRos > 0) return sleeperRos;
+  const week = p.proj;
+  if (Number.isFinite(week) && week >= SEASON_PROJ_WEEK_FALLBACK_MIN) return week;
+  return SEASON_PROJ_WEEK_FALLBACK_MIN;
+}
+
 /** A player's standalone trade value THIS WEEK -- priced off proj/posRank,
  * ESPN's numbers for the current scoring period specifically. This is NOT raw
  * projected points. Used for week-mode trade pricing and live lineup scoring,
@@ -67,40 +83,33 @@ export function playerValue(p: Player): number {
   return valueFromProjAndRank(p.pos, p.proj, p.posRank);
 }
 
+/** Clamp a stamped schedule-ease factor into the configured band. */
+export function clampScheduleEase(ease: number | undefined): number {
+  if (ease == null || !Number.isFinite(ease)) return 1;
+  return Math.min(SCHEDULE_EASE_MAX, Math.max(SCHEDULE_EASE_MIN, ease));
+}
+
 /** A player's value as a roster ASSET for the rest of the season, not just
  * this week -- used everywhere the app judges "how good is this player":
  * AI Coach needs analysis (and its position-by-position outlook), free-agent
  * recommendations, and trade-suggestion candidate filtering. Priced off
- * seasonProj/seasonPosRank (ESPN's own rest-of-season model) rather than
- * proj/posRank, specifically so a player who's Questionable/Doubtful/Out
- * *this particular week* doesn't get valued as though that's his talent
- * level -- his weekly proj (and therefore posRank) can genuinely collapse
- * toward 0 for a week he doesn't play, but that's a one-week fact, not a
- * season-long one. Discounted by the season-outlook injury multiplier (a
- * "Questionable"/"Out" tag this week barely moves a 16-game outlook, unlike a
- * single week) and nudged for tier trajectory (elite players tend to hold
- * their role over a season; deep bench/flex players carry more bust risk
- * across one). Deliberately NOT the same thing as playerValue/rosValue below,
- * which price a SPECIFIC TRADE and are explicitly split by the Trade
- * Analyzer's own week/season toggle. */
+ * seasonProj/seasonPosRank rather than proj/posRank, specifically so a player
+ * who's Questionable/Doubtful/Out *this particular week* doesn't get valued as
+ * though that's his talent level. Discounted by the season-outlook injury
+ * multiplier, nudged for tier trajectory, blended with the trade market, and
+ * optionally adjusted by a coarse remaining-schedule ease factor. */
 export function qualityScore(p: Player): number {
-  // positionScale: the model re-leveled per position against the trade
-  // market (lib/consensus.ts rankPlayerPool) -- applies to every player at
-  // the position, including ones the market doesn't value.
   const model = seasonModelValue(p) * (p.positionScale ?? 1);
-  // Blend in the trade market when it values this player (lib/consensus.ts
-  // stamps marketQuality: the market's cross-position ordering mapped onto
-  // this same value scale). The projection model alone can't tell that a
-  // 1QB-league QB trades for far less than an RB scoring the same points --
-  // the market can, because it's built from trades people actually made.
-  return p.marketQuality != null ? model * (1 - MARKET_VALUE_WEIGHT) + p.marketQuality * MARKET_VALUE_WEIGHT : model;
+  const blended =
+    p.marketQuality != null ? model * (1 - MARKET_VALUE_WEIGHT) + p.marketQuality * MARKET_VALUE_WEIGHT : model;
+  return blended * clampScheduleEase(p.scheduleEase);
 }
 
 /** qualityScore from projections alone (no market blend): season projection
  * + season rank, discounted for injury status and tier trajectory. What the
  * market's ordering gets mapped onto -- see lib/consensus.ts. */
 export function seasonModelValue(p: Player): number {
-  const proj = p.seasonProj ?? p.proj;
+  const proj = effectiveSeasonProj(p);
   const rank = p.seasonPosRank ?? p.posRank;
   return valueFromProjAndRank(p.pos, proj, rank) * rosStatusMultiplier(p.status) * rosTierTrend(p.tier);
 }
@@ -118,9 +127,10 @@ export function rosTierTrend(tier: Tier): number {
   return ROS_TIER_TREND[tier];
 }
 
-/** Rest-of-season value estimate: qualityScore (season projection, rank,
- * trade market, injury risk, tier trajectory) projected across the remaining
- * schedule. */
-export function rosValue(p: Player): number {
-  return qualityScore(p) * ROS_WEEKS;
+/** Rest-of-season value estimate: qualityScore projected across the player's
+ * remaining schedule (bye excluded). Pass `weeksRemaining` to override; otherwise
+ * uses setRosHorizon / remainingRosWeeks. */
+export function rosValue(p: Player, weeksRemaining?: number): number {
+  const weeks = weeksRemaining ?? remainingRosWeeks({ bye: p.bye });
+  return qualityScore(p) * weeks;
 }
