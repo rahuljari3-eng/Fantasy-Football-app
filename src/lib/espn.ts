@@ -315,6 +315,8 @@ interface EspnTransactionItem {
 interface EspnTransaction {
   id?: string;
   type: string;
+  /** EXECUTED, CANCELED, FAILED_INVALIDPLAYERSOURCE, ... */
+  status?: string;
   proposedDate: number;
   teamId?: number;
   items?: EspnTransactionItem[];
@@ -385,6 +387,10 @@ export async function fetchEspnCompletedTrades(): Promise<CompletedTrade[]> {
   const transactions = allTransactions.slice().sort((a, b) => a.proposedDate - b.proposedDate);
   transactions.forEach((t) => {
     if (!["DRAFT", "WAIVER", "FREEAGENT", "FUTURE_ROSTER"].includes(t.type)) return;
+    // Losing/cancelled waiver claims are logged too, often with the same
+    // timestamp as the winning claim -- replaying them would hand the player
+    // to a team that never got him and fake a "trade" to the real owner.
+    if (t.status && t.status !== "EXECUTED") return;
     (t.items || []).forEach((i) => {
       if (!["DRAFT", "ADD", "DROP"].includes(i.type)) return;
       if (i.toTeamId && i.toTeamId !== 0) expectedOwner.set(i.playerId, i.toTeamId);
