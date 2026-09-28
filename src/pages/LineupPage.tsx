@@ -3,6 +3,7 @@ import { Activity, AlertTriangle, ChevronLeft } from "lucide-react";
 import { SLOTS } from "../config/league";
 import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
+import { BoomBustBadge } from "../components/BoomBustBadge";
 import { LockBadge } from "../components/LockBadge";
 import { statusColor } from "../lib/format";
 import type { FantasyApp } from "../hooks/useFantasyApp";
@@ -116,6 +117,7 @@ export function LineupPage({ app }: { app: FantasyApp }) {
                             className={`text-sm truncate ${locked ? "text-emerald-400" : ""}`}
                           />
                           {locked && <LockBadge />}
+                          <BoomBustBadge playerId={p.id} />
                           {p.status !== "Healthy" && (
                             playerHasNews(p.id) ? (
                               <button

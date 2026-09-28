@@ -3,6 +3,7 @@ import { POSITIONS } from "../config/league";
 import { PosBadge } from "../components/PosBadge";
 import { StatusIndicator } from "../components/StatusIndicator";
 import { PlayerNameLink } from "../components/PlayerNameLink";
+import { BoomBustBadge } from "../components/BoomBustBadge";
 import { AddPlayerActions } from "../components/AddPlayerActions";
 import { InactiveToggle } from "../components/InactiveToggle";
 import { SearchInput } from "../components/SearchInput";
@@ -62,7 +63,8 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
                         <span>
                           {p.team} · bye {p.bye}
                         </span>
-                        <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
+                        <BoomBustBadge playerId={p.id} />
+                    <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
@@ -94,8 +96,11 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
                     onOpen={() => openPlayerNews(p.id)}
                     className="text-sm font-medium truncate"
                   />
-                  <div className="text-[11px] text-[#98989D]">
-                    {p.team} · bye {p.bye}
+                  <div className="text-[11px] text-[#98989D] flex items-center gap-1.5">
+                    <span>
+                      {p.team} · bye {p.bye}
+                    </span>
+                    <BoomBustBadge playerId={p.id} />
                   </div>
                 </div>
               </div>
@@ -151,6 +156,7 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
                     <span>
                       {p.team} · bye {p.bye}
                     </span>
+                    <BoomBustBadge playerId={p.id} />
                     <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                   </div>
                 </div>

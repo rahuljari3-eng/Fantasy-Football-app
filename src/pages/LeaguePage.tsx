@@ -3,6 +3,7 @@ import { AlertTriangle, ChevronRight, Repeat, Shield, Trophy, Users } from "luci
 import { LEAGUE_CONFIG } from "../config/league";
 import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
+import { BoomBustBadge } from "../components/BoomBustBadge";
 import { WeeklyChart } from "../components/WeeklyChart";
 import { StandingsPanel } from "../components/StandingsPanel";
 import { PlayoffRacePanel } from "../components/PlayoffRacePanel";
@@ -212,9 +213,12 @@ export function LeaguePage({ app }: { app: FantasyApp }) {
         <PosBadge pos={p.pos} label={p.slot || p.pos} className="shrink-0 w-11 text-center" />
         <div className="min-w-0">
           <PlayerNameLink name={p.name} hasNews={playerHasNews(p.id)} onOpen={() => openPlayerNews(p.id)} className="font-medium truncate" />
-          <div className="text-[#98989D] text-xs">
-            {p.team}
-            {p.pos !== p.slot && p.slot ? ` · ${p.pos}` : ""}
+          <div className="text-[#98989D] text-xs flex items-center gap-1.5">
+            <span>
+              {p.team}
+              {p.pos !== p.slot && p.slot ? ` · ${p.pos}` : ""}
+            </span>
+            <BoomBustBadge playerId={p.id} />
           </div>
         </div>
       </div>

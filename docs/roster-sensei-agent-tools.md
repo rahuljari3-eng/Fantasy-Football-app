@@ -286,7 +286,7 @@ Promote schedule tools early — this is what makes Sensei versatile beyond a pr
 | `get_completed_trades` | Accepted bilateral trades (reconstructed) | `teamId?` | Sides + player names + fairness grade | `fetchEspnCompletedTrades` (`mTransactions2` + roster diff) |
 | `get_situational_briefing` | Compact stakes/timing snapshot (generic) | `targetWeek?`, `includePlayoff?`, `teamId?` | currentWeek, weeksUntil, temporalAdvice, playoff snippet, bye pileup, needs — **not** packages | Odds + needs + bye fields; action tools still required for moves |
 
-**Situational insight (generic):** intents keep lean checklists for simple asks; `situationalChecklistExtras` adds race/bye checklist items only when the user message shows urgency or bye/planning signals. Prefer `get_situational_briefing` then action tools (`suggest_trades` with optional `coverByeWeek` / `urgency`, `recommend_pickups`). ESPN boom/bust % is **not** available via public fantasy APIs — do not invent it.
+**Situational insight (generic):** intents keep lean checklists for simple asks; `situationalChecklistExtras` adds race/bye checklist items only when the user message shows urgency or bye/planning signals. Prefer `get_situational_briefing` then action tools (`suggest_trades` with optional `coverByeWeek` / `urgency`, `recommend_pickups`). ESPN boom/bust % is **not** available via public fantasy APIs — do not invent it. Player objects instead carry `boomBust`, the app's own rates (`src/lib/boomBust.ts`), which Sensei may quote as the app's.
 
 ### P2 — league narrative & richer research
 

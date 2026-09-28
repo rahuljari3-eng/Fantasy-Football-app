@@ -142,7 +142,7 @@ export const getSituationalBriefingTool: ToolDefinition = {
       citeHints.push(`Playoff: ${playoff.summary}`);
     }
     citeHints.push(
-      "Situation only — call suggest_trades / recommend_pickups / evaluate_trade for concrete actions. Do not invent ESPN boom/bust percentages (not available via ESPN fantasy APIs)."
+      "Situation only — call suggest_trades / recommend_pickups / evaluate_trade for concrete actions. Boom/bust: quote only the boomBust field on player objects (the app's own rates, not ESPN's)."
     );
 
     return {

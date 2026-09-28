@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { ExternalLink, X } from "lucide-react";
 import { MARKET_VALUE_WEIGHT } from "../config/scoring";
+import { BOOM_BUST_PROFILE_LABEL, boomBustFor, boomBustGames, boomBustThresholds, leagueBoomBustRates } from "../lib/boomBust";
 import { blendWeeklyProj } from "../lib/consensus";
 import { newsTypeColor, newsTypeIcon } from "../lib/format";
 import { qualityScore, seasonModelValue } from "../lib/scoring";
@@ -123,6 +124,78 @@ function ValueBreakdown({ player }: { player: Player }) {
   );
 }
 
+const RECENT_BOOM_BUST_GAMES = 8;
+
+/** How often he beats or falls well short of his own projection
+ * (lib/boomBust.ts), this week's bars, and his recent games tagged. */
+function BoomBustSection({ player }: { player: Player }) {
+  const stats = boomBustFor(player.id);
+  const league = leagueBoomBustRates();
+  const bars = boomBustThresholds(player.proj);
+  const recent = boomBustGames(player.id).slice(0, RECENT_BOOM_BUST_GAMES);
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  const rateTone = (rate: number, base: number, good: boolean) =>
+    rate >= base * 1.3 ? (good ? "text-emerald-400" : "text-red-400") : rate <= base * 0.75 ? (good ? "text-red-400" : "text-emerald-400") : "text-[#E5E5EA]";
+
+  return (
+    <div className="mb-4">
+      <div className="flex items-baseline justify-between gap-2 mb-1.5">
+        <div className="text-xs font-medium text-[#98989D]">Boom / bust</div>
+        {stats && stats.profile !== "neutral" && <div className="text-[11px] text-[#C9A227]">{BOOM_BUST_PROFILE_LABEL[stats.profile]}</div>}
+      </div>
+      <div className="bg-[#000000]/40 border border-[#38383A]/60 rounded-lg px-2.5 py-2 text-xs space-y-2">
+        {stats ? (
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className={`mono-font text-base ${rateTone(stats.boomRate, league.boomRate, true)}`}>{pct(stats.boomRate)}</div>
+              <div className="text-[10px] text-[#636366]">
+                boom · {stats.booms} of {stats.games} games · league {pct(league.boomRate)}
+              </div>
+            </div>
+            <div>
+              <div className={`mono-font text-base ${rateTone(stats.bustRate, league.bustRate, false)}`}>{pct(stats.bustRate)}</div>
+              <div className="text-[10px] text-[#636366]">
+                bust · {stats.busts} of {stats.games} games · league {pct(league.bustRate)}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-[#636366]">No games projected for 5+ points yet to judge from.</div>
+        )}
+        {player.proj >= 5 && (
+          <div className="text-[#98989D]">
+            This week ({player.proj.toFixed(1)} proj): boom at <span className="mono-font text-[#E5E5EA]">{bars.boom}+</span>, bust at{" "}
+            <span className="mono-font text-[#E5E5EA]">{bars.bust} or less</span>
+          </div>
+        )}
+        {recent.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {recent.map((g) => (
+              <span
+                key={`${g.season}-${g.week}`}
+                title={`${g.season} week ${g.week}: ${g.actual} actual vs ${g.proj} projected`}
+                className={`mono-font text-[10px] px-1.5 py-px rounded border ${
+                  g.result === "boom"
+                    ? "text-emerald-300 border-emerald-500/30 bg-emerald-500/10"
+                    : g.result === "bust"
+                    ? "text-red-300 border-red-500/30 bg-red-500/10"
+                    : "text-[#98989D] border-[#38383A]"
+                }`}
+              >
+                {`'${String(g.season).slice(2)} W${g.week} ${g.actual}`}
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="text-[10px] text-[#636366] leading-snug">
+          The app's own rates, not ESPN's: a boom or bust is beating or missing his projection by more than a typical week's swing, which grows with the
+          projection. Last season plus this one; small samples lean toward the league rate.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Popped open by clicking a player's name or injury status anywhere in the
  * app -- shows this week's live/final line plus a recent game log (pulled
  * live from ESPN's actuals, not projections), and every news/injury item
@@ -168,6 +241,7 @@ export function PlayerNewsModal({
         </div>
 
         {player && <ValueBreakdown player={player} />}
+        {player && ["QB", "RB", "WR", "TE"].includes(player.pos) && <BoomBustSection player={player} />}
 
         {performanceLoading ? (
           <div className="text-xs text-[#636366] italic mb-3">Loading recent scores…</div>
