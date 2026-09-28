@@ -2,12 +2,14 @@ import { useId, useMemo, useState } from "react";
 
 // Week-by-week chart: one measured series as columns (e.g. actual points) and
 // one reference series as a line with dots (e.g. projection, league average),
+// plus an optional second reference line (dashed, e.g. the custom projection),
 // on a single shared y-axis. Colors were validated for this app's dark
 // surfaces (#000000 / #1C1C1E): both inside the dark lightness band, CVD
 // Delta E 27, contrast >= 3:1. Values are always reachable without hovering
 // via the table toggle.
 const PRIMARY_COLOR = "#c98500";
 const REFERENCE_COLOR = "#3987e5";
+const SECONDARY_COLOR = "#b377e8";
 const SURFACE = "#1C1C1E";
 const GRID = "#2C2C2E";
 const AXIS_TEXT = "#98989D";
@@ -20,6 +22,8 @@ export interface WeeklyChartPoint {
   week: number;
   primary: number | null;
   reference: number | null;
+  /** Optional second reference line; drawn only when `secondaryLabel` is set. */
+  secondary?: number | null;
 }
 
 /** Axis top and tick step: clean round numbers, at most ~4 gridlines. */
@@ -27,6 +31,15 @@ function niceScale(v: number): { max: number; step: number } {
   if (v <= 0) return { max: 10, step: 5 };
   const step = [5, 10, 20, 25, 50, 100].find((st) => Math.ceil(v / st) <= 4) ?? 100;
   return { max: Math.ceil(v / step) * step, step };
+}
+
+/** Polyline through the non-null points, broken across gaps. */
+function linePath(pts: ({ x: number; y: number } | null)[]): string {
+  return pts.reduce((d, pt, i) => {
+    if (!pt) return d;
+    const prev = i > 0 ? pts[i - 1] : null;
+    return `${d}${prev ? " L" : " M"}${pt.x},${pt.y}`;
+  }, "");
 }
 
 /** Column with a 4px rounded data-end, square at the baseline. */
@@ -40,12 +53,14 @@ export function WeeklyChart({
   points,
   primaryLabel,
   referenceLabel,
+  secondaryLabel,
   unit = "pts",
 }: {
   title: string;
   points: WeeklyChartPoint[];
   primaryLabel: string;
   referenceLabel: string;
+  secondaryLabel?: string;
   unit?: string;
 }) {
   const [active, setActive] = useState<number | null>(null);
@@ -54,7 +69,7 @@ export function WeeklyChart({
   const width = 360;
 
   const layout = useMemo(() => {
-    const { max, step } = niceScale(Math.max(0, ...points.flatMap((p) => [p.primary ?? 0, p.reference ?? 0])));
+    const { max, step } = niceScale(Math.max(0, ...points.flatMap((p) => [p.primary ?? 0, p.reference ?? 0, p.secondary ?? 0])));
     const plotW = width - PAD.left - PAD.right;
     const plotH = HEIGHT - PAD.top - PAD.bottom;
     const band = points.length ? plotW / points.length : plotW;
@@ -68,11 +83,9 @@ export function WeeklyChart({
   if (!points.length) return null;
   const { band, barW, y, cx, ticks } = layout;
   const refPoints = points.map((p, i) => (p.reference != null ? { x: cx(i), y: y(p.reference) } : null));
-  const refPath = refPoints.reduce((d, pt, i) => {
-    if (!pt) return d;
-    const prev = i > 0 ? refPoints[i - 1] : null;
-    return `${d}${prev ? " L" : " M"}${pt.x},${pt.y}`;
-  }, "");
+  const refPath = linePath(refPoints);
+  const secPoints = points.map((p, i) => (secondaryLabel && p.secondary != null ? { x: cx(i), y: y(p.secondary) } : null));
+  const secPath = linePath(secPoints);
   // Label selectively: only the latest measured column carries its value.
   const lastPrimary = points.findLastIndex((p) => p.primary != null);
   const activePoint = active != null ? points[active] : null;
@@ -97,6 +110,12 @@ export function WeeklyChart({
           <span className="inline-block w-3 h-[2px] rounded" style={{ background: REFERENCE_COLOR }} />
           {referenceLabel}
         </span>
+        {secondaryLabel && (
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-3 h-0 border-t-2 border-dashed" style={{ borderColor: SECONDARY_COLOR }} />
+            {secondaryLabel}
+          </span>
+        )}
       </div>
 
       {showTable ? (
@@ -106,6 +125,7 @@ export function WeeklyChart({
               <th className="font-normal py-1">Week</th>
               <th className="font-normal py-1 text-right">{primaryLabel}</th>
               <th className="font-normal py-1 text-right">{referenceLabel}</th>
+              {secondaryLabel && <th className="font-normal py-1 text-right">{secondaryLabel}</th>}
             </tr>
           </thead>
           <tbody>
@@ -114,6 +134,9 @@ export function WeeklyChart({
                 <td className="py-1">{p.week}</td>
                 <td className="py-1 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(p.primary)}</td>
                 <td className="py-1 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(p.reference)}</td>
+                {secondaryLabel && (
+                  <td className="py-1 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(p.secondary ?? null)}</td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -142,6 +165,10 @@ export function WeeklyChart({
             )}
             {refPath && <path d={refPath} fill="none" stroke={REFERENCE_COLOR} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />}
             {refPoints.map((pt, i) => (pt ? <circle key={i} cx={pt.x} cy={pt.y} r={4} fill={REFERENCE_COLOR} stroke={SURFACE} strokeWidth={2} /> : null))}
+            {secPath && (
+              <path d={secPath} fill="none" stroke={SECONDARY_COLOR} strokeWidth={2} strokeDasharray="4 3" strokeLinejoin="round" strokeLinecap="round" />
+            )}
+            {secPoints.map((pt, i) => (pt ? <circle key={i} cx={pt.x} cy={pt.y} r={3.5} fill={SECONDARY_COLOR} stroke={SURFACE} strokeWidth={2} /> : null))}
             {lastPrimary >= 0 &&
               points[lastPrimary].primary != null &&
               (() => {
@@ -149,8 +176,8 @@ export function WeeklyChart({
                 // there. Columns are too narrow to hold the number inside,
                 // so it's left to the tooltip and table view instead.
                 const top = y(points[lastPrimary].primary!);
-                const ref = refPoints[lastPrimary];
-                if (ref != null && Math.abs(ref.y - (top - 8)) < 12) return null;
+                const near = (pt: { y: number } | null) => pt != null && Math.abs(pt.y - (top - 8)) < 12;
+                if (near(refPoints[lastPrimary]) || near(secPoints[lastPrimary])) return null;
                 return (
                   <text x={cx(lastPrimary)} y={top - 5} textAnchor="middle" fontSize={9} fill="#E5E5EA">
                     {fmt(points[lastPrimary].primary)}
@@ -172,7 +199,7 @@ export function WeeklyChart({
                 height={layout.plotH}
                 fill="transparent"
                 tabIndex={0}
-                aria-label={`Week ${p.week}: ${primaryLabel} ${fmt(p.primary)}, ${referenceLabel} ${fmt(p.reference)} ${unit}`}
+                aria-label={`Week ${p.week}: ${primaryLabel} ${fmt(p.primary)}, ${referenceLabel} ${fmt(p.reference)}${secondaryLabel ? `, ${secondaryLabel} ${fmt(p.secondary ?? null)}` : ""} ${unit}`}
                 onPointerEnter={() => setActive(i)}
                 onFocus={() => setActive(i)}
                 onBlur={() => setActive(null)}
@@ -192,6 +219,7 @@ export function WeeklyChart({
               {[
                 { label: primaryLabel, value: activePoint.primary, color: PRIMARY_COLOR },
                 { label: referenceLabel, value: activePoint.reference, color: REFERENCE_COLOR },
+                ...(secondaryLabel ? [{ label: secondaryLabel, value: activePoint.secondary ?? null, color: SECONDARY_COLOR }] : []),
               ].map((row) => (
                 <div key={row.label} className="flex items-center gap-1.5 whitespace-nowrap">
                   <span className="inline-block w-2.5 h-[2px] rounded" style={{ background: row.color }} />

@@ -6,7 +6,18 @@ import { newsTypeColor, newsTypeIcon } from "../lib/format";
 import { qualityScore, seasonModelValue } from "../lib/scoring";
 import type { NewsItem, Player } from "../types";
 import type { PlayerPerformanceResult, WeekPerformance } from "../lib/playerPerformance";
+import PROJECTION_HISTORY from "../data/projectionHistory.json";
+import type { ProjectionHistory } from "../lib/projectionAccuracy";
 import { WeeklyChart } from "./WeeklyChart";
+
+const HISTORY = PROJECTION_HISTORY as ProjectionHistory;
+
+/** The app's custom projection for this player in a given week, as frozen at
+ * kickoff by scripts/recordProjections.ts (null for weeks before recording began). */
+function customProjection(playerId: number | undefined, week: number): number | null {
+  if (playerId == null) return null;
+  return HISTORY.weeks[String(week)]?.[String(playerId)]?.custom ?? null;
+}
 
 /** One game-log row: this week's live/final line, or a prior week's. */
 function ScoreRow({ perf }: { perf: WeekPerformance }) {
@@ -168,9 +179,15 @@ export function PlayerNewsModal({
                   title="Actual vs. projected, by week"
                   primaryLabel="Actual"
                   referenceLabel="ESPN projection"
+                  secondaryLabel="Custom projection"
                   points={[...performance.gameLog]
                     .sort((a, b) => a.week - b.week)
-                    .map((g) => ({ week: g.week, primary: g.actualPoints, reference: g.projectedPoints }))}
+                    .map((g) => ({
+                      week: g.week,
+                      primary: g.actualPoints,
+                      reference: g.projectedPoints,
+                      secondary: customProjection(player?.id, g.week),
+                    }))}
                 />
               </div>
             )}
