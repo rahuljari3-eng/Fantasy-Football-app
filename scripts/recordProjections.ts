@@ -22,7 +22,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { LEAGUE_CONFIG } from "../src/config/league.js";
+import { ESPN_LEAGUE_BASE_URL, LEAGUE_CONFIG } from "../src/config/league.js";
 import { applyPropLines, consensusFor, fetchConsensusSources, propPointsDelta, sleeperKeyFor, type ConsensusSources } from "../src/lib/consensus.js";
 import { vegasSeasonValues, vegasWeek, type VegasHistory, type VegasWeekInput } from "../src/lib/bettingValue.js";
 import { ALL_TEAMS } from "../src/data/allTeams.js";
@@ -42,32 +42,31 @@ const HISTORY_FILE = path.join(DATA_DIR, "projectionHistory.json");
 const VEGAS_HISTORY_FILE = path.join(DATA_DIR, "vegasHistory.json");
 const VEGAS_VALUES_FILE = path.join(DATA_DIR, "vegasValues.ts");
 const SKILL = new Set(["QB", "RB", "WR", "TE"]);
-const ESPN_PLAYERS_URL = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${LEAGUE_CONFIG.espnSeason}/players`;
 
-/** Actual points in `week` for each of `ids`. Uses ESPN's season-wide player
- * card view -- the league-scoped /players route ignores the id filter and
- * only carries season totals. A player with no scoring line for a finished
- * week didn't play: 0. */
+/** Actual points in `week` for each of `ids`, in this league's scoring.
+ * Uses the league-scoped player pool with scoringPeriodId=week -- ESPN's
+ * season-wide player card view carries stat lines but no appliedTotal, so it
+ * read every player as 0. The league route ignores id filters and returns its
+ * whole pool (~1,000 players, every rostered player and free agent) in one
+ * response, so this is one request per week. A player in the pool with no
+ * scoring line for a finished week didn't play: 0. One missing from the pool
+ * is left out, so the next run retries him rather than recording a 0. */
 async function fetchWeekActuals(week: number, ids: number[]): Promise<Map<number, number>> {
   type KonaPlayer = { id: number; stats?: EspnStatLine[] };
+  const filter = { players: { limit: 3000, sortPercOwned: { sortPriority: 1, sortAsc: false } } };
+  const res = await fetch(`${ESPN_LEAGUE_BASE_URL}/players?view=kona_player_info&scoringPeriodId=${week}`, {
+    headers: { Accept: "application/json", "x-fantasy-filter": JSON.stringify(filter) },
+  });
+  if (!res.ok) throw new Error(`ESPN actuals for week ${week} failed (${res.status})`);
+  // Entries wrap the player ({ id, player: { ...stats } }); the stats are on
+  // the inner player, so prefer it over the wrapper's own id.
+  const data = (await res.json()) as ({ player?: KonaPlayer } & Partial<KonaPlayer>)[];
+  const wanted = new Set(ids);
   const out = new Map<number, number>();
-  for (let i = 0; i < ids.length; i += 200) {
-    const chunk = ids.slice(i, i + 200);
-    const filter = {
-      filterIds: { value: chunk },
-      filterStatsForTopScoringPeriodIds: { value: 17, additionalValue: [`00${LEAGUE_CONFIG.espnSeason}`] },
-    };
-    // scoringPeriodId=0 is what makes ESPN include every week's stat lines.
-    const res = await fetch(`${ESPN_PLAYERS_URL}?view=kona_playercard&scoringPeriodId=0`, {
-      headers: { Accept: "application/json", "X-Fantasy-Filter": JSON.stringify(filter) },
-    });
-    if (!res.ok) throw new Error(`ESPN actuals for week ${week} failed (${res.status})`);
-    const data = (await res.json()) as ({ player?: KonaPlayer } | KonaPlayer)[];
-    data.forEach((entry) => {
-      const player: KonaPlayer | undefined = "id" in entry ? entry : entry.player;
-      if (player && chunk.includes(player.id)) out.set(player.id, extractEspnWeekActual(player.stats, week) ?? 0);
-    });
-  }
+  data.forEach((entry) => {
+    const player = entry.player ?? (entry.id != null ? (entry as KonaPlayer) : undefined);
+    if (player && wanted.has(player.id)) out.set(player.id, extractEspnWeekActual(player.stats, week) ?? 0);
+  });
   return out;
 }
 
