@@ -37,3 +37,5 @@ Conclusion: ESPN’s public fantasy read APIs used by this app **do not expose**
 ## Update (2026-09-28)
 
 Superseded at the user's request by the app's **own** boom/bust rates, built from real game results rather than any ESPN field: `src/lib/boomBust.ts` (formula and calibration in its header), last season's games from Sleeper via `scripts/buildBoomBustHistory.ts`, this season's from `projectionHistory.json`. Shown in the player popup and as list badges; Sensei gets them as `boomBust` on player objects and must label them as the app's, never ESPN's.
+
+Revised the same day to **weekly chances**: each player has fixed boom/bust bars from his season baseline, and this week's projection plus his past spread around projections give the chance of clearing each bar this week (see `src/lib/boomBust.ts`).

@@ -117,7 +117,7 @@ export function LineupPage({ app }: { app: FantasyApp }) {
                             className={`text-sm truncate ${locked ? "text-emerald-400" : ""}`}
                           />
                           {locked && <LockBadge />}
-                          <BoomBustBadge playerId={p.id} />
+                          <BoomBustBadge player={p} />
                           {p.status !== "Healthy" && (
                             playerHasNews(p.id) ? (
                               <button

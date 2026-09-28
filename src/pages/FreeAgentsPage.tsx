@@ -63,7 +63,7 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
                         <span>
                           {p.team} · bye {p.bye}
                         </span>
-                        <BoomBustBadge playerId={p.id} />
+                        <BoomBustBadge player={p} />
                     <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                       </div>
                     </div>
@@ -100,7 +100,7 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
                     <span>
                       {p.team} · bye {p.bye}
                     </span>
-                    <BoomBustBadge playerId={p.id} />
+                    <BoomBustBadge player={p} />
                   </div>
                 </div>
               </div>
@@ -156,7 +156,7 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
                     <span>
                       {p.team} · bye {p.bye}
                     </span>
-                    <BoomBustBadge playerId={p.id} />
+                    <BoomBustBadge player={p} />
                     <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                   </div>
                 </div>

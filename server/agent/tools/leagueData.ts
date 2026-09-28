@@ -2,7 +2,7 @@ import { POSITIONS, REQUIRED_STARTERS } from "../../../src/config/league.js";
 import { ALL_TEAMS } from "../../../src/data/allTeams.js";
 import { FREE_AGENTS } from "../../../src/data/freeAgents.js";
 import { getLiveLeagueCache } from "../../../src/lib/espnLeague.js";
-import { boomBustFor, boomBustThresholds } from "../../../src/lib/boomBust.js";
+import { weeklyBoomBust } from "../../../src/lib/boomBust.js";
 import { rankPlayerPool } from "../../../src/lib/consensus.js";
 import { analyzeRosterNeeds } from "../../../src/lib/rosterNeeds.js";
 import { playerValue, qualityScore, rosValue, vorPoints } from "../../../src/lib/scoring.js";
@@ -205,21 +205,19 @@ export function serializePlayer(p: Player) {
   };
 }
 
-/** The app's own boom/bust rates (src/lib/boomBust.ts) -- NOT ESPN's, which
- * no ESPN API exposes. Null for non-skill players or no qualifying games. */
+/** The app's own boom/bust chances for THIS week (src/lib/boomBust.ts) --
+ * NOT ESPN's, which no ESPN API exposes. Null when projected under 5. */
 function serializeBoomBust(p: Player) {
-  const s = boomBustFor(p.id);
-  if (!s) return null;
-  const bars = boomBustThresholds(p.proj);
+  const w = weeklyBoomBust(p.id, p.proj, p.seasonProj);
+  if (!w) return null;
   return {
-    boomPct: Math.round(s.boomRate * 100),
-    bustPct: Math.round(s.bustRate * 100),
-    games: s.games,
-    profile: s.profile,
-    thisWeekBoomAt: bars.boom,
-    thisWeekBustAt: bars.bust,
-  };
-}
+    boomChancePct: Math.round(w.boomChance * 100),
+    bustChancePct: Math.round(w.bustChance * 100),
+    boomAt: w.boomAt,
+    bustAt: w.bustAt,
+    baseline: w.baseline,
+    gamesInSample: w.games,
+  };}
 
 export function relevantPlayerIds(): Set<number> {
   const ids = new Set<number>();

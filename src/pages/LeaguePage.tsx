@@ -218,7 +218,7 @@ export function LeaguePage({ app }: { app: FantasyApp }) {
               {p.team}
               {p.pos !== p.slot && p.slot ? ` · ${p.pos}` : ""}
             </span>
-            <BoomBustBadge playerId={p.id} />
+            <BoomBustBadge player={p} />
           </div>
         </div>
       </div>

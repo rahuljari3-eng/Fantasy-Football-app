@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { ExternalLink, X } from "lucide-react";
 import { MARKET_VALUE_WEIGHT } from "../config/scoring";
-import { BOOM_BUST_PROFILE_LABEL, boomBustFor, boomBustGames, boomBustThresholds, leagueBoomBustRates } from "../lib/boomBust";
+import { boomBustGames, typicalBoomBust, weeklyBoomBust } from "../lib/boomBust";
 import { blendWeeklyProj } from "../lib/consensus";
 import { newsTypeColor, newsTypeIcon } from "../lib/format";
 import { qualityScore, seasonModelValue } from "../lib/scoring";
@@ -126,70 +126,67 @@ function ValueBreakdown({ player }: { player: Player }) {
 
 const RECENT_BOOM_BUST_GAMES = 8;
 
-/** How often he beats or falls well short of his own projection
- * (lib/boomBust.ts), this week's bars, and his recent games tagged. */
+/** This week's chances of a boom or a bust (lib/boomBust.ts), from this
+ * week's projection against his own fixed bars, plus recent games tagged. */
 function BoomBustSection({ player }: { player: Player }) {
-  const stats = boomBustFor(player.id);
-  const league = leagueBoomBustRates();
-  const bars = boomBustThresholds(player.proj);
+  const week = weeklyBoomBust(player.id, player.proj, player.seasonProj);
+  const typical = typicalBoomBust();
   const recent = boomBustGames(player.id).slice(0, RECENT_BOOM_BUST_GAMES);
   const pct = (v: number) => `${Math.round(v * 100)}%`;
-  const rateTone = (rate: number, base: number, good: boolean) =>
-    rate >= base * 1.3 ? (good ? "text-emerald-400" : "text-red-400") : rate <= base * 0.75 ? (good ? "text-red-400" : "text-emerald-400") : "text-[#E5E5EA]";
+  const tone = (chance: number, base: number, good: boolean) =>
+    chance >= base * 1.3 ? (good ? "text-emerald-400" : "text-red-400") : chance <= base * 0.75 ? (good ? "text-red-400" : "text-emerald-400") : "text-[#E5E5EA]";
 
   return (
     <div className="mb-4">
-      <div className="flex items-baseline justify-between gap-2 mb-1.5">
-        <div className="text-xs font-medium text-[#98989D]">Boom / bust</div>
-        {stats && stats.profile !== "neutral" && <div className="text-[11px] text-[#C9A227]">{BOOM_BUST_PROFILE_LABEL[stats.profile]}</div>}
-      </div>
+      <div className="text-xs font-medium text-[#98989D] mb-1.5">Boom / bust chances this week</div>
       <div className="bg-[#000000]/40 border border-[#38383A]/60 rounded-lg px-2.5 py-2 text-xs space-y-2">
-        {stats ? (
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <div className={`mono-font text-base ${rateTone(stats.boomRate, league.boomRate, true)}`}>{pct(stats.boomRate)}</div>
-              <div className="text-[10px] text-[#636366]">
-                boom · {stats.booms} of {stats.games} games · league {pct(league.boomRate)}
+        {week ? (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className={`mono-font text-base ${tone(week.boomChance, typical.boomChance, true)}`}>{pct(week.boomChance)}</div>
+                <div className="text-[10px] text-[#636366]">to boom · {week.boomAt}+ pts</div>
+              </div>
+              <div>
+                <div className={`mono-font text-base ${tone(week.bustChance, typical.bustChance, false)}`}>{pct(week.bustChance)}</div>
+                <div className="text-[10px] text-[#636366]">to bust · {week.bustAt} or less</div>
               </div>
             </div>
-            <div>
-              <div className={`mono-font text-base ${rateTone(stats.bustRate, league.bustRate, false)}`}>{pct(stats.bustRate)}</div>
-              <div className="text-[10px] text-[#636366]">
-                bust · {stats.busts} of {stats.games} games · league {pct(league.bustRate)}
-              </div>
+            <div className="text-[#98989D]">
+              Projected <span className="mono-font text-[#E5E5EA]">{player.proj.toFixed(1)}</span> this week vs his usual{" "}
+              <span className="mono-font text-[#E5E5EA]">{week.baseline.toFixed(1)}</span>. Typical player: {pct(typical.boomChance)} boom /{" "}
+              {pct(typical.bustChance)} bust.
             </div>
-          </div>
+          </>
         ) : (
-          <div className="text-[#636366]">No games projected for 5+ points yet to judge from.</div>
-        )}
-        {player.proj >= 5 && (
-          <div className="text-[#98989D]">
-            This week ({player.proj.toFixed(1)} proj): boom at <span className="mono-font text-[#E5E5EA]">{bars.boom}+</span>, bust at{" "}
-            <span className="mono-font text-[#E5E5EA]">{bars.bust} or less</span>
-          </div>
+          <div className="text-[#636366]">Projected under 5 points this week — no boom/bust odds.</div>
         )}
         {recent.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {recent.map((g) => (
-              <span
-                key={`${g.season}-${g.week}`}
-                title={`${g.season} week ${g.week}: ${g.actual} actual vs ${g.proj} projected`}
-                className={`mono-font text-[10px] px-1.5 py-px rounded border ${
-                  g.result === "boom"
-                    ? "text-emerald-300 border-emerald-500/30 bg-emerald-500/10"
-                    : g.result === "bust"
-                    ? "text-red-300 border-red-500/30 bg-red-500/10"
-                    : "text-[#98989D] border-[#38383A]"
-                }`}
-              >
-                {`'${String(g.season).slice(2)} W${g.week} ${g.actual}`}
-              </span>
-            ))}
+          <div>
+            <div className="text-[10px] text-[#636366] mb-1">Recent games vs. that week's projection</div>
+            <div className="flex flex-wrap gap-1">
+              {recent.map((g) => (
+                <span
+                  key={`${g.season}-${g.week}`}
+                  title={`${g.season} week ${g.week}: ${g.actual} actual vs ${g.proj} projected`}
+                  className={`mono-font text-[10px] px-1.5 py-px rounded border ${
+                    g.result === "boom"
+                      ? "text-emerald-300 border-emerald-500/30 bg-emerald-500/10"
+                      : g.result === "bust"
+                      ? "text-red-300 border-red-500/30 bg-red-500/10"
+                      : "text-[#98989D] border-[#38383A]"
+                  }`}
+                >
+                  {`'${String(g.season).slice(2)} W${g.week} ${g.actual}`}
+                </span>
+              ))}
+            </div>
           </div>
         )}
         <div className="text-[10px] text-[#636366] leading-snug">
-          The app's own rates, not ESPN's: a boom or bust is beating or missing his projection by more than a typical week's swing, which grows with the
-          projection. Last season plus this one; small samples lean toward the league rate.
+          The app's own odds, not ESPN's. His boom and bust bars sit one typical week's swing above and below his usual output, so stars need bigger
+          games. This week's projection and how widely his past scores landed around projections set the chances
+          {week ? ` (${week.games} of his games, blended with the league's)` : ""}.
         </div>
       </div>
     </div>

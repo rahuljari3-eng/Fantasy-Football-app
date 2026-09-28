@@ -313,7 +313,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                           {p.team} · bye {p.bye}
                         </span>
                         <MatchupBadge matchup={matchupForPlayer(p)} />
-                        <BoomBustBadge playerId={p.id} />
+                        <BoomBustBadge player={p} />
                         <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                         {locked && <LockBadge />}
                       </div>
@@ -378,7 +378,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                         {p.team} · bye {p.bye}
                       </span>
                       <MatchupBadge matchup={matchupForPlayer(p)} />
-                        <BoomBustBadge playerId={p.id} />
+                        <BoomBustBadge player={p} />
                       {locked && <LockBadge label="Can't start" />}
                     </div>
                   </div>
@@ -449,7 +449,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                     <span>
                       {p.team} · bye {p.bye}
                     </span>
-                    <BoomBustBadge playerId={p.id} />
+                    <BoomBustBadge player={p} />
                     <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                   </div>
                 </div>
