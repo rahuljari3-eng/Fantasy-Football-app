@@ -13,6 +13,12 @@
 // shows: ESPN + Sleeper blend (lib/consensus.ts), then adjusted to
 // DraftKings yardage props when posted (applyPropLines).
 //
+// Past weeks with no record at all (the season's weeks before recording
+// began) are backfilled from ESPN's stored projections for that week's
+// rostered players, Sleeper's projections, and the closing props. Free agents
+// aren't covered there: ESPN only serves the free-agent pool for the current
+// week.
+//
 // Also records each week's Vegas points (lib/bettingValue.ts) in
 // src/data/vegasHistory.json -- frozen at kickoff the same way, and
 // backfilled from closing lines for any past week missing -- and writes the
@@ -44,14 +50,22 @@ const VEGAS_VALUES_FILE = path.join(DATA_DIR, "vegasValues.ts");
 const SKILL = new Set(["QB", "RB", "WR", "TE"]);
 
 /** Actual points in `week` for each of `ids`, in this league's scoring.
- * Uses the league-scoped player pool with scoringPeriodId=week -- ESPN's
- * season-wide player card view carries stat lines but no appliedTotal, so it
- * read every player as 0. The league route ignores id filters and returns its
- * whole pool (~1,000 players, every rostered player and free agent) in one
- * response, so this is one request per week. A player in the pool with no
- * scoring line for a finished week didn't play: 0. One missing from the pool
- * is left out, so the next run retries him rather than recording a 0. */
+ * Primary source is that week's league rosters (mRoster with
+ * scoringPeriodId=week), which carry each rostered player's real line for
+ * the week: a rostered player with no line didn't play, so 0. The league
+ * player pool is only a fallback for free agents -- it serves the CURRENT
+ * week's stats whatever scoringPeriodId asks for, so it's used only where it
+ * actually has a line for `week`, never read as 0. Anyone neither source
+ * covers is left out, so the next run retries him rather than recording a 0. */
 async function fetchWeekActuals(week: number, ids: number[]): Promise<Map<number, number>> {
+  const wanted = new Set(ids);
+  const out = new Map<number, number>();
+  const rosters = await fetchEspnRosteredProjections(week);
+  rosters.snapshots.forEach((s) => {
+    if (wanted.has(s.id)) out.set(s.id, s.weekActual ?? 0);
+  });
+  if (out.size === wanted.size) return out;
+
   type KonaPlayer = { id: number; stats?: EspnStatLine[] };
   const filter = { players: { limit: 3000, sortPercOwned: { sortPriority: 1, sortAsc: false } } };
   const res = await fetch(`${ESPN_LEAGUE_BASE_URL}/players?view=kona_player_info&scoringPeriodId=${week}`, {
@@ -61,11 +75,11 @@ async function fetchWeekActuals(week: number, ids: number[]): Promise<Map<number
   // Entries wrap the player ({ id, player: { ...stats } }); the stats are on
   // the inner player, so prefer it over the wrapper's own id.
   const data = (await res.json()) as ({ player?: KonaPlayer } & Partial<KonaPlayer>)[];
-  const wanted = new Set(ids);
-  const out = new Map<number, number>();
   data.forEach((entry) => {
     const player = entry.player ?? (entry.id != null ? (entry as KonaPlayer) : undefined);
-    if (player && wanted.has(player.id)) out.set(player.id, extractEspnWeekActual(player.stats, week) ?? 0);
+    if (!player || !wanted.has(player.id) || out.has(player.id)) return;
+    const actual = extractEspnWeekActual(player.stats, week);
+    if (actual != null) out.set(player.id, actual);
   });
   return out;
 }
@@ -106,6 +120,28 @@ snapshots.forEach((snap) => {
   week[key] = { espn: snap.proj, custom, actual: null };
   recorded++;
 });
+
+// Past weeks with nothing recorded: backfill from that week's rosters.
+for (let w = 1; w < period; w++) {
+  if (Object.keys(history.weeks[String(w)] ?? {}).length) continue;
+  try {
+    const [past, pastSources, pastLines] = await Promise.all([
+      fetchEspnRosteredProjections(w),
+      fetchConsensusSources(LEAGUE_CONFIG.espnSeason, w),
+      fetchWeeklyMatchups({ week: w, season: LEAGUE_CONFIG.espnSeason }).catch(() => null),
+    ]);
+    const records: ProjectionHistory["weeks"][string] = {};
+    past.snapshots.forEach((snap) => {
+      if (!SKILL.has(snap.pos) || snap.proj <= 0) return;
+      const c = consensusFor(pastSources, snap);
+      records[String(snap.id)] = { espn: snap.proj, custom: applyPropLines(c.proj, pastLines?.playerProps[snap.id], c.modelYards), actual: null };
+    });
+    history.weeks[String(w)] = records;
+    console.log(`Backfilled week ${w} projections (${Object.keys(records).length} players).`);
+  } catch (err) {
+    console.warn(`Couldn't backfill week ${w} projections:`, err instanceof Error ? err.message : err);
+  }
+}
 
 // Fill actual points for every finished week still missing them.
 let filled = 0;

@@ -172,19 +172,22 @@ function toOverride(player: EspnPlayer, period: number): { override: ProjectionO
 
 /** Primary path: pull real Week-N projections (and current injury status)
  * directly from ESPN for every ROSTERED player across all 12 teams in one
- * request. This is ESPN's own number, not an estimate. */
-export async function fetchEspnRosteredProjections(): Promise<{
+ * request. This is ESPN's own number, not an estimate. Pass a past `week` to
+ * get that week's rosters and ESPN's projections as they stood for it (the
+ * league player pool only serves the current week, so this is the one way
+ * back to a finished week's projections). */
+export async function fetchEspnRosteredProjections(week?: number): Promise<{
   fresh: ProjectionOverrides;
   snapshots: EspnPlayerSnapshot[];
   period: number;
   count: number;
 }> {
-  const res = await fetch(`${ESPN_LEAGUE_BASE_URL}?view=mRoster&view=mTeam&view=mStatus`, {
+  const res = await fetch(`${ESPN_LEAGUE_BASE_URL}?view=mRoster&view=mTeam&view=mStatus${week != null ? `&scoringPeriodId=${week}` : ""}`, {
     headers: { Accept: "application/json" },
   });
   if (!res.ok) throw new Error(`ESPN request failed (${res.status})`);
   const data = (await res.json()) as EspnLeagueResponse;
-  const period = data.scoringPeriodId;
+  const period = week ?? data.scoringPeriodId;
   const fresh: ProjectionOverrides = {};
   const snapshots: EspnPlayerSnapshot[] = [];
 
