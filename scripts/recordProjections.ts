@@ -52,11 +52,12 @@ const SKILL = new Set(["QB", "RB", "WR", "TE"]);
 /** Actual points in `week` for each of `ids`, in this league's scoring.
  * Primary source is that week's league rosters (mRoster with
  * scoringPeriodId=week), which carry each rostered player's real line for
- * the week: a rostered player with no line didn't play, so 0. The league
- * player pool is only a fallback for free agents -- it serves the CURRENT
- * week's stats whatever scoringPeriodId asks for, so it's used only where it
- * actually has a line for `week`, never read as 0. Anyone neither source
- * covers is left out, so the next run retries him rather than recording a 0. */
+ * the week: a rostered player with no line didn't play, so 0. Free agents
+ * come from the league's player cards (kona_playercard, filtered to their
+ * ids), which carry every week's line in league scoring -- unlike the
+ * /players pool, which only serves the current week. Only an actual line
+ * for `week` is used, never read as 0; anyone neither source covers is left
+ * out, so the next run retries him rather than recording a 0. */
 async function fetchWeekActuals(week: number, ids: number[]): Promise<Map<number, number>> {
   const wanted = new Set(ids);
   const out = new Map<number, number>();
@@ -67,14 +68,21 @@ async function fetchWeekActuals(week: number, ids: number[]): Promise<Map<number
   if (out.size === wanted.size) return out;
 
   type KonaPlayer = { id: number; stats?: EspnStatLine[] };
-  const filter = { players: { limit: 3000, sortPercOwned: { sortPriority: 1, sortAsc: false } } };
-  const res = await fetch(`${ESPN_LEAGUE_BASE_URL}/players?view=kona_player_info&scoringPeriodId=${week}`, {
+  const remaining = ids.filter((id) => !out.has(id));
+  const season = String(LEAGUE_CONFIG.espnSeason);
+  const filter = {
+    players: {
+      filterIds: { value: remaining },
+      filterStatsForTopScoringPeriodIds: { value: 17, additionalValue: [`00${season}`, `10${season}`] },
+    },
+  };
+  const res = await fetch(`${ESPN_LEAGUE_BASE_URL}?view=kona_playercard&scoringPeriodId=${week}`, {
     headers: { Accept: "application/json", "x-fantasy-filter": JSON.stringify(filter) },
   });
   if (!res.ok) throw new Error(`ESPN actuals for week ${week} failed (${res.status})`);
   // Entries wrap the player ({ id, player: { ...stats } }); the stats are on
   // the inner player, so prefer it over the wrapper's own id.
-  const data = (await res.json()) as ({ player?: KonaPlayer } & Partial<KonaPlayer>)[];
+  const data = ((await res.json()) as { players?: ({ player?: KonaPlayer } & Partial<KonaPlayer>)[] }).players ?? [];
   data.forEach((entry) => {
     const player = entry.player ?? (entry.id != null ? (entry as KonaPlayer) : undefined);
     if (!player || !wanted.has(player.id) || out.has(player.id)) return;
