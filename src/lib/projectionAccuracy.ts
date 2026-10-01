@@ -8,6 +8,13 @@ export interface ProjectionRecord {
   custom: number;
   /** Null until the week is final. */
   actual: number | null;
+  /** The boom/bust odds the app showed (lib/boomBust.ts) and the bars they
+   * were against, frozen at kickoff with the projections -- graded by
+   * boomBustTrackRecord once the week is final. */
+  boom?: number;
+  bust?: number;
+  boomAt?: number;
+  bustAt?: number;
 }
 
 export interface ProjectionHistory {

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { ExternalLink, X } from "lucide-react";
 import { MARKET_VALUE_WEIGHT } from "../config/scoring";
-import { boomBustGames, typicalBoomBust, weeklyBoomBust } from "../lib/boomBust";
+import { boomBustGames, boomBustModel, boomBustTrackRecord, typicalBoomBust, weeklyBoomBust } from "../lib/boomBust";
 import { blendWeeklyProj } from "../lib/consensus";
 import { newsTypeColor, newsTypeIcon } from "../lib/format";
 import { qualityScore, seasonModelValue } from "../lib/scoring";
@@ -185,10 +185,41 @@ function BoomBustSection({ player }: { player: Player }) {
         )}
         <div className="text-[10px] text-[#636366] leading-snug">
           The app's own odds, not ESPN's. His boom and bust bars sit one typical week's swing above and below his usual output, so stars need bigger
-          games. This week's projection and how widely his past scores landed around projections set the chances
-          {week ? ` (${week.games} of his games, blended with the league's)` : ""}.
+          games. This week's projection and how widely past scores landed around projections set the chances
+          {week ? ` (${week.games} of his games, blended with comparable games league-wide)` : ""}. The formula retunes itself every hour from
+          every finished game, and only weighs position, game environment or the betting market's lean once they've proven they help.
         </div>
+        <BoomBustTrackRecordLine />
       </div>
+    </div>
+  );
+}
+
+/** How the boom/bust odds have held up: the predictions frozen at kickoff
+ * graded against finals once there are any, else the forward backtest the
+ * formula was tuned on. Either way, measured against just giving everyone
+ * the league's base rate. */
+function BoomBustTrackRecordLine() {
+  const record = boomBustTrackRecord();
+  const backtest = boomBustModel().backtest;
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  const edge = (brier: number, base: number) => {
+    const gain = base > 0 ? (1 - brier / base) * 100 : 0;
+    return gain >= 0.5 ? `${gain.toFixed(1)}% more accurate than` : gain <= -0.5 ? `${(-gain).toFixed(1)}% less accurate than` : "about even with";
+  };
+  if (record && record.games >= 50) {
+    return (
+      <div className="text-[10px] text-[#636366] leading-snug">
+        Track record: {record.games} graded games — predicted {pct(record.predictedBoom)} boom / {pct(record.predictedBust)} bust, actual{" "}
+        {pct(record.actualBoom)} / {pct(record.actualBust)}; {edge(record.brier, record.baseRateBrier)} giving everyone the average.
+      </div>
+    );
+  }
+  if (!backtest) return null;
+  return (
+    <div className="text-[10px] text-[#636366] leading-snug">
+      Backtest on {backtest.games} games this season: {edge(backtest.brier, backtest.baseRateBrier)} giving everyone the average. Single weeks are
+      noisy, so expect modest edges.
     </div>
   );
 }

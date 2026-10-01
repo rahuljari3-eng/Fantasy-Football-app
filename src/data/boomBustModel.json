@@ -1,0 +1,16 @@
+{
+  "fittedAt": "2026-10-01T06:04:43.154Z",
+  "params": {
+    "priorGames": 30,
+    "lastSeasonWeight": 0.5,
+    "otherPositionWeight": 1,
+    "envBandwidth": null,
+    "gapBandwidth": null,
+    "shrink": 0.7
+  },
+  "backtest": {
+    "games": 503,
+    "brier": 0.14109177022743713,
+    "baseRateBrier": 0.14242015397965185
+  }
+}

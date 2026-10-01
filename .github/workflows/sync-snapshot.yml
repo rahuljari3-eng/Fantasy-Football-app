@@ -46,6 +46,11 @@ jobs:
       - run: npm run record:projections
         continue-on-error: true
 
+      # Refit the boom/bust formula's tunables from every finished game
+      # (scripts/fitBoomBust.ts) -- how the odds learn as the season goes.
+      - run: npm run fit:boombust
+        continue-on-error: true
+
       - name: Commit and push if the roster data changed
         run: |
           git config user.name "github-actions[bot]"
@@ -54,6 +59,6 @@ jobs:
             echo "No roster changes since last sync."
             exit 0
           fi
-          git add src/data/leagueTeams.ts src/data/myTeam.ts src/data/freeAgents.ts src/data/projectionHistory.json src/data/vegasHistory.json src/data/vegasValues.ts
+          git add src/data/leagueTeams.ts src/data/myTeam.ts src/data/freeAgents.ts src/data/projectionHistory.json src/data/vegasHistory.json src/data/vegasValues.ts src/data/boomBustModel.json
           git commit -m "Sync league snapshot and projection history from ESPN [automated]"
           git push

@@ -24,6 +24,9 @@
 // backfilled from closing lines for any past week missing -- and writes the
 // season averages to src/data/vegasValues.ts for the player valuation.
 //
+// Also freezes each player's boom/bust odds (lib/boomBust.ts) at kickoff in
+// the same projectionHistory.json records, for the boom/bust track record.
+//
 // Usage: npm run record:projections
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -42,6 +45,7 @@ import {
 } from "../src/lib/espn.js";
 import { fetchWeeklyMatchups, type WeeklyMatchups } from "../src/lib/matchup.js";
 import type { ProjectionHistory } from "../src/lib/projectionAccuracy.js";
+import { weeklyBoomBust } from "../src/lib/boomBust.js";
 
 const DATA_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "../src/data");
 const HISTORY_FILE = path.join(DATA_DIR, "projectionHistory.json");
@@ -113,6 +117,9 @@ const snapshots = new Map<number, EspnPlayerSnapshot>();
 });
 
 const week = (history.weeks[String(period)] ??= {});
+// Players re-recorded this run, for their boom/bust odds once this week's
+// Vegas inputs are known (below).
+const pendingBoomBust: { snap: EspnPlayerSnapshot; seasonProj: number | null }[] = [];
 let recorded = 0;
 let frozen = 0;
 snapshots.forEach((snap) => {
@@ -126,6 +133,7 @@ snapshots.forEach((snap) => {
   const c = consensusFor(sources, snap);
   const custom = applyPropLines(c.proj, matchups?.playerProps[snap.id], c.modelYards);
   week[key] = { espn: snap.proj, custom, actual: null };
+  pendingBoomBust.push({ snap, seasonProj: c.seasonProj ?? null });
   recorded++;
 });
 
@@ -224,6 +232,28 @@ for (let w = 1; w < period; w++) {
 }
 
 writeFileSync(VEGAS_HISTORY_FILE, JSON.stringify(vegasHistory, null, 1) + "\n");
+
+// ---------- Boom/bust odds ----------
+// The odds the app shows (lib/boomBust.ts) for everyone re-recorded above,
+// frozen at kickoff along with the projections, so boomBustTrackRecord can
+// grade them once the week is final.
+const vegasThisWeek = vegasHistory.weeks[String(period)] ?? {};
+pendingBoomBust.forEach(({ snap, seasonProj }) => {
+  const record = week[String(snap.id)];
+  const vegas = vegasThisWeek[String(snap.id)];
+  const odds = weeklyBoomBust(snap.id, record.custom, seasonProj, {
+    pos: snap.pos,
+    week: period,
+    implied: vegas?.implied ?? null,
+    vegasPts: vegas?.pts ?? null,
+  });
+  if (!odds) return;
+  record.boom = Math.round(odds.boomChance * 1000) / 1000;
+  record.bust = Math.round(odds.bustChance * 1000) / 1000;
+  record.boomAt = odds.boomAt;
+  record.bustAt = odds.bustAt;
+});
+writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 1) + "\n");
 const seasonValues = vegasSeasonValues(vegasHistory);
 writeFileSync(
   VEGAS_VALUES_FILE,
