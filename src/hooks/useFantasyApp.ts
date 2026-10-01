@@ -27,8 +27,8 @@ import {
   suggestionKey,
 } from "../lib/coachTrades";
 import { applyLiveRosters, deriveAssignments, deriveAssignmentsFromEspnSlots } from "../lib/teamRoster";
-import { fetchEspnCompletedTrades, fetchEspnLineups, type CompletedTrade } from "../lib/espn";
-import { fetchLiveFreeAgents } from "../lib/espnLeague";
+import { fetchEspnCompletedTrades, type CompletedTrade } from "../lib/espn";
+import { fetchLiveFreeAgents, fetchLiveRosterPlayers } from "../lib/espnLeague";
 import {
   starGateOk,
   SEASON_PRICER,
@@ -123,14 +123,18 @@ export function useFantasyApp() {
   // Every team's live ESPN roster (espnTeamId -> playerId -> slot label),
   // from syncRosterFromEspn. Null until the first successful fetch.
   const [liveTeamSlots, setLiveTeamSlots] = useState<Record<number, Record<number, string>> | null>(null);
+  // Every rostered player as ESPN itself describes them, from that same
+  // fetch -- only used for players the bundled data doesn't have yet (a
+  // pickup since the last snapshot sync). See fetchLiveRosterPlayers.
+  const [liveRosterPlayers, setLiveRosterPlayers] = useState<Player[]>([]);
 
   // Every team in the league with live ESPN roster ownership laid over the
   // bundled snapshot, so a trade or waiver move shows up as soon as ESPN has
   // it rather than after the next scheduled snapshot sync. Everything below
   // reads teams from here, never ALL_TEAMS directly.
   const allTeams: LeagueTeam[] = useMemo(
-    () => applyLiveRosters(ALL_TEAMS, liveTeamSlots, [...FREE_AGENTS, ...(liveFreeAgents ?? [])]),
-    [liveTeamSlots, liveFreeAgents]
+    () => applyLiveRosters(ALL_TEAMS, liveTeamSlots, [...liveRosterPlayers, ...FREE_AGENTS, ...(liveFreeAgents ?? [])]),
+    [liveTeamSlots, liveRosterPlayers, liveFreeAgents]
   );
   const allTeamsRef = useRef(allTeams);
   allTeamsRef.current = allTeams;
@@ -219,15 +223,18 @@ export function useFantasyApp() {
 
   const syncRosterFromEspn = useCallback(async () => {
     try {
-      const lineups = await fetchEspnLineups();
+      const { slots: lineups, players: livePlayers } = await fetchLiveRosterPlayers(
+        ALL_TEAMS.flatMap((t) => t.roster)
+      );
       setLiveTeamSlots(lineups);
+      setLiveRosterPlayers(livePlayers);
       const teamId = selectedTeamIdRef.current;
       const liveSlots = lineups[teamId];
       if (!liveSlots) return;
       // The selected team's live roster, not the bundled snapshot -- a player
       // traded for since the snapshot isn't on the snapshot roster at all.
       const liveTeam =
-        applyLiveRosters(ALL_TEAMS, lineups, [...FREE_AGENTS, ...(liveFreeAgentsRef.current ?? [])]).find(
+        applyLiveRosters(ALL_TEAMS, lineups, [...livePlayers, ...FREE_AGENTS, ...(liveFreeAgentsRef.current ?? [])]).find(
           (t) => t.id === teamId
         ) ?? selectedTeamRef.current;
 

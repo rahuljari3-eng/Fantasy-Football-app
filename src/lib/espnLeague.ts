@@ -377,6 +377,41 @@ export async function fetchLiveFreeAgents(knownPlayers: Player[] = []): Promise<
   return agents.filter((p) => !rosteredIds.has(p.id));
 }
 
+/** Every team's live ESPN roster: each player's lineup slot (espnTeamId ->
+ * playerId -> slot label, same shape as fetchEspnLineups) plus a Player built
+ * straight from ESPN's own data for everyone rostered. The app prefers its
+ * bundled data for a player it already knows; these fill in anyone it
+ * doesn't -- a waiver pickup made since the last snapshot sync -- so they
+ * show up on load instead of after the next scheduled sync. ESPN's own
+ * projection only (no consensus blend) -- this runs in the browser on every
+ * load and the consensus sources are a server-side fetch. */
+export async function fetchLiveRosterPlayers(
+  knownPlayers: Player[] = []
+): Promise<{ slots: Record<number, Record<number, string>>; players: Player[] }> {
+  const known = new Map(knownPlayers.map((p) => [p.id, p]));
+  const [schedule, res] = await Promise.all([
+    getNflSchedule(),
+    fetch(`${ESPN_LEAGUE_BASE_URL}?view=mRoster&view=mTeam`, { headers: { Accept: "application/json" } }),
+  ]);
+  if (!res.ok) throw new Error(`ESPN request failed (${res.status})`);
+  const data = (await res.json()) as EspnLeaguePayload;
+  const scoringPeriodId = data.scoringPeriodId ?? 1;
+  const slots: Record<number, Record<number, string>> = {};
+  const players: Player[] = [];
+  for (const t of data.teams || []) {
+    const teamSlots: Record<number, string> = {};
+    for (const e of t.roster?.entries || []) {
+      const player = e.playerPoolEntry?.player;
+      if (!player || e.lineupSlotId == null) continue;
+      teamSlots[player.id] = ESPN_LINEUP_SLOT_LABEL[e.lineupSlotId] ?? "BE";
+      const built = enrichPlayer(player, scoringPeriodId, known, schedule.teamsById);
+      if (built) players.push(built);
+    }
+    slots[t.id] = teamSlots;
+  }
+  return { slots, players };
+}
+
 /** Pull live rosters + FA pool from ESPN and store in the server-side cache. */
 export async function syncLiveRosters(knownPlayers: Player[]): Promise<LiveLeagueSnapshot> {
   const known = new Map(knownPlayers.map((p) => [p.id, p]));

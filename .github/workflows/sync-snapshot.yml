@@ -4,17 +4,25 @@ name: Sync league snapshot
 # see scripts/syncLeagueSnapshot.ts. Runs on a schedule so waiver adds/drops,
 # streamed defenses, and trades show up in the app without anyone having to
 # remember to run the script by hand. A push to main here triggers the
-# existing Vercel auto-deploy, so the live site picks it up too.
+# existing Vercel auto-deploy, so the live site picks it up too. The app
+# itself also overlays live ESPN rosters on load (useFantasyApp), so a
+# pickup or trade shows up there right away; this keeps the bundled
+# fallback and projection history current.
 
 on:
   schedule:
-    # Every 6 hours. GitHub may delay scheduled runs slightly under load;
+    # Hourly. GitHub may delay scheduled runs slightly under load;
     # that's fine for this use case.
-    - cron: "0 */6 * * *"
+    - cron: "0 * * * *"
   workflow_dispatch: {}
 
 permissions:
   contents: write
+
+# Hourly runs mustn't overlap and race each other's push.
+concurrency:
+  group: sync-snapshot
+  cancel-in-progress: false
 
 jobs:
   sync:
