@@ -26,7 +26,7 @@ import {
   mixCoachSuggestions,
   suggestionKey,
 } from "../lib/coachTrades";
-import { deriveAssignments, deriveAssignmentsFromEspnSlots } from "../lib/teamRoster";
+import { applyLiveRosters, deriveAssignments, deriveAssignmentsFromEspnSlots } from "../lib/teamRoster";
 import { fetchEspnCompletedTrades, fetchEspnLineups, type CompletedTrade } from "../lib/espn";
 import { fetchLiveFreeAgents } from "../lib/espnLeague";
 import {
@@ -111,9 +111,33 @@ export function useFantasyApp() {
   // roster builder, AI Coach, free agents, and trade analyzer all re-center on
   // it. Persisted so a reload keeps you on the same team.
   const [selectedTeamId, setSelectedTeamId] = useState<number>(readStoredTeamId);
+
+  // The Free Agents tab's real player pool: every player ESPN currently has
+  // as FREEAGENT/WAIVERS in this league, fetched live. Replaces the bundled
+  // FREE_AGENTS snapshot (data/freeAgents.ts) whenever a live fetch has
+  // succeeded -- that snapshot is a point-in-time export and goes stale the
+  // moment anyone in the league makes a waiver move, so it's kept only as an
+  // offline/error fallback. Null until the first successful sync.
+  const [liveFreeAgents, setLiveFreeAgents] = useState<Player[] | null>(null);
+
+  // Every team's live ESPN roster (espnTeamId -> playerId -> slot label),
+  // from syncRosterFromEspn. Null until the first successful fetch.
+  const [liveTeamSlots, setLiveTeamSlots] = useState<Record<number, Record<number, string>> | null>(null);
+
+  // Every team in the league with live ESPN roster ownership laid over the
+  // bundled snapshot, so a trade or waiver move shows up as soon as ESPN has
+  // it rather than after the next scheduled snapshot sync. Everything below
+  // reads teams from here, never ALL_TEAMS directly.
+  const allTeams: LeagueTeam[] = useMemo(
+    () => applyLiveRosters(ALL_TEAMS, liveTeamSlots, [...FREE_AGENTS, ...(liveFreeAgents ?? [])]),
+    [liveTeamSlots, liveFreeAgents]
+  );
+  const allTeamsRef = useRef(allTeams);
+  allTeamsRef.current = allTeams;
+
   const selectedTeam: LeagueTeam = useMemo(
-    () => ALL_TEAMS.find((t) => t.id === selectedTeamId) ?? ALL_TEAMS[0],
-    [selectedTeamId]
+    () => allTeams.find((t) => t.id === selectedTeamId) ?? allTeams[0],
+    [allTeams, selectedTeamId]
   );
 
   // Roster-builder assignments. Seeded from whatever was last saved locally
@@ -152,7 +176,7 @@ export function useFantasyApp() {
   // team's real lineup and clear any in-progress trade / league drill-down so
   // nothing points at the team you just left.
   const selectTeam = useCallback((id: number) => {
-    const team = ALL_TEAMS.find((t) => t.id === id) ?? ALL_TEAMS[0];
+    const team = allTeamsRef.current.find((t) => t.id === id) ?? allTeamsRef.current[0];
     setSelectedTeamId(team.id);
     writeStoredTeamId(team.id);
     const next = readStoredRoster(team.id) ?? deriveAssignments(team);
@@ -190,13 +214,22 @@ export function useFantasyApp() {
   rosterRef.current = roster;
   const benchRef = useRef(bench);
   benchRef.current = bench;
+  const liveFreeAgentsRef = useRef(liveFreeAgents);
+  liveFreeAgentsRef.current = liveFreeAgents;
 
   const syncRosterFromEspn = useCallback(async () => {
     try {
       const lineups = await fetchEspnLineups();
+      setLiveTeamSlots(lineups);
       const teamId = selectedTeamIdRef.current;
       const liveSlots = lineups[teamId];
       if (!liveSlots) return;
+      // The selected team's live roster, not the bundled snapshot -- a player
+      // traded for since the snapshot isn't on the snapshot roster at all.
+      const liveTeam =
+        applyLiveRosters(ALL_TEAMS, lineups, [...FREE_AGENTS, ...(liveFreeAgentsRef.current ?? [])]).find(
+          (t) => t.id === teamId
+        ) ?? selectedTeamRef.current;
 
       const priorSlots = readStoredEspnSnapshot(teamId);
       const espnChanged = !priorSlots || !slotsEqual(priorSlots, liveSlots);
@@ -214,9 +247,12 @@ export function useFantasyApp() {
         ...benchRef.current,
       ]);
       const hasUnknownPlayer = Object.keys(liveSlots).some((id) => !knownIds.has(Number(id)));
+      // And the reverse: a player local state still has who's no longer on
+      // the team in ESPN (traded away or dropped) has to go.
+      const hasDepartedPlayer = [...knownIds].some((id) => !(id in liveSlots));
 
-      if (espnChanged || hasUnknownPlayer) {
-        const next = deriveAssignmentsFromEspnSlots(selectedTeamRef.current, liveSlots);
+      if (espnChanged || hasUnknownPlayer || hasDepartedPlayer) {
+        const next = deriveAssignmentsFromEspnSlots(liveTeam, liveSlots);
         setRoster(next.roster);
         setBench(next.bench);
       }
@@ -226,14 +262,6 @@ export function useFantasyApp() {
       // already saved locally.
     }
   }, []);
-
-  // The Free Agents tab's real player pool: every player ESPN currently has
-  // as FREEAGENT/WAIVERS in this league, fetched live. Replaces the bundled
-  // FREE_AGENTS snapshot (data/freeAgents.ts) whenever a live fetch has
-  // succeeded -- that snapshot is a point-in-time export and goes stale the
-  // moment anyone in the league makes a waiver move, so it's kept only as an
-  // offline/error fallback. Null until the first successful sync.
-  const [liveFreeAgents, setLiveFreeAgents] = useState<Player[] | null>(null);
 
   const syncFreeAgentsFromEspn = useCallback(async () => {
     try {
@@ -567,7 +595,7 @@ export function useFantasyApp() {
   // qualityScore. Same function Roster Sensei uses (lib/consensus.ts
   // rankPlayerPool).
   const ranksById = useMemo(() => {
-    const pool = [...ALL_TEAMS.flatMap((t) => t.roster), ...(liveFreeAgents ?? FREE_AGENTS)].map(applyOverrideRaw);
+    const pool = [...allTeams.flatMap((t) => t.roster), ...(liveFreeAgents ?? FREE_AGENTS)].map(applyOverrideRaw);
     const ranked = rankPlayerPool(pool);
     const week = leagueSchedule?.currentWeek ?? 1;
     const eased = applyScheduleEase(ranked, {
@@ -576,7 +604,7 @@ export function useFantasyApp() {
       history: VEGAS_HISTORY,
     });
     return new Map(eased.map((p) => [p.id, p]));
-  }, [applyOverrideRaw, liveFreeAgents, leagueSchedule?.currentWeek, nflScheduleSnap]);
+  }, [applyOverrideRaw, allTeams, liveFreeAgents, leagueSchedule?.currentWeek, nflScheduleSnap]);
 
   // applyOverride also stamps the pool-relative fields above, so every
   // "effective*" array carries them and playerValue/qualityScore price
@@ -602,11 +630,11 @@ export function useFantasyApp() {
   // baseline for teams with few or no games played yet. See lib/playoffOdds.
   const projectedTeamStrength = useMemo(() => {
     const map: Record<number, number> = {};
-    ALL_TEAMS.forEach((t) => {
+    allTeams.forEach((t) => {
       map[t.id] = optimizeLineup(t.roster.map(applyOverride)).projectedTotal;
     });
     return map;
-  }, [applyOverride]);
+  }, [allTeams, applyOverride]);
 
   // Playoff race: who's clinched/eliminated/alive, playoff odds via
   // simulation, and -- for everyone still alive -- exactly what needs to
@@ -626,8 +654,8 @@ export function useFantasyApp() {
   // Every OTHER team is an opponent -- including your own default team when
   // you're currently managing someone else's.
   const effectiveLeagueTeams: LeagueTeam[] = useMemo(
-    () => ALL_TEAMS.filter((t) => t.id !== selectedTeamId).map((t) => ({ ...t, roster: t.roster.map(applyOverride) })),
-    [applyOverride, selectedTeamId]
+    () => allTeams.filter((t) => t.id !== selectedTeamId).map((t) => ({ ...t, roster: t.roster.map(applyOverride) })),
+    [allTeams, applyOverride, selectedTeamId]
   );
   const effectiveAllLeaguePlayers: LeaguePlayer[] = useMemo(
     () => effectiveLeagueTeams.flatMap((t) => t.roster.map((p) => ({ ...p, fantasyTeamId: t.id, fantasyTeamName: t.name }))),
@@ -662,7 +690,7 @@ export function useFantasyApp() {
     if (!m) return null;
     const isHome = m.homeId === selectedTeamId;
     const oppId = isHome ? m.awayId : m.homeId;
-    const oppTeam = ALL_TEAMS.find((t) => t.id === oppId);
+    const oppTeam = allTeams.find((t) => t.id === oppId);
     if (!oppTeam) return null;
 
     const myStarters = SLOTS.map((s) => roster[s])
@@ -704,7 +732,7 @@ export function useFantasyApp() {
     };
 
     return buildHeadToHeadMatchup(week, m.decided, meInput, oppInput, matchupData);
-  }, [leagueSchedule, selectedTeamId, selectedTeam, roster, playerById, liveLineups, matchupData, applyOverride]);
+  }, [leagueSchedule, allTeams, selectedTeamId, selectedTeam, roster, playerById, liveLineups, matchupData, applyOverride]);
 
   // "Should I start this bench guy instead?" -- for each bench player,
   // compares them against the weakest current starter they're eligible to
@@ -1337,7 +1365,7 @@ export function useFantasyApp() {
       if (tradeHorizon === "week") return packageValue(players, WEEK_PRICER);
       if (tradeNeedAdjust && tradeOpponentId != null) {
         const myNeeds = analyzeRosterNeeds(effectiveMyTeamPlayers);
-        const oppTeam = ALL_TEAMS.find((t) => t.id === tradeOpponentId);
+        const oppTeam = allTeams.find((t) => t.id === tradeOpponentId);
         const theirNeeds = analyzeRosterNeeds((oppTeam?.roster ?? []).map(applyOverride));
         // Give side is valued for the opponent's needs; get side for yours.
         const needs = side === "give" ? theirNeeds : myNeeds;
@@ -1350,6 +1378,7 @@ export function useFantasyApp() {
       tradeHorizon,
       tradeNeedAdjust,
       tradeOpponentId,
+      allTeams,
       effectiveMyTeamPlayers,
       applyOverride,
       leagueBaseline,
@@ -1415,7 +1444,7 @@ export function useFantasyApp() {
     setTab,
 
     // team selection
-    allTeams: ALL_TEAMS,
+    allTeams,
     selectedTeamId,
     selectedTeam,
     selectTeam,
