@@ -8,6 +8,11 @@ export interface ProjectionRecord {
   custom: number;
   /** Null until the week is final. */
   actual: number | null;
+  /** On a 0-point week only: true = he didn't play (inactive / ruled out),
+   * false = he played and scored 0. A DNP isn't a game -- it's left out of
+   * accuracy, the blend fit and boom/bust (isPlayedGame); missed time is
+   * already priced by the injury-status multiplier. */
+  dnp?: boolean;
   /** The boom/bust odds the app showed (lib/boomBust.ts) and the bars they
    * were against, frozen at kickoff with the projections -- graded by
    * boomBustTrackRecord once the week is final. */
@@ -22,6 +27,11 @@ export interface ProjectionRecord {
   pos?: string;
   sleeper?: number;
   prop?: number;
+}
+
+/** A final week he actually played -- a 0 counts only if he got into the game. */
+export function isPlayedGame(r: ProjectionRecord): r is ProjectionRecord & { actual: number } {
+  return r.actual != null && r.dnp !== true;
 }
 
 export interface ProjectionHistory {
@@ -78,7 +88,7 @@ export function computeProjectionAccuracy(history: ProjectionHistory): Projectio
   const graded: Graded[] = [];
   Object.entries(history.weeks).forEach(([week, players]) => {
     Object.values(players).forEach((r) => {
-      if (r.actual == null || Math.max(r.espn, r.custom) < MIN_RELEVANT_PROJECTION) return;
+      if (!isPlayedGame(r) || Math.max(r.espn, r.custom) < MIN_RELEVANT_PROJECTION) return;
       graded.push({ ...r, actual: r.actual, week: Number(week) });
     });
   });

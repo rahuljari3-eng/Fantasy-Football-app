@@ -51,6 +51,7 @@ import { FREE_AGENTS } from "../src/data/freeAgents.js";
 import {
   ESPN_POS,
   extractEspnWeekActual,
+  extractEspnWeekPlayed,
   fetchEspnFreeAgentProjections,
   fetchEspnRosteredProjections,
   type EspnPlayerSnapshot,
@@ -66,21 +67,22 @@ const VEGAS_HISTORY_FILE = path.join(DATA_DIR, "vegasHistory.json");
 const VEGAS_VALUES_FILE = path.join(DATA_DIR, "vegasValues.ts");
 const SKILL = new Set(["QB", "RB", "WR", "TE"]);
 
-/** Actual points in `week` for each of `ids`, in this league's scoring.
- * Primary source is that week's league rosters (mRoster with
- * scoringPeriodId=week), which carry each rostered player's real line for
- * the week: a rostered player with no line didn't play, so 0. Free agents
- * come from the league's player cards (kona_playercard, filtered to their
- * ids), which carry every week's line in league scoring -- unlike the
- * /players pool, which only serves the current week. Only an actual line
- * for `week` is used, never read as 0; anyone neither source covers is left
- * out, so the next run retries him rather than recording a 0. */
-async function fetchWeekActuals(week: number, ids: number[]): Promise<Map<number, number>> {
+/** Actual points in `week` for each of `ids`, in this league's scoring,
+ * and whether he got into the game. Primary source is that week's league
+ * rosters (mRoster with scoringPeriodId=week), which carry each rostered
+ * player's real line for the week: a rostered player with no line didn't
+ * play, so 0 and not played. Free agents come from the league's player cards
+ * (kona_playercard, filtered to their ids), which carry every week's line in
+ * league scoring -- unlike the /players pool, which only serves the current
+ * week. Only an actual line for `week` is used, never read as 0; anyone
+ * neither source covers is left out, so the next run retries him rather than
+ * recording a 0. */
+async function fetchWeekActuals(week: number, ids: number[]): Promise<Map<number, { actual: number; played: boolean }>> {
   const wanted = new Set(ids);
-  const out = new Map<number, number>();
+  const out = new Map<number, { actual: number; played: boolean }>();
   const rosters = await fetchEspnRosteredProjections(week);
   rosters.snapshots.forEach((s) => {
-    if (wanted.has(s.id)) out.set(s.id, s.weekActual ?? 0);
+    if (wanted.has(s.id)) out.set(s.id, { actual: s.weekActual ?? 0, played: s.weekPlayed === true });
   });
   if (out.size === wanted.size) return out;
 
@@ -104,7 +106,7 @@ async function fetchWeekActuals(week: number, ids: number[]): Promise<Map<number
     const player = entry.player ?? (entry.id != null ? (entry as KonaPlayer) : undefined);
     if (!player || !wanted.has(player.id) || out.has(player.id)) return;
     const actual = extractEspnWeekActual(player.stats, week);
-    if (actual != null) out.set(player.id, actual);
+    if (actual != null) out.set(player.id, { actual, played: extractEspnWeekPlayed(player.stats, week) === true });
   });
   return out;
 }
@@ -256,19 +258,26 @@ for (const [w, players] of Object.entries(history.weeks)) {
   }
 }
 
-// Fill actual points for every finished week still missing them.
+// Fill actual points for every finished week still missing them -- and,
+// for a 0, whether he played at all (records graded before that was kept
+// get checked once too). A DNP stays recorded as 0 but is flagged so it
+// isn't graded as a game (isPlayedGame in lib/projectionAccuracy.ts).
 let filled = 0;
 for (const [w, players] of Object.entries(history.weeks)) {
   if (Number(w) >= period) continue;
-  const missing = Object.entries(players).filter(([, r]) => r.actual == null).map(([id]) => Number(id));
+  const missing = Object.entries(players)
+    .filter(([, r]) => r.actual == null || (r.actual === 0 && r.dnp == null))
+    .map(([id]) => Number(id));
   if (!missing.length) continue;
   const actuals = await fetchWeekActuals(Number(w), missing);
   missing.forEach((id) => {
     const a = actuals.get(id);
-    if (a != null) {
-      players[String(id)].actual = a;
-      filled++;
-    }
+    if (a == null) return;
+    const record = players[String(id)];
+    record.actual = a.actual;
+    if (a.actual === 0) record.dnp = !a.played;
+    else delete record.dnp;
+    filled++;
   });
 }
 

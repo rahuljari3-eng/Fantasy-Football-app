@@ -44,7 +44,7 @@ import VEGAS_HISTORY from "../data/vegasHistory.json" with { type: "json" };
 import { ALL_TEAMS } from "../data/allTeams.js";
 import { FREE_AGENTS } from "../data/freeAgents.js";
 import type { VegasHistory } from "./bettingValue.js";
-import type { ProjectionHistory } from "./projectionAccuracy.js";
+import { isPlayedGame, type ProjectionHistory } from "./projectionAccuracy.js";
 import type { Position } from "../types.js";
 
 export interface BoomBustHistory {
@@ -231,7 +231,7 @@ function buildRows(): GameRow[] {
   const current = PROJECTION_HISTORY as ProjectionHistory;
   Object.entries(current.weeks).forEach(([week, players]) =>
     Object.entries(players).forEach(([id, r]) => {
-      if (r.actual != null) add(Number(id), current.season, Number(week), true, r.custom, r.actual);
+      if (isPlayedGame(r)) add(Number(id), current.season, Number(week), true, r.custom, r.actual);
     })
   );
   return rows;

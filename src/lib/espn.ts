@@ -93,6 +93,17 @@ export function extractEspnWeekActual(stats: EspnStatLine[] | undefined, scoring
   return match ? Math.round((match.appliedTotal ?? 0) * 10) / 10 : null;
 }
 
+/** Whether he actually got into the game in `scoringPeriodId`: ESPN still
+ * sends a week line (0 points, no stats) for a player who was inactive or
+ * ruled out, but only a game he played in carries games played ("210").
+ * Null when there's no line for the week at all. */
+export function extractEspnWeekPlayed(stats: EspnStatLine[] | undefined, scoringPeriodId: number): boolean | null {
+  const match = (stats || []).find(
+    (s) => s.statSourceId === 0 && s.scoringPeriodId === scoringPeriodId && (s.statSplitTypeId ?? 1) === 1
+  );
+  return match ? (match.stats?.[GAMES_PLAYED_STAT] ?? 0) > 0 : null;
+}
+
 /** ESPN's own full-season points-per-game projection (statSourceId 1 =
  * projection, scoringPeriodId 0 = season-level rather than one week) -- see
  * Player.seasonProj. Unlike extractEspnProjection, this doesn't collapse to
@@ -179,6 +190,8 @@ export interface EspnPlayerSnapshot {
   usage: ReturnType<typeof extractEspnUsage>;
   /** This week's actual points -- non-null once his game has kicked off. */
   weekActual: number | null;
+  /** Whether he got into this week's game (extractEspnWeekPlayed). */
+  weekPlayed: boolean | null;
   /** ESPN's injury status now (PlayerStatus) -- current even when the
    * snapshot is for a past week. */
   status: string;
@@ -208,6 +221,7 @@ function toOverride(player: EspnPlayer, period: number): { override: ProjectionO
           gamesPlayed: actual?.gamesPlayed ?? null,
           usage: extractEspnUsage(player.stats),
           weekActual: extractEspnWeekActual(player.stats, period),
+          weekPlayed: extractEspnWeekPlayed(player.stats, period),
           status,
         }
       : null,
