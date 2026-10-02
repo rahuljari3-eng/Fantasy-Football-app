@@ -10,6 +10,7 @@ import {
   ESPN_POS,
   extractEspnSeasonActual,
   extractEspnUsage,
+  isRuledOut,
   type EspnStatLine,
   extractEspnProjection,
   extractEspnSeasonProjection,
@@ -208,7 +209,11 @@ function enrichPlayer(
         status,
       })
     : null;
-  const proj = blended ? applyPropLines(blended.proj, consensus?.playerProps[espn.id], blended.modelYards) : espnProj;
+  const proj = blended
+    ? applyPropLines(blended.proj, consensus?.playerProps[espn.id], blended.modelYards)
+    : isRuledOut(status)
+      ? 0
+      : espnProj;
   const seasonProj = blended?.seasonProj ?? espnSeasonProj;
 
   return {
@@ -218,7 +223,7 @@ function enrichPlayer(
     team: nfl?.abbrev || prev?.team || "FA",
     bye: nfl?.byeWeek ?? prev?.bye ?? 0,
     proj,
-    espnProj,
+    espnProj: isRuledOut(status) ? 0 : espnProj,
     ...(seasonProj != null ? { seasonProj } : {}),
     ...(blended?.marketPosRank != null ? { marketPosRank: blended.marketPosRank, marketValue: blended.marketValue } : {}),
     ...(blended?.modelYards ? { modelYards: blended.modelYards } : {}),

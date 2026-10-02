@@ -4,7 +4,7 @@
 // read projections, so this module is the missing half.
 import { ESPN_LEAGUE_BASE_URL, LEAGUE_CONFIG } from "../config/league.js";
 import type { Position } from "../types.js";
-import { ESPN_LINEUP_SLOT_LABEL } from "./espn.js";
+import { ESPN_LINEUP_SLOT_LABEL, espnStatusLabel, isRuledOut } from "./espn.js";
 import { ESPN_POS } from "./espnLeague.js";
 
 interface EspnStatLine {
@@ -342,17 +342,31 @@ async function fetchNflBoxLine(
   }
 }
 
+/** ESPN's projection for `week`, or 0 when it's the current week, his game
+ * hasn't started, and he's ruled out (ESPN can lag its own designation).
+ * Past weeks keep the projection they had. */
+function weekProjection(
+  player: EspnPlayer,
+  week: number,
+  currentWeek: number,
+  actual: EspnStatLine | undefined,
+  projected: EspnStatLine | undefined
+): number | null {
+  if (week === currentWeek && actual == null && isRuledOut(espnStatusLabel(player.injuryStatus))) return 0;
+  return projected?.appliedTotal != null ? round1(projected.appliedTotal) : null;
+}
+
 function buildWeekPerformance(
   week: number,
   actual: EspnStatLine | undefined,
-  projected: EspnStatLine | undefined,
+  projectedPoints: number | null,
   events: Map<string, ScoreboardEvent>
 ): WeekPerformance {
   const eventId = actual?.externalId && /^\d+$/.test(actual.externalId) ? actual.externalId : null;
   return {
     week,
     actualPoints: actual?.appliedTotal != null ? round1(actual.appliedTotal) : null,
-    projectedPoints: projected?.appliedTotal != null ? round1(projected.appliedTotal) : null,
+    projectedPoints,
     fantasyBreakdown: countingStats(actual?.stats, actual?.appliedStats),
     eventId,
     game: eventId ? formatGame(events.get(eventId)) : null,
@@ -456,6 +470,7 @@ function slotLabel(lineupSlotId: number | null): string {
 function toWeekScoreRow(
   entry: RosterIndexEntry,
   week: number,
+  currentWeek: number,
   events: Map<string, ScoreboardEvent>
 ): LeagueWeekScoreRow {
   const actuals = weekLines(entry.player.stats, 0);
@@ -473,7 +488,7 @@ function toWeekScoreRow(
     slot,
     isStarter: STARTER_SLOTS.has(slot),
     actualPoints: actual?.appliedTotal != null ? round1(actual.appliedTotal) : null,
-    projectedPoints: projected?.appliedTotal != null ? round1(projected.appliedTotal) : null,
+    projectedPoints: weekProjection(entry.player, week, currentWeek, actual, projected),
     eventId,
     game: eventId ? formatGame(events.get(eventId)) : null,
   };
@@ -489,7 +504,7 @@ export async function fetchLeagueWeekScores(week?: number): Promise<{
   const targetWeek = week ?? scoringPeriodId;
   const events = await fetchScoreboardEvents();
   const players = entries
-    .map((e) => toWeekScoreRow(e, targetWeek, events))
+    .map((e) => toWeekScoreRow(e, targetWeek, scoringPeriodId, events))
     .sort((a, b) => (b.actualPoints ?? -1) - (a.actualPoints ?? -1) || (b.projectedPoints ?? 0) - (a.projectedPoints ?? 0));
   return { week: targetWeek, currentWeek: scoringPeriodId, players };
 }
@@ -649,7 +664,8 @@ export async function fetchPlayerPerformance(
   const projs = weekLines(entry.player.stats, 1);
   const events = await fetchScoreboardEvents();
 
-  const thisWeek = buildWeekPerformance(targetWeek, actuals.get(targetWeek), projs.get(targetWeek), events);
+  const proj = (w: number) => weekProjection(entry.player, w, scoringPeriodId, actuals.get(w), projs.get(w));
+  const thisWeek = buildWeekPerformance(targetWeek, actuals.get(targetWeek), proj(targetWeek), events);
   if (includeBox && thisWeek.eventId && thisWeek.actualPoints != null) {
     thisWeek.nflBoxLine = await fetchNflBoxLine(thisWeek.eventId, playerId);
   }
@@ -657,7 +673,7 @@ export async function fetchPlayerPerformance(
   const gameLog: WeekPerformance[] = [...actuals.keys()]
     .filter((w) => w !== targetWeek)
     .sort((a, b) => b - a)
-    .map((w) => buildWeekPerformance(w, actuals.get(w), projs.get(w), events));
+    .map((w) => buildWeekPerformance(w, actuals.get(w), proj(w), events));
 
   // Optionally attach box lines for the most recent prior game too (cheap enough).
   if (includeBox && gameLog[0]?.eventId && gameLog[0].actualPoints != null) {

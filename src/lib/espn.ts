@@ -77,6 +77,21 @@ export const ESPN_LINEUP_SLOT_LABEL: Record<number, string> = {
   21: "IR",
 };
 
+/** Statuses that mean he won't play this week, whatever the projections
+ * still say -- ESPN can lag its own designation, and Sleeper lags further.
+ * Every this-week projection goes to 0 for these (past weeks keep theirs:
+ * a player's status now isn't his status then). */
+const RULED_OUT_STATUSES = new Set(["Out", "IR", "Suspended"]);
+
+export function isRuledOut(status: string | null | undefined): boolean {
+  return status != null && RULED_OUT_STATUSES.has(status);
+}
+
+/** Raw ESPN injuryStatus -> PlayerStatus label. */
+export function espnStatusLabel(injuryStatus: string | undefined): PlayerStatus {
+  return ESPN_INJURY_LABEL_MAP[injuryStatus ?? ""] || injuryStatus || "Healthy";
+}
+
 export function extractEspnProjection(stats: EspnStatLine[] | undefined, scoringPeriodId: number): number | null {
   const match = (stats || []).find((s) => s.statSourceId === 1 && s.scoringPeriodId === scoringPeriodId);
   return match ? Math.round((match.appliedTotal ?? 0) * 10) / 10 : null;
@@ -203,10 +218,10 @@ function toOverride(player: EspnPlayer, period: number): { override: ProjectionO
   const seasonProj = extractEspnSeasonProjection(player.stats);
   const actual = extractEspnSeasonActual(player.stats);
   const pos = ESPN_POS[player.defaultPositionId ?? -1];
-  const status = ESPN_INJURY_LABEL_MAP[player.injuryStatus ?? ""] || player.injuryStatus || "Healthy";
+  const status = espnStatusLabel(player.injuryStatus);
   return {
     override: {
-      proj,
+      proj: isRuledOut(status) ? 0 : proj,
       status,
       ...(seasonProj != null ? { seasonProj } : {}),
     },
@@ -320,7 +335,8 @@ export async function fetchEspnLiveLineups(): Promise<Record<number, Record<numb
     (t.roster?.entries || []).forEach((e) => {
       const player = e.playerPoolEntry?.player;
       if (!player || e.lineupSlotId == null) return;
-      const weekScore = extractEspnWeekActual(player.stats, period) ?? extractEspnProjection(player.stats, period) ?? 0;
+      const projected = isRuledOut(espnStatusLabel(player.injuryStatus)) ? 0 : extractEspnProjection(player.stats, period);
+      const weekScore = extractEspnWeekActual(player.stats, period) ?? projected ?? 0;
       entries[player.id] = {
         slot: ESPN_LINEUP_SLOT_LABEL[e.lineupSlotId] ?? "BE",
         liveScore: weekScore,

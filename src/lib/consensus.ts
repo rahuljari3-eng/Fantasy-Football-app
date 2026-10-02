@@ -48,7 +48,7 @@ import { applyPropDeltaWithParams, blendWithParams, projectionParams } from "./p
 import { VEGAS_VALUES } from "../data/vegasValues.js";
 import PROJECTION_HISTORY from "../data/projectionHistory.json" with { type: "json" };
 import { healthyScratchCounts, type ProjectionHistory } from "./projectionAccuracy.js";
-import type { EspnPlayerSnapshot } from "./espn.js";
+import { isRuledOut, type EspnPlayerSnapshot } from "./espn.js";
 import { seasonModelValue, effectiveSeasonProj } from "./scoring.js";
 import type { PlayerPropLines } from "./matchup.js";
 import type { ModelYards, Player, Position, ProjectionOverrides, UsageLine, UsageSignal, ValueSources } from "../types.js";
@@ -350,13 +350,7 @@ export function applyPropLines(proj: number, props: PlayerPropLines | undefined,
   return applyPropDeltaWithParams(projectionParams(), proj, propYardsDelta(props, model));
 }
 
-/** Statuses that mean he won't play this week, whatever the projections
- * still say -- ESPN can lag its own designation, and Sleeper lags further. */
-const RULED_OUT_STATUSES = new Set(["Out", "IR", "Suspended"]);
-
-export function isRuledOut(status: string | null | undefined): boolean {
-  return status != null && RULED_OUT_STATUSES.has(status);
-}
+export { isRuledOut };
 
 /** The consensus numbers for one ESPN player. */
 export interface ConsensusFields {
@@ -418,7 +412,7 @@ export function consensusFor(
 ): ConsensusFields {
   const market = sources.market.get(espn.id);
   if (!SKILL_POSITIONS.includes(espn.pos)) {
-    return { proj: espn.proj, ...(espn.seasonProj != null ? { seasonProj: espn.seasonProj } : {}) };
+    return { proj: isRuledOut(espn.status) ? 0 : espn.proj, ...(espn.seasonProj != null ? { seasonProj: espn.seasonProj } : {}) };
   }
   const key = sleeperKeyFor(sources, espn.id, espn.name, espn.pos);
   const week = key ? sources.sleeperWeek.get(key) : undefined;
@@ -555,7 +549,7 @@ export function applyConsensusToOverrides(
     const c = consensusFor(sources, snap);
     out[snap.id] = {
       ...base,
-      espnProj: snap.proj,
+      espnProj: isRuledOut(snap.status) ? 0 : snap.proj,
       proj: c.proj,
       ...(c.seasonProj != null ? { seasonProj: c.seasonProj } : {}),
       ...(c.marketPosRank != null ? { marketPosRank: c.marketPosRank, marketValue: c.marketValue } : {}),
