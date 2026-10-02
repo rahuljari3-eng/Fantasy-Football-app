@@ -46,6 +46,8 @@ import {
 } from "../config/scoring.js";
 import { applyPropDeltaWithParams, blendWithParams, projectionParams } from "./projectionModel.js";
 import { VEGAS_VALUES } from "../data/vegasValues.js";
+import PROJECTION_HISTORY from "../data/projectionHistory.json" with { type: "json" };
+import { healthyScratchCounts, type ProjectionHistory } from "./projectionAccuracy.js";
 import type { EspnPlayerSnapshot } from "./espn.js";
 import { seasonModelValue, effectiveSeasonProj } from "./scoring.js";
 import type { PlayerPropLines } from "./matchup.js";
@@ -366,6 +368,37 @@ export interface ConsensusFields {
   valueSources?: ValueSources;
 }
 
+const HEALTHY_SCRATCHES = healthyScratchCounts(PROJECTION_HISTORY as ProjectionHistory);
+
+/** ESPN's season roll-up only counts games he got into, which is right for
+ * a week an injury designation already explained -- but a week he sat with
+ * no designation (healthy scratch, coach's decision) is a real 0. Fold those
+ * (recorded in projectionHistory.json) back into the per-game numbers. */
+function withHealthyScratches(espn: {
+  id: number;
+  actualAvg?: number | null;
+  gamesPlayed?: number | null;
+  usage?: { actual: UsageLine; projected: UsageLine; gamesPlayed: number } | null;
+}) {
+  const scratches = HEALTHY_SCRATCHES.get(espn.id) ?? 0;
+  const gp = espn.gamesPlayed ?? 0;
+  if (!scratches) return { actualAvg: espn.actualAvg, gamesPlayed: espn.gamesPlayed, usage: espn.usage, scratches };
+  const games = gp + scratches;
+  const share = gp / games;
+  const scale = (l: UsageLine): UsageLine => ({
+    passAtt: l.passAtt * share,
+    rushAtt: l.rushAtt * share,
+    targets: l.targets * share,
+    receptions: l.receptions * share,
+  });
+  return {
+    actualAvg: Math.round((espn.actualAvg ?? 0) * share * 10) / 10,
+    gamesPlayed: games,
+    usage: espn.usage ? { ...espn.usage, actual: scale(espn.usage.actual), gamesPlayed: games } : espn.usage,
+    scratches,
+  };
+}
+
 export function consensusFor(
   sources: ConsensusSources,
   espn: {
@@ -390,21 +423,23 @@ export function consensusFor(
   const key = sleeperKeyFor(sources, espn.id, espn.name, espn.pos);
   const week = key ? sources.sleeperWeek.get(key) : undefined;
   const ros = key ? sources.sleeperRos.get(key) : undefined;
-  const usage = usageFactor(espn.pos, espn.usage);
+  const { actualAvg, gamesPlayed, usage: usageInput, scratches } = withHealthyScratches(espn);
+  const usage = usageFactor(espn.pos, usageInput);
   const seasonProj = blendSeasonProj({
     espnSeason: espn.seasonProj,
     sleeperRos: ros,
-    actualAvg: espn.actualAvg,
-    gamesPlayed: espn.gamesPlayed,
+    actualAvg,
+    gamesPlayed,
     usageFactor: usage?.factor,
   });
   const valueSources: ValueSources = { espnWeek: espn.proj };
   if (week?.pts != null) valueSources.sleeperWeek = Math.round(week.pts * 10) / 10;
   if (espn.seasonProj != null) valueSources.espnSeason = espn.seasonProj;
   if (ros != null) valueSources.sleeperRos = Math.round(ros * 10) / 10;
-  if (espn.actualAvg != null && espn.gamesPlayed) {
-    valueSources.actualAvg = espn.actualAvg;
-    valueSources.gamesPlayed = espn.gamesPlayed;
+  if (actualAvg != null && gamesPlayed) {
+    valueSources.actualAvg = actualAvg;
+    valueSources.gamesPlayed = gamesPlayed;
+    if (scratches) valueSources.healthyScratches = scratches;
   }
   if (usage) valueSources.usage = usage;
   return {

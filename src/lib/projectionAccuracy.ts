@@ -9,10 +9,15 @@ export interface ProjectionRecord {
   /** Null until the week is final. */
   actual: number | null;
   /** On a 0-point week only: true = he didn't play (inactive / ruled out),
-   * false = he played and scored 0. A DNP isn't a game -- it's left out of
-   * accuracy, the blend fit and boom/bust (isPlayedGame); missed time is
-   * already priced by the injury-status multiplier. */
+   * false = he played and scored 0. See isGradedGame for which DNPs count. */
   dnp?: boolean;
+  /** His injury designation (PlayerStatus) at the last recording before
+   * kickoff. Absent when unknown. */
+  status?: string;
+  /** His designation at the first recording after kickoff. The sync can run
+   * hours apart, so the last pre-kickoff look can predate inactives (~90
+   * minutes before the game); a game-day ruling shows up here. */
+  gameStatus?: string;
   /** The boom/bust odds the app showed (lib/boomBust.ts) and the bars they
    * were against, frozen at kickoff with the projections -- graded by
    * boomBustTrackRecord once the week is final. */
@@ -29,9 +34,31 @@ export interface ProjectionRecord {
   prop?: number;
 }
 
-/** A final week he actually played -- a 0 counts only if he got into the game. */
-export function isPlayedGame(r: ProjectionRecord): r is ProjectionRecord & { actual: number } {
-  return r.actual != null && r.dnp !== true;
+/** A DNP with no injury designation going into the game -- healthy both
+ * at the last look before kickoff and the first after: a healthy scratch /
+ * coach's decision, so a real 0. A DNP a designation explains is priced by
+ * the injury-status multiplier instead. */
+export function isHealthyScratch(r: ProjectionRecord): boolean {
+  return r.actual != null && r.dnp === true && r.status === "Healthy" && (r.gameStatus == null || r.gameStatus === "Healthy");
+}
+
+/** A final week that counts as a game for grading and season numbers: every
+ * week he played (a 0 included), plus healthy scratches as 0s. A DNP with an
+ * injury designation -- or with no known designation -- is left out. */
+export function isGradedGame(r: ProjectionRecord): r is ProjectionRecord & { actual: number } {
+  return r.actual != null && (r.dnp !== true || isHealthyScratch(r));
+}
+
+/** Healthy-scratch weeks per player id -- 0-point games ESPN's own
+ * season roll-up leaves out (it only counts games he got into). */
+export function healthyScratchCounts(history: ProjectionHistory): Map<number, number> {
+  const out = new Map<number, number>();
+  Object.values(history.weeks).forEach((players) =>
+    Object.entries(players).forEach(([id, r]) => {
+      if (isHealthyScratch(r)) out.set(Number(id), (out.get(Number(id)) ?? 0) + 1);
+    })
+  );
+  return out;
 }
 
 export interface ProjectionHistory {
@@ -88,7 +115,7 @@ export function computeProjectionAccuracy(history: ProjectionHistory): Projectio
   const graded: Graded[] = [];
   Object.entries(history.weeks).forEach(([week, players]) => {
     Object.values(players).forEach((r) => {
-      if (!isPlayedGame(r) || Math.max(r.espn, r.custom) < MIN_RELEVANT_PROJECTION) return;
+      if (!isGradedGame(r) || Math.max(r.espn, r.custom) < MIN_RELEVANT_PROJECTION) return;
       graded.push({ ...r, actual: r.actual, week: Number(week) });
     });
   });

@@ -131,7 +131,10 @@ function projectionRecord(src: ConsensusSources, props: PlayerProps, snap: EspnP
   const c = consensusFor(src, snap);
   const custom = applyPropLines(c.proj, props?.[snap.id], c.modelYards);
   return {
-    record: { espn: snap.proj, custom, actual: null, ...projectionInputs(src, props, snap) },
+    // Overwritten every run until kickoff, so this ends up as his designation
+    // going into the game (empty for a backfilled week: his status now isn't
+    // his status then).
+    record: { espn: snap.proj, custom, actual: null, ...(snap.status ? { status: snap.status } : {}), ...projectionInputs(src, props, snap) },
     seasonProj: c.seasonProj ?? null,
   };
 }
@@ -186,8 +189,12 @@ snapshots.forEach((snap) => {
   if (!SKILL.has(snap.pos)) return;
   const key = String(snap.id);
   if (snap.weekActual != null) {
-    // Game has started: keep whatever was recorded before kickoff.
-    if (week[key]) frozen++;
+    // Game has started: keep whatever was recorded before kickoff, and note
+    // his designation the first time we see him after it (see gameStatus).
+    if (week[key]) {
+      frozen++;
+      if (week[key].gameStatus == null && snap.status) week[key].gameStatus = snap.status;
+    }
     return;
   }
   const { record, seasonProj } = projectionRecord(sources, matchups?.playerProps, snap);

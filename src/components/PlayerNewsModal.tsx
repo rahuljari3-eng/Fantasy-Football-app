@@ -101,7 +101,12 @@ function ValueBreakdown({ player }: { player: Player }) {
               ? parts([
                   ["ESPN", fmt(src.espnSeason)],
                   ["Sleeper", fmt(src.sleeperRos)],
-                  ["Actual", src.actualAvg != null ? `${src.actualAvg.toFixed(1)} (${src.gamesPlayed}g)` : null],
+                  [
+                    "Actual",
+                    src.actualAvg != null
+                      ? `${src.actualAvg.toFixed(1)} (${src.gamesPlayed}g${src.healthyScratches ? `, incl. ${src.healthyScratches} healthy scratch${src.healthyScratches === 1 ? "" : "es"} as 0` : ""})`
+                      : null,
+                  ],
                 ]) || undefined
               : undefined
           }
