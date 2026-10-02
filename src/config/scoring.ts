@@ -129,6 +129,41 @@ export const CONSENSUS_SEASON_WEIGHTS = { espn: 1, sleeper: 1 } as const;
 export const CONSENSUS_ACTUAL_MAX_WEIGHT = 1;
 export const CONSENSUS_ACTUAL_SHRINK_GAMES = 4;
 
+/** USAGE (lib/consensus.ts usageFactor): a player's actual opportunities so
+ * far -- pass attempts, carries, targets, receptions -- vs the per-game
+ * opportunities ESPN's own rest-of-season projection is built on. Volume
+ * stabilizes far faster than points (TDs and long plays are noisy), so a
+ * role that's bigger or smaller than projected is the earliest real sign
+ * the projections are off. The gap scales the PROJECTION inputs of
+ * seasonProj (ESPN + Sleeper); actual points already enter on their own.
+ *
+ * Each opportunity is weighted by what it's typically worth in PPR points at
+ * the position, so "2 more targets" and "2 more carries" aren't the same
+ * size of role change for an RB. Receptions carry a small extra weight on
+ * top of targets (being the one who actually catches them). */
+export const USAGE_OPPORTUNITY_POINTS: Record<"QB" | "RB" | "WR" | "TE", { passAtt: number; rushAtt: number; targets: number; receptions: number }> = {
+  QB: { passAtt: 0.42, rushAtt: 0.75, targets: 0, receptions: 0 },
+  RB: { passAtt: 0, rushAtt: 0.6, targets: 1.2, receptions: 0.4 },
+  WR: { passAtt: 0, rushAtt: 0.7, targets: 1.4, receptions: 0.4 },
+  TE: { passAtt: 0, rushAtt: 0.6, targets: 1.3, receptions: 0.4 },
+};
+
+/** How hard the usage gap moves the projections:
+ *   factor = 1 + USAGE_MAX_WEIGHT * gp / (gp + USAGE_SHRINK_GAMES) * (ratio - 1)
+ * clamped to [USAGE_FACTOR_MIN, USAGE_FACTOR_MAX]. With 3 games, a role 30%
+ * bigger than projected lifts the projections ~6%; the same gap sustained
+ * over 10 games, ~11%. Only a large, sustained role change gets near the
+ * clamp. */
+export const USAGE_MAX_WEIGHT = 0.5;
+export const USAGE_SHRINK_GAMES = 4;
+export const USAGE_FACTOR_MIN = 0.8;
+export const USAGE_FACTOR_MAX = 1.2;
+
+/** Projected opportunity value (PPR points per game, by the weights above)
+ * below which the usage ratio is skipped -- a deep backup projected for one
+ * carry a game would otherwise read 3 carries as a 200% role increase. */
+export const USAGE_MIN_PROJECTED_POINTS = 4;
+
 /** How many upcoming weeks of Sleeper projections to average into its
  * rest-of-season number. Large enough to cover the full remaining regular
  * season (capped at LAST_REGULAR_SEASON_WEEK in lib/consensus.ts). */

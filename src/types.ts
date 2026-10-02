@@ -13,6 +13,29 @@ export interface ValueSources {
   sleeperRos?: number;
   actualAvg?: number;
   gamesPlayed?: number;
+  /** Season-to-date usage vs what the projections assume (lib/consensus.ts
+   * usageFactor). Absent before a player's first game or without a
+   * projected stat line to compare against. */
+  usage?: UsageSignal;
+}
+
+/** Per-game opportunities: pass attempts, carries, targets, receptions. */
+export interface UsageLine {
+  passAtt: number;
+  rushAtt: number;
+  targets: number;
+  receptions: number;
+}
+
+/** A player's actual role so far next to the role the projections are
+ * built on, and the multiplier that gap applies to his projections. */
+export interface UsageSignal {
+  actual: UsageLine;
+  projected: UsageLine;
+  /** Actual / projected opportunity value per game (1 = role as projected). */
+  ratio: number;
+  /** What the projection half of seasonProj was multiplied by. */
+  factor: number;
 }
 
 /** A projection model's expected stat line for one week -- what posted

@@ -180,9 +180,14 @@ export function serializePlayer(p: Player) {
     nflTeam: p.team,
     bye: p.bye,
     proj: p.proj,
-    /** Consensus rest-of-season PPG (ESPN + Sleeper projections blended with
-     * actual production so far). */
+    /** Consensus rest-of-season PPG (ESPN + Sleeper projections, scaled by
+     * `usage.factor`, blended with actual production so far). */
     seasonProj: p.seasonProj ?? null,
+    /** Role so far vs the role the projections assume: per-game pass
+     * attempts / carries / targets / receptions, actual and projected.
+     * ratio > 1 = more work than projected; factor = what it multiplied the
+     * projection half of seasonProj by. Null before games / for K, DST. */
+    usage: p.valueSources?.usage ?? null,
     /** Positional rank by FantasyCalc redraft trade value (real trades). */
     marketPosRank: p.marketPosRank ?? null,
     /** Season projection rank at the position. */

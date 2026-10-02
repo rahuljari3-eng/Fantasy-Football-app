@@ -9,6 +9,7 @@ import {
   ESPN_LINEUP_SLOT_LABEL,
   ESPN_POS,
   extractEspnSeasonActual,
+  extractEspnUsage,
   type EspnStatLine,
   extractEspnProjection,
   extractEspnSeasonProjection,
@@ -203,6 +204,7 @@ function enrichPlayer(
         seasonProj: espnSeasonProj,
         actualAvg: actual?.avg,
         gamesPlayed: actual?.gamesPlayed,
+        usage: extractEspnUsage(espn.stats),
         status,
       })
     : null;

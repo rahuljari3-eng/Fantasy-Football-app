@@ -3,7 +3,7 @@
 // request's actual Origin for this league, so the browser can call it
 // directly -- no backend proxy needed for a refresh.
 import { ESPN_LEAGUE_BASE_URL, LEAGUE_CONFIG } from "../config/league.js";
-import type { Position, PlayerStatus, ProjectionOverrides } from "../types.js";
+import type { Position, PlayerStatus, ProjectionOverrides, UsageLine } from "../types.js";
 
 /** ESPN's numeric defaultPositionId -> this app's position labels. */
 export const ESPN_POS: Record<number, Position> = {
@@ -129,6 +129,42 @@ export function extractEspnSeasonActual(
   return { avg: Math.round(avg * 10) / 10, gamesPlayed };
 }
 
+/** ESPN raw stat ids for the opportunity counts behind UsageLine. */
+const USAGE_STATS = { passAtt: "0", rushAtt: "23", targets: "58", receptions: "53" } as const;
+
+function perGameUsage(line: EspnStatLine, games: number): UsageLine {
+  const per = (id: string) => (line.stats?.[id] ?? 0) / games;
+  return {
+    passAtt: per(USAGE_STATS.passAtt),
+    rushAtt: per(USAGE_STATS.rushAtt),
+    targets: per(USAGE_STATS.targets),
+    receptions: per(USAGE_STATS.receptions),
+  };
+}
+
+/** Per-game opportunities so far this season (the same season-to-date
+ * roll-up as extractEspnSeasonActual) next to the per-game opportunities in
+ * ESPN's season projection -- the same line extractEspnSeasonProjection
+ * reads, so the comparison is against the role the projection actually
+ * assumes. Null before his first game or without a projected line. */
+export function extractEspnUsage(
+  stats: EspnStatLine[] | undefined,
+  season: number = LEAGUE_CONFIG.espnSeason
+): { actual: UsageLine; projected: UsageLine; gamesPlayed: number } | null {
+  const actualLine = (stats || []).find(
+    (s) => s.statSourceId === 0 && s.scoringPeriodId === 0 && (s.statSplitTypeId ?? 0) === 0 && (s.seasonId == null || s.seasonId === season)
+  );
+  const gamesPlayed = actualLine?.stats?.[GAMES_PLAYED_STAT] ?? 0;
+  if (!actualLine || gamesPlayed <= 0) return null;
+  const projCandidates = (stats || []).filter(
+    (s) => s.statSourceId === 1 && s.scoringPeriodId === 0 && (s.seasonId == null || s.seasonId === season)
+  );
+  const projLine = projCandidates.find((s) => s.statSplitTypeId === 2) ?? projCandidates[0];
+  const projGames = projLine?.stats?.[GAMES_PLAYED_STAT] ?? 0;
+  if (!projLine || projGames <= 0) return null;
+  return { actual: perGameUsage(actualLine, gamesPlayed), projected: perGameUsage(projLine, projGames), gamesPlayed };
+}
+
 /** The raw ESPN numbers for one player, before blending -- what
  * lib/consensus.ts needs to build the consensus override. */
 export interface EspnPlayerSnapshot {
@@ -139,6 +175,8 @@ export interface EspnPlayerSnapshot {
   seasonProj: number | null;
   actualAvg: number | null;
   gamesPlayed: number | null;
+  /** Season-to-date vs projected opportunities per game (extractEspnUsage). */
+  usage: ReturnType<typeof extractEspnUsage>;
   /** This week's actual points -- non-null once his game has kicked off. */
   weekActual: number | null;
   /** ESPN's injury status now (PlayerStatus) -- current even when the
@@ -168,6 +206,7 @@ function toOverride(player: EspnPlayer, period: number): { override: ProjectionO
           seasonProj,
           actualAvg: actual?.avg ?? null,
           gamesPlayed: actual?.gamesPlayed ?? null,
+          usage: extractEspnUsage(player.stats),
           weekActual: extractEspnWeekActual(player.stats, period),
           status,
         }

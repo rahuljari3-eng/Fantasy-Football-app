@@ -5,7 +5,7 @@ import { boomBustGames, boomBustModel, boomBustTrackRecord, typicalBoomBust, wee
 import { blendWeeklyProj } from "../lib/consensus";
 import { newsTypeColor, newsTypeIcon } from "../lib/format";
 import { qualityScore, seasonModelValue } from "../lib/scoring";
-import type { NewsItem, Player } from "../types";
+import type { NewsItem, Player, UsageLine, UsageSignal } from "../types";
 import type { PlayerPerformanceResult, WeekPerformance } from "../lib/playerPerformance";
 import PROJECTION_HISTORY from "../data/projectionHistory.json";
 import type { ProjectionHistory } from "../lib/projectionAccuracy";
@@ -50,6 +50,14 @@ function SourceRow({ label, value, detail }: { label: string; value: string; det
       </span>
     </div>
   );
+}
+
+/** "8.3 tgt/g (proj 4.9)" for the opportunities that matter at a position. */
+function usageDetail(pos: Player["pos"], usage: UsageSignal): string {
+  const keys: [keyof UsageLine, string][] =
+    pos === "QB" ? [["passAtt", "att"], ["rushAtt", "car"]] : pos === "RB" ? [["rushAtt", "car"], ["targets", "tgt"]] : [["targets", "tgt"], ["receptions", "rec"]];
+  const lines = keys.map(([k, label]) => `${usage.actual[k].toFixed(1)} ${label}/g (proj ${usage.projected[k].toFixed(1)})`);
+  return `${lines.join(" · ")} · season projection ×${usage.factor.toFixed(2)}`;
 }
 
 /** Where this player's numbers come from -- the consensus inputs stamped by
@@ -109,6 +117,13 @@ function ValueBreakdown({ player }: { player: Player }) {
               : undefined
           }
         />
+        {src?.usage && (
+          <SourceRow
+            label="Usage vs projected"
+            value={`${src.usage.factor >= 1 ? "+" : ""}${((src.usage.factor - 1) * 100).toFixed(1)}%`}
+            detail={usageDetail(player.pos, src.usage)}
+          />
+        )}
         {player.marketPosRank != null && (
           <SourceRow label="Trade market" value={`${player.pos}${player.marketPosRank}`} detail="FantasyCalc redraft value, from real trades" />
         )}

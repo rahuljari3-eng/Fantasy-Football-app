@@ -35,6 +35,12 @@ import {
   MARKET_CALIBRATION_MIN,
   MARKET_CALIBRATION_MIN_PLAYERS,
   SLEEPER_ROS_WEEKS,
+  USAGE_FACTOR_MAX,
+  USAGE_FACTOR_MIN,
+  USAGE_MAX_WEIGHT,
+  USAGE_MIN_PROJECTED_POINTS,
+  USAGE_OPPORTUNITY_POINTS,
+  USAGE_SHRINK_GAMES,
   VEGAS_MARKET_SHARE,
   VEGAS_SHRINK_WEEKS,
 } from "../config/scoring.js";
@@ -43,7 +49,7 @@ import { VEGAS_VALUES } from "../data/vegasValues.js";
 import type { EspnPlayerSnapshot } from "./espn.js";
 import { seasonModelValue, effectiveSeasonProj } from "./scoring.js";
 import type { PlayerPropLines } from "./matchup.js";
-import type { ModelYards, Player, Position, ProjectionOverrides, ValueSources } from "../types.js";
+import type { ModelYards, Player, Position, ProjectionOverrides, UsageLine, UsageSignal, ValueSources } from "../types.js";
 
 const FANTASYCALC_URL = "https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=1&numTeams=12&ppr=1";
 const SLEEPER_PROJ_BASE = "https://api.sleeper.app/projections/nfl";
@@ -210,21 +216,69 @@ export function blendWeeklyProj(espnWeek: number, sleeperWeek: number | undefine
 /** Rest-of-season points per game: ESPN's and Sleeper's projections, plus
  * what the player has ACTUALLY averaged so far -- weighted by a shrinkage
  * factor that grows with games played, so two big weeks nudge the number but
- * half a season of production really moves it. */
+ * half a season of production really moves it. `usageFactor` (see
+ * usageFactor below) scales the two projections for a role bigger or smaller
+ * than they assume; actual points are left as scored. */
 export function blendSeasonProj(input: {
   espnSeason: number | null | undefined;
   sleeperRos: number | null | undefined;
   actualAvg: number | null | undefined;
   gamesPlayed: number | null | undefined;
+  usageFactor?: number;
 }): number | null {
   const gp = input.gamesPlayed ?? 0;
   const actualWeight = gp > 0 ? CONSENSUS_ACTUAL_MAX_WEIGHT * (gp / (gp + CONSENSUS_ACTUAL_SHRINK_GAMES)) : 0;
+  const usage = input.usageFactor ?? 1;
+  const scaled = (v: number | null | undefined) => (v == null ? v : v * usage);
   const blended = weightedAverage([
-    [input.espnSeason, CONSENSUS_SEASON_WEIGHTS.espn],
-    [input.sleeperRos, CONSENSUS_SEASON_WEIGHTS.sleeper],
+    [scaled(input.espnSeason), CONSENSUS_SEASON_WEIGHTS.espn],
+    [scaled(input.sleeperRos), CONSENSUS_SEASON_WEIGHTS.sleeper],
     [input.actualAvg != null ? Math.max(0, input.actualAvg) : null, actualWeight],
   ]);
   return blended == null ? null : Math.round(blended * 10) / 10;
+}
+
+/** Per-game opportunity value of a usage line at a position, in rough PPR
+ * points (config USAGE_OPPORTUNITY_POINTS). */
+function opportunityPoints(pos: keyof typeof USAGE_OPPORTUNITY_POINTS, line: UsageLine): number {
+  const w = USAGE_OPPORTUNITY_POINTS[pos];
+  return line.passAtt * w.passAtt + line.rushAtt * w.rushAtt + line.targets * w.targets + line.receptions * w.receptions;
+}
+
+const round1 = (v: number) => Math.round(v * 10) / 10;
+
+/** How much a player's actual role so far -- pass attempts, carries,
+ * targets, receptions per game -- differs from the role his projection is
+ * built on, turned into a multiplier on the projections: shrunk toward 1 by
+ * games played and clamped (config USAGE_*), so a few games of a slightly
+ * different workload barely register and only a big, sustained role change
+ * moves value much. Null when there's nothing to compare (no games yet, no
+ * projected line, or a projected role too small for a ratio to mean
+ * anything). */
+export function usageFactor(
+  pos: Position,
+  usage: { actual: UsageLine; projected: UsageLine; gamesPlayed: number } | null | undefined
+): UsageSignal | null {
+  if (!usage || usage.gamesPlayed <= 0) return null;
+  if (pos !== "QB" && pos !== "RB" && pos !== "WR" && pos !== "TE") return null;
+  const projected = opportunityPoints(pos, usage.projected);
+  if (projected < USAGE_MIN_PROJECTED_POINTS) return null;
+  const ratio = opportunityPoints(pos, usage.actual) / projected;
+  const gp = usage.gamesPlayed;
+  const raw = 1 + USAGE_MAX_WEIGHT * (gp / (gp + USAGE_SHRINK_GAMES)) * (ratio - 1);
+  const factor = Math.min(USAGE_FACTOR_MAX, Math.max(USAGE_FACTOR_MIN, raw));
+  const roundLine = (l: UsageLine): UsageLine => ({
+    passAtt: round1(l.passAtt),
+    rushAtt: round1(l.rushAtt),
+    targets: round1(l.targets),
+    receptions: round1(l.receptions),
+  });
+  return {
+    actual: roundLine(usage.actual),
+    projected: roundLine(usage.projected),
+    ratio: Math.round(ratio * 100) / 100,
+    factor: Math.round(factor * 1000) / 1000,
+  };
 }
 
 const POINTS_PER_YARD = { pass: 0.04, rush: 0.1, rec: 0.1 } as const;
@@ -322,6 +376,8 @@ export function consensusFor(
     seasonProj?: number | null;
     actualAvg?: number | null;
     gamesPlayed?: number | null;
+    /** Season-to-date vs projected opportunities (lib/espn.ts extractEspnUsage). */
+    usage?: { actual: UsageLine; projected: UsageLine; gamesPlayed: number } | null;
     /** This week's injury status (PlayerStatus); a ruled-out player
      * projects 0 for the week. Leave unset for a past week. */
     status?: string | null;
@@ -334,11 +390,13 @@ export function consensusFor(
   const key = sleeperKeyFor(sources, espn.id, espn.name, espn.pos);
   const week = key ? sources.sleeperWeek.get(key) : undefined;
   const ros = key ? sources.sleeperRos.get(key) : undefined;
+  const usage = usageFactor(espn.pos, espn.usage);
   const seasonProj = blendSeasonProj({
     espnSeason: espn.seasonProj,
     sleeperRos: ros,
     actualAvg: espn.actualAvg,
     gamesPlayed: espn.gamesPlayed,
+    usageFactor: usage?.factor,
   });
   const valueSources: ValueSources = { espnWeek: espn.proj };
   if (week?.pts != null) valueSources.sleeperWeek = Math.round(week.pts * 10) / 10;
@@ -348,6 +406,7 @@ export function consensusFor(
     valueSources.actualAvg = espn.actualAvg;
     valueSources.gamesPlayed = espn.gamesPlayed;
   }
+  if (usage) valueSources.usage = usage;
   return {
     proj: isRuledOut(espn.status) ? 0 : blendWeeklyProj(espn.proj, week?.pts, espn.pos),
     valueSources,
