@@ -51,6 +51,12 @@ jobs:
       - run: npm run fit:boombust
         continue-on-error: true
 
+      # Refit the custom weekly projection's blend from every finished week
+      # (scripts/fitProjections.ts) -- adopted only once it beats the
+      # hand-set blend in a walk-forward backtest.
+      - run: npm run fit:projections
+        continue-on-error: true
+
       - name: Commit and push if the roster data changed
         run: |
           git config user.name "github-actions[bot]"
@@ -59,6 +65,6 @@ jobs:
             echo "No roster changes since last sync."
             exit 0
           fi
-          git add src/data/leagueTeams.ts src/data/myTeam.ts src/data/freeAgents.ts src/data/projectionHistory.json src/data/vegasHistory.json src/data/vegasValues.ts src/data/boomBustModel.json
+          git add src/data/leagueTeams.ts src/data/myTeam.ts src/data/freeAgents.ts src/data/projectionHistory.json src/data/vegasHistory.json src/data/vegasValues.ts src/data/boomBustModel.json src/data/projectionModel.json
           git commit -m "Sync league snapshot and projection history from ESPN [automated]"
           git push

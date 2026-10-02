@@ -14,7 +14,8 @@
     "smoke:sensei": "node --import tsx scripts/smoke-sensei.ts",
     "record:projections": "node --import tsx scripts/recordProjections.ts",
     "build:boombust": "node --import tsx scripts/buildBoomBustHistory.ts",
-    "fit:boombust": "node --import tsx scripts/fitBoomBust.ts"
+    "fit:boombust": "node --import tsx scripts/fitBoomBust.ts",
+    "fit:projections": "node --import tsx scripts/fitProjections.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",

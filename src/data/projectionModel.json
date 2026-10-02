@@ -1,0 +1,28 @@
+{
+  "fittedAt": "2026-10-02T07:55:45.089Z",
+  "params": {
+    "sleeperShare": 0.8,
+    "propWeight": 1,
+    "propCap": 0.3,
+    "scale": {
+      "QB": 1,
+      "RB": 0.975,
+      "WR": 1.025,
+      "TE": 1.05
+    }
+  },
+  "adopted": false,
+  "backtest": {
+    "games": 364,
+    "weeks": [
+      2,
+      3
+    ],
+    "fittedRmse": 7.047355516803434,
+    "defaultRmse": 6.981913447230308,
+    "espnRmse": 7.089116794289465,
+    "fittedMae": 5.587912087912088,
+    "defaultMae": 5.554120879120878,
+    "espnMae": 5.761813186813186
+  }
+}

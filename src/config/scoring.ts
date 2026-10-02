@@ -116,8 +116,9 @@ export const SEASON_PROJ_WEEK_FALLBACK_MIN = 3;
 
 /** CONSENSUS PROJECTIONS (lib/consensus.ts). Relative weights, renormalized
  * over whichever sources actually have a number for the player. ESPN and
- * Sleeper are independent projection models and weighted equally. */
-export const CONSENSUS_WEEKLY_WEIGHTS = { espn: 1, sleeper: 1 } as const;
+ * Sleeper are independent projection models and weighted equally. (The
+ * WEEKLY blend's weights are learned from results instead -- see
+ * lib/projectionModel.ts.) */
 export const CONSENSUS_SEASON_WEIGHTS = { espn: 1, sleeper: 1 } as const;
 
 /** Actual points-per-game so far joins the season blend with weight
@@ -152,7 +153,8 @@ export const MARKET_CALIBRATION_MIN = 0.5;
 export const MARKET_CALIBRATION_MAX = 1.5;
 
 /** A posted sportsbook yardage prop can move a weekly projection by at most
- * this fraction of it. */
+ * this fraction of it -- the starting point; lib/projectionModel.ts refits
+ * it from results. */
 export const PROP_ADJUST_MAX_FRACTION = 0.3;
 
 /** VEGAS VALUE (lib/bettingValue.ts): the betting market's season-long view

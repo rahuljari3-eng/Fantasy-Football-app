@@ -31,15 +31,14 @@ import {
   CONSENSUS_ACTUAL_SHRINK_GAMES,
   CONSENSUS_ACTUAL_MAX_WEIGHT,
   CONSENSUS_SEASON_WEIGHTS,
-  CONSENSUS_WEEKLY_WEIGHTS,
   MARKET_CALIBRATION_MAX,
   MARKET_CALIBRATION_MIN,
   MARKET_CALIBRATION_MIN_PLAYERS,
-  PROP_ADJUST_MAX_FRACTION,
   SLEEPER_ROS_WEEKS,
   VEGAS_MARKET_SHARE,
   VEGAS_SHRINK_WEEKS,
 } from "../config/scoring.js";
+import { applyPropDeltaWithParams, blendWithParams, projectionParams } from "./projectionModel.js";
 import { VEGAS_VALUES } from "../data/vegasValues.js";
 import type { EspnPlayerSnapshot } from "./espn.js";
 import { seasonModelValue, effectiveSeasonProj } from "./scoring.js";
@@ -199,16 +198,13 @@ function weightedAverage(parts: [number | null | undefined, number][]): number |
   return weight > 0 ? sum / weight : null;
 }
 
-/** This week's consensus projection. A 0 from ESPN means bye or ruled out --
- * ESPN tracks injury designations more tightly than the other sources, so
- * that 0 is kept rather than averaged back up by a stale non-zero elsewhere. */
-export function blendWeeklyProj(espnWeek: number, sleeperWeek: number | undefined): number {
-  if (espnWeek <= 0) return espnWeek;
-  const blended = weightedAverage([
-    [espnWeek, CONSENSUS_WEEKLY_WEIGHTS.espn],
-    [sleeperWeek && sleeperWeek > 0 ? sleeperWeek : null, CONSENSUS_WEEKLY_WEIGHTS.sleeper],
-  ]);
-  return Math.round((blended ?? espnWeek) * 10) / 10;
+/** This week's consensus projection: ESPN and Sleeper blended with the
+ * learned ProjectionParams (lib/projectionModel.ts). A 0 from ESPN means bye
+ * or ruled out -- ESPN tracks injury designations more tightly than the
+ * other sources, so that 0 is kept rather than averaged back up by a stale
+ * non-zero elsewhere. */
+export function blendWeeklyProj(espnWeek: number, sleeperWeek: number | undefined, pos?: string): number {
+  return blendWithParams(projectionParams(), espnWeek, sleeperWeek, pos);
 }
 
 /** Rest-of-season points per game: ESPN's and Sleeper's projections, plus
@@ -267,23 +263,35 @@ export function propPointsDelta(props: PlayerPropLines | undefined, model: Model
   return matched ? delta : null;
 }
 
-/** Swap the projections' yardage expectation for the sportsbook's, when a
- * prop line is posted: proj += (propYards - modelYards) * points-per-yard.
- * TD and reception components stay as projected (ESPN doesn't relay those
- * props as lines). Capped at +/- PROP_ADJUST_MAX_FRACTION of the projection
- * so one odd line can't swing a player wildly. */
-export function applyPropLines(proj: number, props: PlayerPropLines | undefined, model: ModelYards | undefined): number {
-  if (!props || !model || proj <= 0) return proj;
+/** The fantasy points the week's sportsbook yardage props imply beyond the
+ * projections' own yardage: (propYards - modelYards) * points-per-yard. TD
+ * and reception components stay as projected (ESPN doesn't relay those props
+ * as lines). Null when no yardage line lines up with a model stat. */
+export function propYardsDelta(props: PlayerPropLines | undefined, model: ModelYards | undefined): number | null {
+  if (!props || !model) return null;
   let delta = 0;
-  if (props.passYards != null && model.pass != null) delta += (props.passYards - model.pass) * POINTS_PER_YARD.pass;
+  let matched = false;
+  const add = (line: number | undefined, modelStat: number | undefined, points: number) => {
+    if (line == null || modelStat == null) return;
+    delta += (line - modelStat) * points;
+    matched = true;
+  };
+  add(props.passYards, model.pass, POINTS_PER_YARD.pass);
   if (props.rushRecYards != null && (model.rush != null || model.rec != null)) {
-    delta += (props.rushRecYards - (model.rush ?? 0) - (model.rec ?? 0)) * POINTS_PER_YARD.rush;
+    add(props.rushRecYards, (model.rush ?? 0) + (model.rec ?? 0), POINTS_PER_YARD.rush);
   } else {
-    if (props.rushYards != null && model.rush != null) delta += (props.rushYards - model.rush) * POINTS_PER_YARD.rush;
-    if (props.recYards != null && model.rec != null) delta += (props.recYards - model.rec) * POINTS_PER_YARD.rec;
+    add(props.rushYards, model.rush, POINTS_PER_YARD.rush);
+    add(props.recYards, model.rec, POINTS_PER_YARD.rec);
   }
-  const cap = proj * PROP_ADJUST_MAX_FRACTION;
-  return Math.round((proj + Math.max(-cap, Math.min(cap, delta))) * 10) / 10;
+  return matched ? delta : null;
+}
+
+/** Swap the projections' yardage expectation for the sportsbook's, when a
+ * prop line is posted -- weighted and capped (a fraction of the projection,
+ * so one odd line can't swing a player wildly) by the learned
+ * ProjectionParams (lib/projectionModel.ts). */
+export function applyPropLines(proj: number, props: PlayerPropLines | undefined, model: ModelYards | undefined): number {
+  return applyPropDeltaWithParams(projectionParams(), proj, propYardsDelta(props, model));
 }
 
 /** Statuses that mean he won't play this week, whatever the projections
@@ -341,7 +349,7 @@ export function consensusFor(
     valueSources.gamesPlayed = espn.gamesPlayed;
   }
   return {
-    proj: isRuledOut(espn.status) ? 0 : blendWeeklyProj(espn.proj, week?.pts),
+    proj: isRuledOut(espn.status) ? 0 : blendWeeklyProj(espn.proj, week?.pts, espn.pos),
     valueSources,
     ...(seasonProj != null ? { seasonProj } : {}),
     ...(market ? { marketPosRank: market.posRank, marketValue: market.value } : {}),

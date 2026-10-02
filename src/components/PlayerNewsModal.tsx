@@ -59,7 +59,7 @@ function ValueBreakdown({ player }: { player: Player }) {
   const quality = qualityScore(player);
   const model = seasonModelValue(player) * (player.positionScale ?? 1);
   const hasMarket = player.marketQuality != null;
-  const weekFromProjections = src ? blendWeeklyProj(src.espnWeek, src.sleeperWeek) : null;
+  const weekFromProjections = src ? blendWeeklyProj(src.espnWeek, src.sleeperWeek, player.pos) : null;
   const propsApplied = weekFromProjections != null && Math.abs(weekFromProjections - player.proj) >= 0.05;
   const fmt = (v: number | undefined) => (v == null ? null : v.toFixed(1));
   const parts = (items: [string, string | null][]) =>

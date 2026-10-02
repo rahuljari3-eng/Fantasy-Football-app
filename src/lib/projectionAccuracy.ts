@@ -15,6 +15,13 @@ export interface ProjectionRecord {
   bust?: number;
   boomAt?: number;
   bustAt?: number;
+  /** The inputs the custom projection was built from (lib/projectionModel.ts),
+   * so the blend can be refit from results: position, Sleeper's projection
+   * (absent when Sleeper had none), and the points the sportsbook yardage
+   * props implied beyond the projections' yardage (absent with no line). */
+  pos?: string;
+  sleeper?: number;
+  prop?: number;
 }
 
 export interface ProjectionHistory {
