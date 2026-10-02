@@ -3470,7 +3470,7 @@
    },
    "15835": {
     "espn": 3.8,
-    "custom": 4.2,
+    "custom": 3.9,
     "actual": null
    },
    "15847": {
@@ -3550,19 +3550,19 @@
    },
    "2576925": {
     "espn": 9.3,
-    "custom": 8.7,
+    "custom": 8.6,
     "actual": null,
-    "boom": 0.18,
-    "bust": 0.166,
+    "boom": 0.177,
+    "bust": 0.169,
     "boomAt": 14.2,
     "bustAt": 2.2
    },
    "2576980": {
     "espn": 18.6,
-    "custom": 16.6,
+    "custom": 16.5,
     "actual": null,
-    "boom": 0.223,
-    "bust": 0.104,
+    "boom": 0.221,
+    "bust": 0.105,
     "boomAt": 20.4,
     "bustAt": 6.2
    },
@@ -3614,10 +3614,10 @@
    },
    "2976212": {
     "espn": 11.6,
-    "custom": 10.5,
+    "custom": 10.6,
     "actual": null,
-    "boom": 0.149,
-    "bust": 0.205,
+    "boom": 0.15,
+    "bust": 0.203,
     "boomAt": 18.2,
     "bustAt": 4.8
    },
@@ -3637,10 +3637,10 @@
    },
    "2991662": {
     "espn": 9.7,
-    "custom": 9.2,
+    "custom": 9.1,
     "actual": null,
-    "boom": 0.244,
-    "bust": 0.087,
+    "boom": 0.242,
+    "bust": 0.089,
     "boomAt": 12.3,
     "bustAt": 0.9
    },
@@ -3660,9 +3660,9 @@
    },
    "3042519": {
     "espn": 17.3,
-    "custom": 16.4,
+    "custom": 16.3,
     "actual": null,
-    "boom": 0.293,
+    "boom": 0.291,
     "bust": 0.066,
     "boomAt": 17.5,
     "bustAt": 4.3
@@ -3730,12 +3730,12 @@
    },
    "3051889": {
     "espn": 5,
-    "custom": 3.9,
+    "custom": 4,
     "actual": null
    },
    "3052096": {
     "espn": 3.3,
-    "custom": 3.2,
+    "custom": 2.7,
     "actual": null
    },
    "3052897": {
@@ -3750,16 +3750,16 @@
    },
    "3054850": {
     "espn": 10.6,
-    "custom": 10.8,
+    "custom": 10.7,
     "actual": null,
-    "boom": 0.204,
+    "boom": 0.202,
     "bust": 0.092,
     "boomAt": 13.4,
     "bustAt": 1.6
    },
    "3068267": {
     "espn": 4.1,
-    "custom": 2.9,
+    "custom": 3,
     "actual": null
    },
    "3116164": {
@@ -3925,10 +3925,10 @@
    },
    "3915416": {
     "espn": 13,
-    "custom": 12,
+    "custom": 11.9,
     "actual": null,
     "boom": 0.171,
-    "bust": 0.23,
+    "bust": 0.233,
     "boomAt": 20.8,
     "bustAt": 6.4
    },
@@ -3970,10 +3970,10 @@
    },
    "3917315": {
     "espn": 19.2,
-    "custom": 17.6,
+    "custom": 17.7,
     "actual": null,
-    "boom": 0.164,
-    "bust": 0.13,
+    "boom": 0.167,
+    "bust": 0.128,
     "boomAt": 23.7,
     "bustAt": 8.3
    },
@@ -4087,10 +4087,10 @@
    },
    "4036131": {
     "espn": 4.5,
-    "custom": 5,
+    "custom": 5.1,
     "actual": null,
-    "boom": 0.126,
-    "bust": 0.166,
+    "boom": 0.148,
+    "bust": 0.162,
     "boomAt": 11,
     "bustAt": 0
    },
@@ -4252,10 +4252,10 @@
    },
    "4241416": {
     "espn": 16.4,
-    "custom": 16.5,
+    "custom": 16.7,
     "actual": null,
-    "boom": 0.166,
-    "bust": 0.1,
+    "boom": 0.169,
+    "bust": 0.097,
     "boomAt": 22.2,
     "bustAt": 7.4
    },
@@ -4317,10 +4317,10 @@
    },
    "4242335": {
     "espn": 20.3,
-    "custom": 20.1,
+    "custom": 20.2,
     "actual": null,
-    "boom": 0.237,
-    "bust": 0.176,
+    "boom": 0.238,
+    "bust": 0.174,
     "boomAt": 28.1,
     "bustAt": 11.3
    },
@@ -5278,10 +5278,10 @@
    },
    "4569173": {
     "espn": 11.6,
-    "custom": 10.6,
+    "custom": 10.7,
     "actual": null,
-    "boom": 0.148,
-    "bust": 0.245,
+    "boom": 0.149,
+    "bust": 0.241,
     "boomAt": 19.1,
     "bustAt": 5.3
    },
@@ -5674,7 +5674,7 @@
    },
    "4686468": {
     "espn": 2.9,
-    "custom": 2.1,
+    "custom": 2.2,
     "actual": null
    },
    "4686472": {
@@ -5716,10 +5716,10 @@
    },
    "4688813": {
     "espn": 13.6,
-    "custom": 13.3,
+    "custom": 13.4,
     "actual": null,
-    "boom": 0.229,
-    "bust": 0.098,
+    "boom": 0.23,
+    "bust": 0.097,
     "boomAt": 17.2,
     "bustAt": 4.2
    },
@@ -5745,10 +5745,10 @@
    },
    "4695404": {
     "espn": 9.3,
-    "custom": 7.3,
+    "custom": 7.7,
     "actual": null,
-    "boom": 0.165,
-    "bust": 0.191,
+    "boom": 0.172,
+    "bust": 0.163,
     "boomAt": 13.1,
     "bustAt": 1.5
    },
@@ -5778,10 +5778,10 @@
    },
    "4696981": {
     "espn": 16.1,
-    "custom": 14.4,
+    "custom": 14.5,
     "actual": null,
-    "boom": 0.192,
-    "bust": 0.122,
+    "boom": 0.194,
+    "bust": 0.119,
     "boomAt": 20.9,
     "bustAt": 6.5
    },
@@ -5834,7 +5834,7 @@
    },
    "4715355": {
     "espn": 2,
-    "custom": 3.9,
+    "custom": 2.9,
     "actual": null
    },
    "4722893": {
@@ -5951,10 +5951,10 @@
    },
    "4870808": {
     "espn": 15.5,
-    "custom": 15.7,
+    "custom": 15.6,
     "actual": null,
-    "boom": 0.201,
-    "bust": 0.116,
+    "boom": 0.198,
+    "bust": 0.119,
     "boomAt": 21.4,
     "bustAt": 6.8
    },
