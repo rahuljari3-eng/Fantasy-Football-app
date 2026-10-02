@@ -286,6 +286,14 @@ export function applyPropLines(proj: number, props: PlayerPropLines | undefined,
   return Math.round((proj + Math.max(-cap, Math.min(cap, delta))) * 10) / 10;
 }
 
+/** Statuses that mean he won't play this week, whatever the projections
+ * still say -- ESPN can lag its own designation, and Sleeper lags further. */
+const RULED_OUT_STATUSES = new Set(["Out", "IR", "Suspended"]);
+
+export function isRuledOut(status: string | null | undefined): boolean {
+  return status != null && RULED_OUT_STATUSES.has(status);
+}
+
 /** The consensus numbers for one ESPN player. */
 export interface ConsensusFields {
   proj: number;
@@ -306,6 +314,9 @@ export function consensusFor(
     seasonProj?: number | null;
     actualAvg?: number | null;
     gamesPlayed?: number | null;
+    /** This week's injury status (PlayerStatus); a ruled-out player
+     * projects 0 for the week. Leave unset for a past week. */
+    status?: string | null;
   }
 ): ConsensusFields {
   const market = sources.market.get(espn.id);
@@ -330,7 +341,7 @@ export function consensusFor(
     valueSources.gamesPlayed = espn.gamesPlayed;
   }
   return {
-    proj: blendWeeklyProj(espn.proj, week?.pts),
+    proj: isRuledOut(espn.status) ? 0 : blendWeeklyProj(espn.proj, week?.pts),
     valueSources,
     ...(seasonProj != null ? { seasonProj } : {}),
     ...(market ? { marketPosRank: market.posRank, marketValue: market.value } : {}),

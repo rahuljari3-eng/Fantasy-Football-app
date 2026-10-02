@@ -187,6 +187,11 @@ function enrichPlayer(
   const espnProj = extractEspnProjection(espn.stats, scoringPeriodId) ?? prev?.proj ?? 0;
   const espnSeasonProj = extractEspnSeasonProjection(espn.stats) ?? prev?.seasonProj;
   const actual = extractEspnSeasonActual(espn.stats);
+  const status =
+    ESPN_INJURY_LABEL_MAP[espn.injuryStatus ?? ""] ||
+    espn.injuryStatus ||
+    prev?.status ||
+    "Healthy";
   // Same blend the app's refresh applies (lib/consensus.ts), so Sensei's
   // values match what the user sees in the app.
   const blended = consensus
@@ -198,15 +203,11 @@ function enrichPlayer(
         seasonProj: espnSeasonProj,
         actualAvg: actual?.avg,
         gamesPlayed: actual?.gamesPlayed,
+        status,
       })
     : null;
   const proj = blended ? applyPropLines(blended.proj, consensus?.playerProps[espn.id], blended.modelYards) : espnProj;
   const seasonProj = blended?.seasonProj ?? espnSeasonProj;
-  const status =
-    ESPN_INJURY_LABEL_MAP[espn.injuryStatus ?? ""] ||
-    espn.injuryStatus ||
-    prev?.status ||
-    "Healthy";
 
   return {
     id: espn.id,

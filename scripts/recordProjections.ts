@@ -123,7 +123,7 @@ const pendingBoomBust: { snap: EspnPlayerSnapshot; seasonProj: number | null }[]
 let recorded = 0;
 let frozen = 0;
 snapshots.forEach((snap) => {
-  if (!SKILL.has(snap.pos) || snap.proj <= 0) return;
+  if (!SKILL.has(snap.pos)) return;
   const key = String(snap.id);
   if (snap.weekActual != null) {
     // Game has started: keep whatever was recorded before kickoff.
@@ -132,6 +132,16 @@ snapshots.forEach((snap) => {
   }
   const c = consensusFor(sources, snap);
   const custom = applyPropLines(c.proj, matchups?.playerProps[snap.id], c.modelYards);
+  if (snap.proj <= 0 && custom <= 0) {
+    // Ruled out (or bye): nobody projects him, so don't start a record --
+    // but zero one recorded earlier in the week, or the stale pre-injury
+    // projection is what gets frozen at kickoff.
+    if (week[key]) {
+      week[key] = { espn: snap.proj, custom, actual: null };
+      recorded++;
+    }
+    return;
+  }
   week[key] = { espn: snap.proj, custom, actual: null };
   pendingBoomBust.push({ snap, seasonProj: c.seasonProj ?? null });
   recorded++;
@@ -149,7 +159,8 @@ for (let w = 1; w < period; w++) {
     const records: ProjectionHistory["weeks"][string] = {};
     past.snapshots.forEach((snap) => {
       if (!SKILL.has(snap.pos) || snap.proj <= 0) return;
-      const c = consensusFor(pastSources, snap);
+      // His status now isn't his status that week; ESPN's 0 already covers it.
+      const c = consensusFor(pastSources, { ...snap, status: null });
       records[String(snap.id)] = { espn: snap.proj, custom: applyPropLines(c.proj, pastLines?.playerProps[snap.id], c.modelYards), actual: null };
     });
     history.weeks[String(w)] = records;

@@ -141,6 +141,9 @@ export interface EspnPlayerSnapshot {
   gamesPlayed: number | null;
   /** This week's actual points -- non-null once his game has kicked off. */
   weekActual: number | null;
+  /** ESPN's injury status now (PlayerStatus) -- current even when the
+   * snapshot is for a past week. */
+  status: string;
 }
 
 function toOverride(player: EspnPlayer, period: number): { override: ProjectionOverrides[number]; snapshot: EspnPlayerSnapshot | null } | null {
@@ -149,10 +152,11 @@ function toOverride(player: EspnPlayer, period: number): { override: ProjectionO
   const seasonProj = extractEspnSeasonProjection(player.stats);
   const actual = extractEspnSeasonActual(player.stats);
   const pos = ESPN_POS[player.defaultPositionId ?? -1];
+  const status = ESPN_INJURY_LABEL_MAP[player.injuryStatus ?? ""] || player.injuryStatus || "Healthy";
   return {
     override: {
       proj,
-      status: ESPN_INJURY_LABEL_MAP[player.injuryStatus ?? ""] || player.injuryStatus || "Healthy",
+      status,
       ...(seasonProj != null ? { seasonProj } : {}),
     },
     snapshot: pos
@@ -165,6 +169,7 @@ function toOverride(player: EspnPlayer, period: number): { override: ProjectionO
           actualAvg: actual?.avg ?? null,
           gamesPlayed: actual?.gamesPlayed ?? null,
           weekActual: extractEspnWeekActual(player.stats, period),
+          status,
         }
       : null,
   };
