@@ -7356,12 +7356,12 @@
    },
    "4372780": {
     "espn": 6,
-    "custom": 4.7,
+    "custom": 4.6,
     "actual": null,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 3.19,
-    "prop": 0.06
+    "prop": -0.04
    },
    "4373273": {
     "espn": 0,
@@ -7719,14 +7719,14 @@
    },
    "4429059": {
     "espn": 8.5,
-    "custom": 7.9,
+    "custom": 8,
     "actual": null,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 8.68,
-    "prop": -0.68,
-    "boom": 0.146,
-    "bust": 0.157,
+    "prop": -0.58,
+    "boom": 0.148,
+    "bust": 0.154,
     "boomAt": 13.3,
     "bustAt": 1.5
    },
@@ -8254,9 +8254,9 @@
     "pos": "WR",
     "sleeper": 6.86,
     "prop": -0.8,
-    "boom": 0.142,
+    "boom": 0.141,
     "bust": 0.182,
-    "boomAt": 12,
+    "boomAt": 12.1,
     "bustAt": 0.8
    },
    "4569382": {
