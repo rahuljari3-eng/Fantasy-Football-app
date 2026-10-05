@@ -47,7 +47,7 @@ import {
 import { applyPropDeltaWithParams, blendWithParams, projectionParams } from "./projectionModel.js";
 import { VEGAS_VALUES } from "../data/vegasValues.js";
 import PROJECTION_HISTORY from "../data/projectionHistory.json" with { type: "json" };
-import { healthyScratchCounts, type ProjectionHistory } from "./projectionAccuracy.js";
+import { healthyScratchCounts, injuryExitGames, type ProjectionHistory } from "./projectionAccuracy.js";
 import { isRuledOut, type EspnPlayerSnapshot } from "./espn.js";
 import { seasonModelValue, effectiveSeasonProj } from "./scoring.js";
 import type { PlayerPropLines } from "./matchup.js";
@@ -362,34 +362,67 @@ export interface ConsensusFields {
   valueSources?: ValueSources;
 }
 
-const HEALTHY_SCRATCHES = healthyScratchCounts(PROJECTION_HISTORY as ProjectionHistory);
+const HISTORY = PROJECTION_HISTORY as ProjectionHistory;
+const HEALTHY_SCRATCHES = healthyScratchCounts(HISTORY);
+const INJURY_EXITS = injuryExitGames(HISTORY);
 
-/** ESPN's season roll-up only counts games he got into, which is right for
- * a week an injury designation already explained -- but a week he sat with
- * no designation (healthy scratch, coach's decision) is a real 0. Fold those
- * (recorded in projectionHistory.json) back into the per-game numbers. */
-function withHealthyScratches(espn: {
+type SeasonLine = {
   id: number;
   actualAvg?: number | null;
   gamesPlayed?: number | null;
   usage?: { actual: UsageLine; projected: UsageLine; gamesPlayed: number } | null;
-}) {
+};
+
+const scaleUsage = (l: UsageLine, by: number): UsageLine => ({
+  passAtt: l.passAtt * by,
+  rushAtt: l.rushAtt * by,
+  targets: l.targets * by,
+  receptions: l.receptions * by,
+});
+
+/** ESPN's season roll-up counts a game an injury knocked him out of early as
+ * a full game, so one Q1 exit drags his per-game numbers down for weeks.
+ * Take those games (recorded in projectionHistory.json) back out: their
+ * points entirely, and -- since ESPN only serves season usage totals -- each
+ * one's usage as the share of the game he was in for. */
+function withoutInjuryExits(espn: SeasonLine): SeasonLine & { exits: number } {
+  const exits = INJURY_EXITS.get(espn.id) ?? [];
+  const gp = espn.gamesPlayed ?? 0;
+  if (!exits.length || gp <= 0) return { ...espn, exits: 0 };
+  const full = gp - exits.length;
+  if (full <= 0) {
+    // Every game he's played was cut short: nothing full-game to go on.
+    return { ...espn, actualAvg: null, gamesPlayed: 0, usage: null, exits: exits.length };
+  }
+  const exitPoints = exits.reduce((sum, e) => sum + e.actual, 0);
+  const effectiveGames = full + exits.reduce((sum, e) => sum + e.injuredAt, 0);
+  return {
+    id: espn.id,
+    actualAvg: espn.actualAvg != null ? Math.round(((espn.actualAvg * gp - exitPoints) / full) * 10) / 10 : espn.actualAvg,
+    gamesPlayed: full,
+    usage: espn.usage ? { ...espn.usage, actual: scaleUsage(espn.usage.actual, gp / effectiveGames), gamesPlayed: full } : espn.usage,
+    exits: exits.length,
+  };
+}
+
+/** ESPN's season roll-up only counts games he got into, which is right for
+ * a week an injury designation already explained -- but a week he sat with
+ * no designation (healthy scratch, coach's decision) is a real 0. Fold those
+ * (recorded in projectionHistory.json) back into the per-game numbers, after
+ * taking out games an injury cut short (withoutInjuryExits). */
+function withHealthyScratches(input: SeasonLine) {
+  const espn = withoutInjuryExits(input);
   const scratches = HEALTHY_SCRATCHES.get(espn.id) ?? 0;
   const gp = espn.gamesPlayed ?? 0;
-  if (!scratches) return { actualAvg: espn.actualAvg, gamesPlayed: espn.gamesPlayed, usage: espn.usage, scratches };
+  if (!scratches) return { actualAvg: espn.actualAvg, gamesPlayed: espn.gamesPlayed, usage: espn.usage, scratches, exits: espn.exits };
   const games = gp + scratches;
   const share = gp / games;
-  const scale = (l: UsageLine): UsageLine => ({
-    passAtt: l.passAtt * share,
-    rushAtt: l.rushAtt * share,
-    targets: l.targets * share,
-    receptions: l.receptions * share,
-  });
   return {
     actualAvg: Math.round((espn.actualAvg ?? 0) * share * 10) / 10,
     gamesPlayed: games,
-    usage: espn.usage ? { ...espn.usage, actual: scale(espn.usage.actual), gamesPlayed: games } : espn.usage,
+    usage: espn.usage ? { ...espn.usage, actual: scaleUsage(espn.usage.actual, share), gamesPlayed: games } : espn.usage,
     scratches,
+    exits: espn.exits,
   };
 }
 
@@ -417,7 +450,7 @@ export function consensusFor(
   const key = sleeperKeyFor(sources, espn.id, espn.name, espn.pos);
   const week = key ? sources.sleeperWeek.get(key) : undefined;
   const ros = key ? sources.sleeperRos.get(key) : undefined;
-  const { actualAvg, gamesPlayed, usage: usageInput, scratches } = withHealthyScratches(espn);
+  const { actualAvg, gamesPlayed, usage: usageInput, scratches, exits } = withHealthyScratches(espn);
   const usage = usageFactor(espn.pos, usageInput);
   const seasonProj = blendSeasonProj({
     espnSeason: espn.seasonProj,
@@ -434,6 +467,7 @@ export function consensusFor(
     valueSources.actualAvg = actualAvg;
     valueSources.gamesPlayed = gamesPlayed;
     if (scratches) valueSources.healthyScratches = scratches;
+    if (exits) valueSources.injuryExits = exits;
   }
   if (usage) valueSources.usage = usage;
   return {

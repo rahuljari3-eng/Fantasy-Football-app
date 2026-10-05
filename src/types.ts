@@ -12,11 +12,14 @@ export interface ValueSources {
   espnSeason?: number;
   sleeperRos?: number;
   actualAvg?: number;
-  /** Games behind actualAvg, healthy scratches included. */
+  /** Games behind actualAvg: healthy scratches included, injury exits not. */
   gamesPlayed?: number;
   /** Weeks he was inactive with no injury designation, counted as 0-point
    * games in actualAvg/usage (lib/consensus.ts). */
   healthyScratches?: number;
+  /** Games an injury knocked him out of early, left out of actualAvg and
+   * gamesPlayed (lib/consensus.ts withoutInjuryExits). */
+  injuryExits?: number;
   /** Season-to-date usage vs what the projections assume (lib/consensus.ts
    * usageFactor). Absent before a player's first game or without a
    * projected stat line to compare against. */

@@ -104,7 +104,7 @@ function ValueBreakdown({ player }: { player: Player }) {
                   [
                     "Actual",
                     src.actualAvg != null
-                      ? `${src.actualAvg.toFixed(1)} (${src.gamesPlayed}g${src.healthyScratches ? `, incl. ${src.healthyScratches} healthy scratch${src.healthyScratches === 1 ? "" : "es"} as 0` : ""})`
+                      ? `${src.actualAvg.toFixed(1)} (${src.gamesPlayed}g${src.healthyScratches ? `, incl. ${src.healthyScratches} healthy scratch${src.healthyScratches === 1 ? "" : "es"} as 0` : ""}${src.injuryExits ? `, excl. ${src.injuryExits} left injured` : ""})`
                       : null,
                   ],
                 ]) || undefined

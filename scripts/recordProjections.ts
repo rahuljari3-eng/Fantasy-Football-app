@@ -31,6 +31,10 @@
 // Also freezes each player's boom/bust odds (lib/boomBust.ts) at kickoff in
 // the same projectionHistory.json records, for the boom/bust track record.
 //
+// And for finished weeks, records who an injury knocked out of his game and
+// everyone's snap share (lib/gameExits.ts), so a game cut short isn't graded
+// as a projection miss or counted in per-game averages (isFullGame).
+//
 // Usage: npm run record:projections
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -60,6 +64,7 @@ import {
 import { fetchWeeklyMatchups, type WeeklyMatchups } from "../src/lib/matchup.js";
 import type { ProjectionHistory, ProjectionRecord } from "../src/lib/projectionAccuracy.js";
 import { weeklyBoomBust } from "../src/lib/boomBust.js";
+import { fetchInjuryExits, fetchSnapShares, type GamePlayer } from "../src/lib/gameExits.js";
 
 const DATA_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "../src/data");
 const HISTORY_FILE = path.join(DATA_DIR, "projectionHistory.json");
@@ -157,6 +162,57 @@ async function fetchPlayerIdentities(ids: number[]): Promise<Map<number, { name:
     if (p && pos) out.set(p.id, { name: p.fullName ?? "", pos });
   });
   return out;
+}
+
+/** Name, position and NFL team for players by id, for matching the
+ * play-by-play's injury notes and Sleeper's snap counts. */
+async function fetchPlayerCards(ids: number[]): Promise<GamePlayer[]> {
+  const filter = { players: { filterIds: { value: ids } } };
+  const res = await fetch(`${ESPN_LEAGUE_BASE_URL}?view=kona_playercard`, {
+    headers: { Accept: "application/json", "x-fantasy-filter": JSON.stringify(filter) },
+  });
+  if (!res.ok) throw new Error(`ESPN player cards failed (${res.status})`);
+  type Card = { id: number; fullName?: string; defaultPositionId?: number; proTeamId?: number };
+  const data = ((await res.json()) as { players?: ({ player?: Card } & Partial<Card>)[] }).players ?? [];
+  return data.flatMap((entry) => {
+    const p = entry.player ?? (entry.id != null ? (entry as Card) : undefined);
+    const pos = p ? ESPN_POS[p.defaultPositionId ?? -1] : undefined;
+    return p && pos && p.fullName && p.proTeamId ? [{ id: p.id, name: p.fullName, pos, teamId: p.proTeamId }] : [];
+  });
+}
+
+/** An exit with at least this share of regulation left counts as cut short;
+ * later than that he'd already played most of it. */
+const EXIT_BY = 0.75;
+/** Snaps at this share of his usual mean he came back after all. */
+const RETURNED_SNAP_SHARE = 0.8;
+
+/** Decide, for every record the play-by-play has him leaving hurt, whether
+ * he really missed a meaningful part of the game: hurt with a quarter or
+ * more to go, and -- once snaps are in -- on well under his usual share of
+ * them (his median in the weeks he wasn't hurt). Returns how many are. */
+function applyInjuryExitVerdicts(h: ProjectionHistory): number {
+  const shares = new Map<string, number[]>();
+  Object.values(h.weeks).forEach((players) =>
+    Object.entries(players).forEach(([id, r]) => {
+      if (r.snapShare != null && r.injuredAt == null && r.dnp !== true) shares.set(id, [...(shares.get(id) ?? []), r.snapShare]);
+    })
+  );
+  const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+  let exits = 0;
+  Object.values(h.weeks).forEach((players) =>
+    Object.entries(players).forEach(([id, r]) => {
+      const usual = shares.get(id);
+      const cameBack = r.snapShare != null && usual?.length && r.snapShare >= RETURNED_SNAP_SHARE * median(usual);
+      if (r.injuredAt != null && r.injuredAt <= EXIT_BY && !cameBack) {
+        r.injuryExit = true;
+        exits++;
+      } else {
+        delete r.injuryExit;
+      }
+    })
+  );
+  return exits;
 }
 
 const history = JSON.parse(readFileSync(HISTORY_FILE, "utf8")) as ProjectionHistory;
@@ -288,8 +344,39 @@ for (const [w, players] of Object.entries(history.weeks)) {
   });
 }
 
+// ---------- In-game injuries ----------
+// For each finished week: who was knocked out of his game by an injury
+// (ESPN play-by-play) and everyone's snap share (Sleeper). A week is checked
+// until Sleeper's snaps for it are in -- they post a day or two after the
+// games, and are what catch a return the play-by-play never logged.
+for (const [w, players] of Object.entries(history.weeks)) {
+  if (Number(w) >= period) continue;
+  const played = Object.entries(players).filter(([, r]) => r.actual != null && r.dnp !== true);
+  if (!played.length || played.some(([, r]) => r.snapShare != null)) continue;
+  try {
+    const cards = await fetchPlayerCards(Object.keys(players).map(Number));
+    const [exits, snaps] = await Promise.all([
+      fetchInjuryExits(LEAGUE_CONFIG.espnSeason, Number(w), cards),
+      fetchSnapShares(LEAGUE_CONFIG.espnSeason, Number(w), cards, sources.espnToSleeper),
+    ]);
+    Object.entries(players).forEach(([id, r]) => {
+      const at = exits.get(Number(id));
+      if (at != null) r.injuredAt = at;
+      else delete r.injuredAt;
+      const share = snaps.get(Number(id));
+      if (share != null) r.snapShare = share;
+    });
+    console.log(`Week ${w}: ${exits.size} left injured, snap shares for ${snaps.size}/${played.length} who played.`);
+  } catch (err) {
+    console.warn(`Couldn't check week ${w} for in-game injuries:`, err instanceof Error ? err.message : err);
+  }
+}
+const exitCount = applyInjuryExitVerdicts(history);
+
 writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 1) + "\n");
-console.log(`Week ${period}: recorded ${recorded} players, ${frozen} frozen at kickoff; filled ${filled} actuals for finished weeks.`);
+console.log(
+  `Week ${period}: recorded ${recorded} players, ${frozen} frozen at kickoff; filled ${filled} actuals for finished weeks; ${exitCount} games cut short by injury.`
+);
 
 // ---------- Vegas values ----------
 const vegasHistory = JSON.parse(readFileSync(VEGAS_HISTORY_FILE, "utf8")) as VegasHistory;

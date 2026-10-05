@@ -32,6 +32,14 @@ export interface ProjectionRecord {
   pos?: string;
   sleeper?: number;
   prop?: number;
+  /** His share of the team's offensive snaps (Sleeper), once posted. */
+  snapShare?: number;
+  /** Hurt during the game and never logged as returning: the share of
+   * regulation elapsed when he went down (lib/gameExits.ts). */
+  injuredAt?: number;
+  /** The verdict on injuredAt: he really missed a meaningful part of the
+   * game (scripts/recordProjections.ts injuryExitVerdict). See isFullGame. */
+  injuryExit?: boolean;
 }
 
 /** A DNP with no injury designation going into the game -- healthy both
@@ -47,6 +55,27 @@ export function isHealthyScratch(r: ProjectionRecord): boolean {
  * injury designation -- or with no known designation -- is left out. */
 export function isGradedGame(r: ProjectionRecord): r is ProjectionRecord & { actual: number } {
   return r.actual != null && (r.dnp !== true || isHealthyScratch(r));
+}
+
+/** A graded game he wasn't knocked out of early by an injury -- what a
+ * projection can fairly be held to, and what per-game averages should be
+ * built from. A game cut short still counts for boom/bust (getting hurt is
+ * one way to bust); see isGradedGame. */
+export function isFullGame(r: ProjectionRecord): r is ProjectionRecord & { actual: number } {
+  return isGradedGame(r) && r.injuryExit !== true;
+}
+
+/** Each game an injury cut short, per player id: his points and how far
+ * into the game he went down -- games ESPN's season roll-up counts as full. */
+export function injuryExitGames(history: ProjectionHistory): Map<number, { actual: number; injuredAt: number }[]> {
+  const out = new Map<number, { actual: number; injuredAt: number }[]>();
+  Object.values(history.weeks).forEach((players) =>
+    Object.entries(players).forEach(([id, r]) => {
+      if (!isGradedGame(r) || r.injuryExit !== true) return;
+      out.set(Number(id), [...(out.get(Number(id)) ?? []), { actual: r.actual, injuredAt: r.injuredAt ?? 0 }]);
+    })
+  );
+  return out;
 }
 
 /** Healthy-scratch weeks per player id -- 0-point games ESPN's own
@@ -115,7 +144,7 @@ export function computeProjectionAccuracy(history: ProjectionHistory): Projectio
   const graded: Graded[] = [];
   Object.entries(history.weeks).forEach(([week, players]) => {
     Object.values(players).forEach((r) => {
-      if (!isGradedGame(r) || Math.max(r.espn, r.custom) < MIN_RELEVANT_PROJECTION) return;
+      if (!isFullGame(r) || Math.max(r.espn, r.custom) < MIN_RELEVANT_PROJECTION) return;
       graded.push({ ...r, actual: r.actual, week: Number(week) });
     });
   });

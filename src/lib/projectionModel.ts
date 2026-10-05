@@ -25,7 +25,7 @@
 // totals need.
 import PROJECTION_MODEL from "../data/projectionModel.json" with { type: "json" };
 import { PROP_ADJUST_MAX_FRACTION } from "../config/scoring.js";
-import { isGradedGame, type ProjectionHistory } from "./projectionAccuracy.js";
+import { isFullGame, type ProjectionHistory } from "./projectionAccuracy.js";
 
 export const SCALED_POSITIONS = ["QB", "RB", "WR", "TE"] as const;
 export type ScaledPosition = (typeof SCALED_POSITIONS)[number];
@@ -119,7 +119,7 @@ export function projectionGames(history: ProjectionHistory): ProjectionGame[] {
   const games: ProjectionGame[] = [];
   Object.entries(history.weeks).forEach(([week, players]) => {
     Object.values(players).forEach((r) => {
-      if (!isGradedGame(r) || r.pos == null || Math.max(r.espn, r.custom) < MIN_RELEVANT_PROJECTION) return;
+      if (!isFullGame(r) || r.pos == null || Math.max(r.espn, r.custom) < MIN_RELEVANT_PROJECTION) return;
       games.push({ week: Number(week), pos: r.pos, espn: r.espn, sleeper: r.sleeper ?? null, prop: r.prop ?? null, actual: r.actual });
     });
   });
