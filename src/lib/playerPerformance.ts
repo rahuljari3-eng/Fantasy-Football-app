@@ -643,6 +643,30 @@ async function fetchSinglePlayer(playerId: number): Promise<EspnPlayer | null> {
   return "player" in entry && entry.player ? entry.player : (entry as EspnPlayer);
 }
 
+/** Every weekly stat line ESPN has for the player this season. The roster
+ * view only carries the latest week or two, so the game log needs this to
+ * reach back to week 1. Last season's lines come along too and are dropped. */
+async function fetchSeasonStatLines(playerId: number): Promise<EspnStatLine[]> {
+  const season = LEAGUE_CONFIG.espnSeason;
+  const filter = {
+    players: {
+      filterIds: { value: [playerId] },
+      filterStatsForTopScoringPeriodIds: { value: 25, additionalValue: [`00${season}`, `10${season}`] },
+    },
+  };
+  try {
+    const res = await fetch(`${ESPN_LEAGUE_BASE_URL}?view=kona_playercard`, {
+      headers: { Accept: "application/json", "x-fantasy-filter": JSON.stringify(filter) },
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { players?: { player?: EspnPlayer }[] };
+    const stats = data.players?.find((e) => e.player?.id === playerId)?.player?.stats ?? [];
+    return stats.filter((s) => s.seasonId === season);
+  } catch {
+    return [];
+  }
+}
+
 /** Look up one player's week performance + season game log from live ESPN data. */
 export async function fetchPlayerPerformance(
   playerId: number,
@@ -660,9 +684,10 @@ export async function fetchPlayerPerformance(
 
   const entry = hit;
   const targetWeek = week ?? scoringPeriodId;
-  const actuals = weekLines(entry.player.stats, 0);
-  const projs = weekLines(entry.player.stats, 1);
-  const events = await fetchScoreboardEvents();
+  const [seasonStats, events] = await Promise.all([fetchSeasonStatLines(playerId), fetchScoreboardEvents()]);
+  const stats = [...(entry.player.stats ?? []), ...seasonStats];
+  const actuals = weekLines(stats, 0);
+  const projs = weekLines(stats, 1);
 
   const proj = (w: number) => weekProjection(entry.player, w, scoringPeriodId, actuals.get(w), projs.get(w));
   const thisWeek = buildWeekPerformance(targetWeek, actuals.get(targetWeek), proj(targetWeek), events);

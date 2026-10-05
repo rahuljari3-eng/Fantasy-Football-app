@@ -20,6 +20,13 @@ function customProjection(playerId: number | undefined, week: number): number | 
   return HISTORY.weeks[String(week)]?.[String(playerId)]?.custom ?? null;
 }
 
+/** ESPN's projection as frozen at kickoff -- ESPN itself stops serving a
+ * week's projection a week or so after it's played. */
+function recordedEspnProjection(playerId: number | undefined, week: number): number | null {
+  if (playerId == null) return null;
+  return HISTORY.weeks[String(week)]?.[String(playerId)]?.espn ?? null;
+}
+
 /** One game-log row: this week's live/final line, or a prior week's. */
 function ScoreRow({ perf }: { perf: WeekPerformance }) {
   const played = perf.actualPoints != null;
@@ -333,12 +340,12 @@ export function PlayerNewsModal({
                   primaryLabel="Actual"
                   referenceLabel="ESPN projection"
                   secondaryLabel="Custom projection"
-                  points={[...performance.gameLog]
+                  points={[...performance.gameLog, ...(performance.thisWeek.actualPoints != null ? [performance.thisWeek] : [])]
                     .sort((a, b) => a.week - b.week)
                     .map((g) => ({
                       week: g.week,
                       primary: g.actualPoints,
-                      reference: g.projectedPoints,
+                      reference: g.projectedPoints ?? recordedEspnProjection(player?.id, g.week),
                       secondary: customProjection(player?.id, g.week),
                     }))}
                 />
