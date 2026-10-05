@@ -64,7 +64,7 @@ import {
 import { fetchWeeklyMatchups, type WeeklyMatchups } from "../src/lib/matchup.js";
 import type { ProjectionHistory, ProjectionRecord } from "../src/lib/projectionAccuracy.js";
 import { weeklyBoomBust } from "../src/lib/boomBust.js";
-import { fetchInjuryExits, fetchSnapShares, type GamePlayer } from "../src/lib/gameExits.js";
+import { fetchInjuryExits, fetchSnapShares, isInjuryExit, type GamePlayer } from "../src/lib/gameExits.js";
 
 const DATA_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "../src/data");
 const HISTORY_FILE = path.join(DATA_DIR, "projectionHistory.json");
@@ -181,30 +181,20 @@ async function fetchPlayerCards(ids: number[]): Promise<GamePlayer[]> {
   });
 }
 
-/** An exit with at least this share of regulation left counts as cut short;
- * later than that he'd already played most of it. */
-const EXIT_BY = 0.75;
-/** Snaps at this share of his usual mean he came back after all. */
-const RETURNED_SNAP_SHARE = 0.8;
-
-/** Decide, for every record the play-by-play has him leaving hurt, whether
- * he really missed a meaningful part of the game: hurt with a quarter or
- * more to go, and -- once snaps are in -- on well under his usual share of
- * them (his median in the weeks he wasn't hurt). Returns how many are. */
+/** Settle, for every record the play-by-play has him leaving hurt, whether
+ * the injury really cut his game short (lib/gameExits.ts isInjuryExit),
+ * against his snap shares in the games he wasn't hurt. Returns how many did. */
 function applyInjuryExitVerdicts(h: ProjectionHistory): number {
-  const shares = new Map<string, number[]>();
+  const usual = new Map<string, number[]>();
   Object.values(h.weeks).forEach((players) =>
     Object.entries(players).forEach(([id, r]) => {
-      if (r.snapShare != null && r.injuredAt == null && r.dnp !== true) shares.set(id, [...(shares.get(id) ?? []), r.snapShare]);
+      if (r.snapShare != null && r.injuredAt == null && r.dnp !== true) usual.set(id, [...(usual.get(id) ?? []), r.snapShare]);
     })
   );
-  const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
   let exits = 0;
   Object.values(h.weeks).forEach((players) =>
     Object.entries(players).forEach(([id, r]) => {
-      const usual = shares.get(id);
-      const cameBack = r.snapShare != null && usual?.length && r.snapShare >= RETURNED_SNAP_SHARE * median(usual);
-      if (r.injuredAt != null && r.injuredAt <= EXIT_BY && !cameBack) {
+      if (isInjuryExit(r.injuredAt, r.snapShare, usual.get(id))) {
         r.injuryExit = true;
         exits++;
       } else {

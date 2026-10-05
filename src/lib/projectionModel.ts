@@ -4,11 +4,13 @@
 // better as the season's data piles up.
 //
 // The projection is
-//   base   = scale[pos] * ((1 - sleeperShare) * ESPN + sleeperShare * Sleeper)
+//   base   = scale[pos] * q * ((1 - sleeperShare) * ESPN + sleeperShare * Sleeper)
 //   custom = base + clamp(propWeight * propDelta, +/- propCap * base)
 // where propDelta is the yardage swing the week's sportsbook props imply
 // (consensus.ts propYardsDelta). scale[pos] corrects a lean the sources share
-// at a position (both running high on RBs, say).
+// at a position (both running high on RBs, say), and q is questionableScale
+// for a player listed Questionable (1 otherwise) -- whether playing through
+// an injury costs him more than the sources already allow for.
 //
 // scripts/recordProjections.ts records each player's inputs at kickoff in
 // projectionHistory.json; scripts/fitProjections.ts refits the params hourly
@@ -39,6 +41,9 @@ export interface ProjectionParams {
   propCap: number;
   /** Multiplier on the blend at each position. */
   scale: Record<ScaledPosition, number>;
+  /** Multiplier on the blend for a player listed Questionable. Absent in
+   * models fit before it existed (= 1). */
+  questionableScale?: number;
 }
 
 export interface ProjectionBacktest {
@@ -71,6 +76,7 @@ export const DEFAULT_PROJECTION_PARAMS: ProjectionParams = {
   propWeight: 1,
   propCap: PROP_ADJUST_MAX_FRACTION,
   scale: { QB: 1, RB: 1, WR: 1, TE: 1 },
+  questionableScale: 1,
 };
 
 const MODEL = PROJECTION_MODEL as unknown as ProjectionModel;
@@ -87,11 +93,18 @@ export function projectionParams(): ProjectionParams {
 const round1 = (v: number) => Math.round(v * 10) / 10;
 
 /** The ESPN/Sleeper blend, before props. A 0 from ESPN means bye or ruled
- * out and is kept (see consensus.ts blendWeeklyProj). */
-export function blendWithParams(params: ProjectionParams, espn: number, sleeper: number | null | undefined, pos: string | undefined): number {
+ * out and is kept (see consensus.ts blendWeeklyProj). `status` is his injury
+ * designation (PlayerStatus) going into the game. */
+export function blendWithParams(
+  params: ProjectionParams,
+  espn: number,
+  sleeper: number | null | undefined,
+  pos: string | undefined,
+  status?: string | null
+): number {
   if (espn <= 0) return espn;
   const share = sleeper != null && sleeper > 0 ? params.sleeperShare : 0;
-  const scale = params.scale[pos as ScaledPosition] ?? 1;
+  const scale = (params.scale[pos as ScaledPosition] ?? 1) * (status === "Questionable" ? (params.questionableScale ?? 1) : 1);
   return round1(scale * ((1 - share) * espn + share * (sleeper ?? 0)));
 }
 
@@ -109,6 +122,8 @@ export interface ProjectionGame {
   espn: number;
   sleeper: number | null;
   prop: number | null;
+  /** His designation going into the game, when recorded. */
+  status: string | null;
   actual: number;
 }
 
@@ -120,14 +135,22 @@ export function projectionGames(history: ProjectionHistory): ProjectionGame[] {
   Object.entries(history.weeks).forEach(([week, players]) => {
     Object.values(players).forEach((r) => {
       if (!isFullGame(r) || r.pos == null || Math.max(r.espn, r.custom) < MIN_RELEVANT_PROJECTION) return;
-      games.push({ week: Number(week), pos: r.pos, espn: r.espn, sleeper: r.sleeper ?? null, prop: r.prop ?? null, actual: r.actual });
+      games.push({
+        week: Number(week),
+        pos: r.pos,
+        espn: r.espn,
+        sleeper: r.sleeper ?? null,
+        prop: r.prop ?? null,
+        status: r.gameStatus ?? r.status ?? null,
+        actual: r.actual,
+      });
     });
   });
   return games;
 }
 
 export function projectWithParams(params: ProjectionParams, g: ProjectionGame): number {
-  return applyPropDeltaWithParams(params, blendWithParams(params, g.espn, g.sleeper, g.pos), g.prop);
+  return applyPropDeltaWithParams(params, blendWithParams(params, g.espn, g.sleeper, g.pos, g.status), g.prop);
 }
 
 /** Mean squared error -- what the fit minimizes (see the header). */
@@ -146,6 +169,7 @@ const CANDIDATES = {
   propWeight: [0, 0.5, 0.75, 1, 1.25],
   propCap: [0.15, 0.3, 0.5],
   scale: [0.85, 0.9, 0.95, 0.975, 1, 1.025, 1.05, 1.1],
+  questionableScale: [0.8, 0.85, 0.9, 0.95, 1, 1.05],
 };
 /** Relative MSE improvement a change has to make to be kept. */
 const MIN_GAIN = 0.002;
@@ -189,6 +213,20 @@ export function fitProjectionParams(games: ProjectionGame[]): ProjectionParams {
       }
       best = mseWithParams(params, games);
     }
+    // Same for Questionable players, on their games only.
+    const qGames = games.filter((g) => g.status === "Questionable");
+    let qBest = mseWithParams(params, qGames);
+    for (const value of CANDIDATES.questionableScale) {
+      if (value === (params.questionableScale ?? 1)) continue;
+      const trial = { ...params, questionableScale: value };
+      const s = mseWithParams(trial, qGames);
+      if (s < qBest * (1 - MIN_GAIN)) {
+        params = trial;
+        qBest = s;
+        changed = true;
+      }
+    }
+    best = mseWithParams(params, games);
     if (!changed) break;
   }
   return params;

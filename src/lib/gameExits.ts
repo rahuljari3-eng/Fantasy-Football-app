@@ -18,8 +18,26 @@ export interface GamePlayer {
   id: number;
   name: string;
   pos: string;
-  /** ESPN pro team id (the same ids ESPN's scoreboard uses). */
-  teamId: number;
+  /** ESPN pro team id (the same ids ESPN's scoreboard uses), now -- only a
+   * fallback for a name the game's box score doesn't have. */
+  teamId?: number;
+}
+
+/** An exit with at least this share of regulation left counts as cut short;
+ * later than that he'd already played most of it. */
+const EXIT_BY = 0.75;
+/** Snaps at this share of his usual mean he came back after all. */
+const RETURNED_SNAP_SHARE = 0.8;
+
+/** Whether a game the play-by-play has him leaving hurt (`injuredAt`) really
+ * cost him a meaningful part of it: hurt with a quarter or more to go, and
+ * -- once snaps are in -- on well under his usual share of them (`usual`:
+ * his snap shares in games he wasn't hurt). */
+export function isInjuryExit(injuredAt: number | null | undefined, snapShare: number | null | undefined, usual: number[] | undefined): boolean {
+  if (injuredAt == null || injuredAt > EXIT_BY) return false;
+  if (snapShare == null || !usual?.length) return true;
+  const median = [...usual].sort((a, b) => a - b)[Math.floor(usual.length / 2)];
+  return snapShare < RETURNED_SNAP_SHARE * median;
 }
 
 type Play = { text?: string; period?: { number?: number }; clock?: { displayValue?: string } };
@@ -44,12 +62,23 @@ function playerShortKey(name: string): string {
   return shortKey(parts[0] ?? "", parts.slice(1).join(""));
 }
 
+type BoxAthlete = { id?: string; firstName?: string; lastName?: string };
+type Summary = {
+  drives?: { previous?: { plays?: Play[] }[] };
+  boxscore?: { players?: { statistics?: { athletes?: { athlete?: BoxAthlete }[] }[] }[] };
+};
+
 /** For each of `players` hurt in a finished `week` game who never returned:
- * the share of regulation that had elapsed when he went down. Players a
- * name can't pin to exactly one of the game's two teams are skipped. */
+ * the share of regulation that had elapsed when he went down. A note's name
+ * is matched first against that game's box score -- everyone on either
+ * side who recorded a stat, defenders included, on the team he was on that
+ * week -- and only then against `players` by their current team. A name
+ * that fits more than one player is skipped rather than guessed. */
 export async function fetchInjuryExits(season: number, week: number, players: GamePlayer[]): Promise<Map<number, number>> {
+  const wanted = new Set(players.map((p) => p.id));
   const byTeamKey = new Map<string, number[]>();
   players.forEach((p) => {
+    if (p.teamId == null) return;
     const k = `${p.teamId}|${playerShortKey(p.name)}`;
     byTeamKey.set(k, [...(byTeamKey.get(k) ?? []), p.id]);
   });
@@ -65,13 +94,26 @@ export async function fetchInjuryExits(season: number, week: number, players: Ga
     const teams = event.competitions[0]?.competitors.map((c) => Number(c.team.id)) ?? [];
     const summary = await fetch(`${ESPN_NFL_SITE}/summary?event=${event.id}`);
     if (!summary.ok) throw new Error(`ESPN game ${event.id} failed (${summary.status})`);
-    const data = (await summary.json()) as { drives?: { previous?: { plays?: Play[] }[] } };
+    const data = (await summary.json()) as Summary;
     const plays = (data.drives?.previous ?? []).flatMap((d) => d.plays ?? []);
 
+    const inBox = new Map<string, Set<number>>();
+    (data.boxscore?.players ?? []).forEach((side) =>
+      (side.statistics ?? []).forEach((cat) =>
+        (cat.athletes ?? []).forEach(({ athlete }) => {
+          if (!athlete?.id || !athlete.firstName || !athlete.lastName) return;
+          const k = shortKey(athlete.firstName, athlete.lastName);
+          inBox.set(k, (inBox.get(k) ?? new Set()).add(Number(athlete.id)));
+        })
+      )
+    );
     const resolve = (short: string): number | null => {
       const m = short.match(/^([A-Z])[a-z]?\.\s?(.+)$/);
       if (!m) return null;
-      const hits = teams.flatMap((t) => byTeamKey.get(`${t}|${shortKey(m[1], m[2])}`) ?? []);
+      const k = shortKey(m[1], m[2]);
+      const box = inBox.get(k);
+      if (box?.size) return box.size === 1 && wanted.has([...box][0]) ? [...box][0] : null;
+      const hits = teams.flatMap((t) => byTeamKey.get(`${t}|${k}`) ?? []);
       return hits.length === 1 ? hits[0] : null;
     };
     // Last word per player wins: hurt, back, hurt again ends as hurt.
@@ -104,16 +146,10 @@ export async function fetchSnapShares(
   espnToSleeper: Map<number, string>
 ): Promise<Map<number, number>> {
   type Row = { player_id?: string; stats?: { off_snp?: number; tm_off_snp?: number }; player?: { first_name?: string; last_name?: string; position?: string } };
-  // One request per position: the endpoint only honors one position[].
-  const rows = (
-    await Promise.all(
-      SKILL_POSITIONS.map(async (pos) => {
-        const res = await fetch(`${SLEEPER_STATS_BASE}/${season}/${week}?season_type=regular&position%5B%5D=${pos}`);
-        if (!res.ok) throw new Error(`Sleeper stats for week ${week} failed (${res.status})`);
-        return (await res.json()) as Row[];
-      })
-    )
-  ).flat();
+  const qs = SKILL_POSITIONS.map((p) => `position%5B%5D=${p}`).join("&");
+  const res = await fetch(`${SLEEPER_STATS_BASE}/${season}/${week}?season_type=regular&${qs}`);
+  if (!res.ok) throw new Error(`Sleeper stats for week ${week} failed (${res.status})`);
+  const rows = (await res.json()) as Row[];
 
   const byId = new Map<string, number>();
   const byName = new Map<string, number[]>();

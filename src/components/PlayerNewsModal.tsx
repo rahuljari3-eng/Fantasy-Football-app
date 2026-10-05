@@ -67,7 +67,7 @@ function ValueBreakdown({ player }: { player: Player }) {
   const quality = qualityScore(player);
   const model = seasonModelValue(player) * (player.positionScale ?? 1);
   const hasMarket = player.marketQuality != null;
-  const weekFromProjections = src ? blendWeeklyProj(src.espnWeek, src.sleeperWeek, player.pos) : null;
+  const weekFromProjections = src ? blendWeeklyProj(src.espnWeek, src.sleeperWeek, player.pos, player.status) : null;
   const propsApplied = weekFromProjections != null && Math.abs(weekFromProjections - player.proj) >= 0.05;
   const fmt = (v: number | undefined) => (v == null ? null : v.toFixed(1));
   const parts = (items: [string, string | null][]) =>
@@ -188,16 +188,18 @@ function BoomBustSection({ player }: { player: Player }) {
               {recent.map((g) => (
                 <span
                   key={`${g.season}-${g.week}`}
-                  title={`${g.season} week ${g.week}: ${g.actual} actual vs ${g.proj} projected`}
+                  title={`${g.season} week ${g.week}: ${g.actual} actual vs ${g.proj} projected${g.leftInjured ? " -- left the game injured" : ""}`}
                   className={`mono-font text-[10px] px-1.5 py-px rounded border ${
-                    g.result === "boom"
+                    g.leftInjured
+                      ? "text-amber-300 border-amber-500/30 bg-amber-500/10"
+                      : g.result === "boom"
                       ? "text-emerald-300 border-emerald-500/30 bg-emerald-500/10"
                       : g.result === "bust"
                       ? "text-red-300 border-red-500/30 bg-red-500/10"
                       : "text-[#98989D] border-[#38383A]"
                   }`}
                 >
-                  {`'${String(g.season).slice(2)} W${g.week} ${g.actual}`}
+                  {`'${String(g.season).slice(2)} W${g.week} ${g.actual}${g.leftInjured ? " inj" : ""}`}
                 </span>
               ))}
             </div>
@@ -206,7 +208,8 @@ function BoomBustSection({ player }: { player: Player }) {
         <div className="text-[10px] text-[#636366] leading-snug">
           The app's own odds, not ESPN's. His boom and bust bars sit one typical week's swing above and below his usual output, so stars need bigger
           games. This week's projection and how widely past scores landed around projections set the chances
-          {week ? ` (${week.games} of his games, blended with comparable games league-wide)` : ""}. The formula retunes itself every hour from
+          {week ? ` (${week.games} of his games, blended with comparable games league-wide)` : ""}. Games he left injured (inj) count
+          league-wide but aren't held against him. The formula retunes itself every hour from
           every finished game, and only weighs position, game environment or the betting market's lean once they've proven they help.
         </div>
         <BoomBustTrackRecordLine />

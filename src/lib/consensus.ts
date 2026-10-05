@@ -211,8 +211,8 @@ function weightedAverage(parts: [number | null | undefined, number][]): number |
  * or ruled out -- ESPN tracks injury designations more tightly than the
  * other sources, so that 0 is kept rather than averaged back up by a stale
  * non-zero elsewhere. */
-export function blendWeeklyProj(espnWeek: number, sleeperWeek: number | undefined, pos?: string): number {
-  return blendWithParams(projectionParams(), espnWeek, sleeperWeek, pos);
+export function blendWeeklyProj(espnWeek: number, sleeperWeek: number | undefined, pos?: string, status?: string | null): number {
+  return blendWithParams(projectionParams(), espnWeek, sleeperWeek, pos, status);
 }
 
 /** Rest-of-season points per game: ESPN's and Sleeper's projections, plus
@@ -471,7 +471,7 @@ export function consensusFor(
   }
   if (usage) valueSources.usage = usage;
   return {
-    proj: isRuledOut(espn.status) ? 0 : blendWeeklyProj(espn.proj, week?.pts, espn.pos),
+    proj: isRuledOut(espn.status) ? 0 : blendWeeklyProj(espn.proj, week?.pts, espn.pos, espn.status),
     valueSources,
     ...(seasonProj != null ? { seasonProj } : {}),
     ...(market ? { marketPosRank: market.posRank, marketValue: market.value } : {}),

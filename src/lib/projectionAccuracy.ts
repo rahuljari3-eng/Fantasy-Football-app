@@ -78,6 +78,14 @@ export function injuryExitGames(history: ProjectionHistory): Map<number, { actua
   return out;
 }
 
+/** How an injury cut one player's game short, for describing that game:
+ * null unless it was (isFullGame). */
+export function injuryExitFor(history: ProjectionHistory, playerId: number, week: number): { leftInQuarter: number; snapShare: number | null } | null {
+  const r = history.weeks[String(week)]?.[String(playerId)];
+  if (!r || r.injuryExit !== true || r.injuredAt == null) return null;
+  return { leftInQuarter: Math.min(4, Math.floor(r.injuredAt * 4) + 1), snapShare: r.snapShare ?? null };
+}
+
 /** Healthy-scratch weeks per player id -- 0-point games ESPN's own
  * season roll-up leaves out (it only counts games he got into). */
 export function healthyScratchCounts(history: ProjectionHistory): Map<number, number> {

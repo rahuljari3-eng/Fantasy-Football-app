@@ -1,6 +1,8 @@
 import { FAIR_RATIO_MAX, FAIR_RATIO_MIN } from "../../../src/config/trade.js";
 import { ALL_TEAMS } from "../../../src/data/allTeams.js";
 import { FREE_AGENTS } from "../../../src/data/freeAgents.js";
+import PROJECTION_HISTORY from "../../../src/data/projectionHistory.json" with { type: "json" };
+import { injuryExitFor, type ProjectionHistory } from "../../../src/lib/projectionAccuracy.js";
 import { fetchEspnCompletedTrades } from "../../../src/lib/espn.js";
 import {
   fetchMatchups,
@@ -265,6 +267,12 @@ export const getPlayerPerformanceTool: ToolDefinition = {
     }
 
     const tw = perf.thisWeek;
+    // A game an injury knocked him out of early, so a low score reads as that
+    // and not as how he played.
+    const leftInjured = (w: number) => {
+      const exit = injuryExitFor(PROJECTION_HISTORY as ProjectionHistory, player.id, w);
+      return exit ? { leftInjured: exit } : {};
+    };
     const statusNote =
       tw.actualPoints != null
         ? tw.game?.status
@@ -281,6 +289,7 @@ export const getPlayerPerformanceTool: ToolDefinition = {
       currentWeek: perf.currentWeek,
       week: perf.week,
       thisWeek: {
+        ...leftInjured(perf.week),
         actualPoints: tw.actualPoints,
         projectedPoints: tw.projectedPoints,
         vsProjection:
@@ -300,6 +309,7 @@ export const getPlayerPerformanceTool: ToolDefinition = {
       },
       gameLog: perf.gameLog.map((g) => ({
         week: g.week,
+        ...leftInjured(g.week),
         actualPoints: g.actualPoints,
         projectedPoints: g.projectedPoints,
         game: g.game,
@@ -312,7 +322,7 @@ export const getPlayerPerformanceTool: ToolDefinition = {
           : null,
       })),
       seasonToDate: perf.seasonToDate,
-      note: `${statusNote} Quote thisWeek.actualPoints (and nflBoxLine / fantasyBreakdown) for "how did they do" answers — never substitute weekValue/proj from get_player as if it were the final score.`,
+      note: `${statusNote} A week with leftInjured is a game an injury knocked him out of early (leftInQuarter, snapShare = share of the offense's snaps he played): say so, and don't read its score as how he played or a trend -- the app leaves it out of his averages and projection grading. Quote thisWeek.actualPoints (and nflBoxLine / fantasyBreakdown) for "how did they do" answers — never substitute weekValue/proj from get_player as if it were the final score.`,
     };
   },
 };

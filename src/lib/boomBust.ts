@@ -50,8 +50,10 @@ import type { Position } from "../types.js";
 export interface BoomBustHistory {
   season: number;
   source: "sleeper";
-  /** ESPN id -> [week, projected, actual] per game played. */
-  games: Record<string, [number, number, number][]>;
+  /** ESPN id -> [week, projected, actual] per game played, with a 4th
+   * element of 1 when an injury knocked him out of that game early
+   * (lib/gameExits.ts). */
+  games: Record<string, ([number, number, number] | [number, number, number, 1])[]>;
 }
 
 const SPREAD_BASE = 4.3;
@@ -122,6 +124,9 @@ export interface BoomBustGame {
   actual: number;
   /** Beat / missed that week's projection by more than a typical swing. */
   result: "boom" | "bust" | null;
+  /** An injury knocked him out of the game early: a bust league-wide, but
+   * not held against him as his own volatility. */
+  leftInjured?: boolean;
 }
 
 export interface WeeklyBoomBust {
@@ -175,6 +180,7 @@ interface GameRow extends Features {
   actual: number;
   z: number;
   result: "boom" | "bust" | null;
+  leftInjured: boolean;
 }
 
 const impliedAvgCache = new Map<number, number | null>();
@@ -210,7 +216,7 @@ function marketFeatures(week: number | null, playerId: number, proj: number, ove
 
 function buildRows(): GameRow[] {
   const rows: GameRow[] = [];
-  const add = (id: number, season: number, week: number, current: boolean, proj: number, actual: number) => {
+  const add = (id: number, season: number, week: number, current: boolean, proj: number, actual: number, leftInjured: boolean) => {
     if (proj < MIN_BOOM_BUST_PROJECTION) return;
     rows.push({
       id,
@@ -221,17 +227,18 @@ function buildRows(): GameRow[] {
       actual,
       z: (actual - proj) / spread(proj),
       result: classifyGame(proj, actual),
+      leftInjured,
       pos: POS_BY_ID.get(id),
       // Last season's games predate the app's Vegas recording.
       ...(current ? marketFeatures(week, id, proj) : {}),
     });
   };
   const past = BOOM_BUST_HISTORY as unknown as BoomBustHistory;
-  Object.entries(past.games).forEach(([id, list]) => list.forEach(([week, proj, actual]) => add(Number(id), past.season, week, false, proj, actual)));
+  Object.entries(past.games).forEach(([id, list]) => list.forEach(([week, proj, actual, exit]) => add(Number(id), past.season, week, false, proj, actual, exit === 1)));
   const current = PROJECTION_HISTORY as ProjectionHistory;
   Object.entries(current.weeks).forEach(([week, players]) =>
     Object.entries(players).forEach(([id, r]) => {
-      if (isGradedGame(r)) add(Number(id), current.season, Number(week), true, r.custom, r.actual);
+      if (isGradedGame(r)) add(Number(id), current.season, Number(week), true, r.custom, r.actual, r.injuryExit === true);
     })
   );
   return rows;
@@ -284,7 +291,8 @@ function oddsFrom(
   // Comparable games league-wide: the weighted share that would clear each
   // bar from this week's projection. His own games on top, weighted as
   // priorGames comparable games, so his own volatility counts once he has a
-  // real sample.
+  // real sample. Games an injury cut short count in the pool -- getting hurt
+  // is a real way to bust, for anyone -- but not as his own volatility.
   let total = 0;
   let boomW = 0;
   let bustW = 0;
@@ -296,7 +304,7 @@ function oddsFrom(
     total += w;
     if (row.z >= boomT) boomW += w;
     if (row.z <= bustT) bustW += w;
-    if (row.id === playerId) {
+    if (row.id === playerId && !row.leftInjured) {
       own++;
       if (row.z >= boomT) ownBoom++;
       if (row.z <= bustT) ownBust++;
@@ -320,7 +328,7 @@ function data() {
   const games = new Map<number, BoomBustGame[]>();
   rows.forEach((r) => {
     const list = games.get(r.id) ?? [];
-    list.push({ season: r.season, week: r.week, proj: r.proj, actual: r.actual, result: r.result });
+    list.push({ season: r.season, week: r.week, proj: r.proj, actual: r.actual, result: r.result, ...(r.leftInjured ? { leftInjured: true } : {}) });
     games.set(r.id, list);
   });
   games.forEach((list) => list.sort((a, b) => b.season - a.season || b.week - a.week));
