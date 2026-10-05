@@ -32,6 +32,10 @@ export interface ProjectionRecord {
   pos?: string;
   sleeper?: number;
   prop?: number;
+  /** His role signals going into the game (lib/roleStats.ts roleSignals),
+   * inputs to the custom projection like sleeper/prop. */
+  role?: number;
+  rz?: number;
   /** His share of the team's offensive snaps (Sleeper), once posted. */
   snapShare?: number;
   /** Hurt during the game and never logged as returning: the share of

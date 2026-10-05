@@ -4,13 +4,16 @@
 // better as the season's data piles up.
 //
 // The projection is
-//   base   = scale[pos] * q * ((1 - sleeperShare) * ESPN + sleeperShare * Sleeper)
+//   blend  = scale[pos] * q * ((1 - sleeperShare) * ESPN + sleeperShare * Sleeper)
+//   base   = blend * (1 + roleWeight * role) + rzWeight * rz
 //   custom = base + clamp(propWeight * propDelta, +/- propCap * base)
 // where propDelta is the yardage swing the week's sportsbook props imply
 // (consensus.ts propYardsDelta). scale[pos] corrects a lean the sources share
 // at a position (both running high on RBs, say), and q is questionableScale
 // for a player listed Questionable (1 otherwise) -- whether playing through
-// an injury costs him more than the sources already allow for.
+// an injury costs him more than the sources already allow for. role and rz
+// are his role signals (lib/roleStats.ts): opportunity per game vs what the
+// projection assumes, and red-zone looks beyond his volume's usual share.
 //
 // scripts/recordProjections.ts records each player's inputs at kickoff in
 // projectionHistory.json; scripts/fitProjections.ts refits the params hourly
@@ -44,6 +47,12 @@ export interface ProjectionParams {
   /** Multiplier on the blend for a player listed Questionable. Absent in
    * models fit before it existed (= 1). */
   questionableScale?: number;
+  /** How much of the role signal (opportunity vs projected, as a fraction)
+   * moves the blend. Absent = 0. */
+  roleWeight?: number;
+  /** Points per red-zone look a game beyond his volume's usual share.
+   * Absent = 0. */
+  rzWeight?: number;
 }
 
 export interface ProjectionBacktest {
@@ -77,6 +86,8 @@ export const DEFAULT_PROJECTION_PARAMS: ProjectionParams = {
   propCap: PROP_ADJUST_MAX_FRACTION,
   scale: { QB: 1, RB: 1, WR: 1, TE: 1 },
   questionableScale: 1,
+  roleWeight: 0,
+  rzWeight: 0,
 };
 
 const MODEL = PROJECTION_MODEL as unknown as ProjectionModel;
@@ -92,20 +103,30 @@ export function projectionParams(): ProjectionParams {
 
 const round1 = (v: number) => Math.round(v * 10) / 10;
 
-/** The ESPN/Sleeper blend, before props. A 0 from ESPN means bye or ruled
- * out and is kept (see consensus.ts blendWeeklyProj). `status` is his injury
- * designation (PlayerStatus) going into the game. */
+/** What else the blend takes besides the two projections: his injury
+ * designation (PlayerStatus) going into the game, and his role signals
+ * (lib/roleStats.ts). */
+export interface BlendContext {
+  status?: string | null;
+  role?: number | null;
+  rz?: number | null;
+}
+
+/** The ESPN/Sleeper blend with his role folded in, before props. A 0 from
+ * ESPN means bye or ruled out and is kept (see consensus.ts blendWeeklyProj). */
 export function blendWithParams(
   params: ProjectionParams,
   espn: number,
   sleeper: number | null | undefined,
   pos: string | undefined,
-  status?: string | null
+  ctx: BlendContext = {}
 ): number {
   if (espn <= 0) return espn;
   const share = sleeper != null && sleeper > 0 ? params.sleeperShare : 0;
-  const scale = (params.scale[pos as ScaledPosition] ?? 1) * (status === "Questionable" ? (params.questionableScale ?? 1) : 1);
-  return round1(scale * ((1 - share) * espn + share * (sleeper ?? 0)));
+  const scale = (params.scale[pos as ScaledPosition] ?? 1) * (ctx.status === "Questionable" ? (params.questionableScale ?? 1) : 1);
+  const blend = scale * ((1 - share) * espn + share * (sleeper ?? 0));
+  const withRole = blend * (1 + (params.roleWeight ?? 0) * (ctx.role ?? 0)) + (params.rzWeight ?? 0) * (ctx.rz ?? 0);
+  return round1(Math.max(0, withRole));
 }
 
 /** The props' yardage swing applied to a blended projection. */
@@ -124,6 +145,9 @@ export interface ProjectionGame {
   prop: number | null;
   /** His designation going into the game, when recorded. */
   status: string | null;
+  /** His role signals going into the game (0 = none / not recorded). */
+  role: number;
+  rz: number;
   actual: number;
 }
 
@@ -142,6 +166,8 @@ export function projectionGames(history: ProjectionHistory): ProjectionGame[] {
         sleeper: r.sleeper ?? null,
         prop: r.prop ?? null,
         status: r.gameStatus ?? r.status ?? null,
+        role: r.role ?? 0,
+        rz: r.rz ?? 0,
         actual: r.actual,
       });
     });
@@ -150,7 +176,7 @@ export function projectionGames(history: ProjectionHistory): ProjectionGame[] {
 }
 
 export function projectWithParams(params: ProjectionParams, g: ProjectionGame): number {
-  return applyPropDeltaWithParams(params, blendWithParams(params, g.espn, g.sleeper, g.pos, g.status), g.prop);
+  return applyPropDeltaWithParams(params, blendWithParams(params, g.espn, g.sleeper, g.pos, g), g.prop);
 }
 
 /** Mean squared error -- what the fit minimizes (see the header). */
@@ -170,6 +196,8 @@ const CANDIDATES = {
   propCap: [0.15, 0.3, 0.5],
   scale: [0.85, 0.9, 0.95, 0.975, 1, 1.025, 1.05, 1.1],
   questionableScale: [0.8, 0.85, 0.9, 0.95, 1, 1.05],
+  roleWeight: [0, 0.1, 0.2, 0.35, 0.5, 0.75, 1],
+  rzWeight: [0, 0.25, 0.5, 1, 1.5, 2],
 };
 /** Relative MSE improvement a change has to make to be kept. */
 const MIN_GAIN = 0.002;
@@ -191,9 +219,9 @@ export function fitProjectionParams(games: ProjectionGame[]): ProjectionParams {
   };
   for (let pass = 0; pass < PASSES; pass++) {
     let changed = false;
-    for (const key of ["sleeperShare", "propWeight", "propCap"] as const) {
+    for (const key of ["sleeperShare", "propWeight", "propCap", "roleWeight", "rzWeight"] as const) {
       for (const value of CANDIDATES[key]) {
-        if (value !== params[key] && tryParams({ ...params, [key]: value })) changed = true;
+        if (value !== (params[key] ?? 0) && tryParams({ ...params, [key]: value })) changed = true;
       }
     }
     for (const pos of SCALED_POSITIONS) {

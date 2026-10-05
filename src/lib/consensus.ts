@@ -44,7 +44,8 @@ import {
   VEGAS_MARKET_SHARE,
   VEGAS_SHRINK_WEEKS,
 } from "../config/scoring.js";
-import { applyPropDeltaWithParams, blendWithParams, projectionParams } from "./projectionModel.js";
+import { applyPropDeltaWithParams, blendWithParams, projectionParams, type BlendContext } from "./projectionModel.js";
+import { currentRoleSignals, currentRoleSummary } from "./roleStats.js";
 import { VEGAS_VALUES } from "../data/vegasValues.js";
 import PROJECTION_HISTORY from "../data/projectionHistory.json" with { type: "json" };
 import { healthyScratchCounts, injuryExitGames, type ProjectionHistory } from "./projectionAccuracy.js";
@@ -60,6 +61,9 @@ const LAST_REGULAR_SEASON_WEEK = 18;
 
 export interface SleeperWeekProjection extends ModelYards {
   pts: number;
+  /** The opportunities the projection assumes -- what his actual role is
+   * measured against (lib/roleStats.ts roleSignals). */
+  opportunity: UsageLine;
 }
 
 export interface MarketValue {
@@ -128,7 +132,18 @@ async function fetchFantasyCalc(): Promise<{ market: Map<number, MarketValue>; e
 
 interface SleeperProjRow {
   player_id?: string;
-  stats?: { pts_ppr?: number; pass_yd?: number; rush_yd?: number; rec_yd?: number; rec?: number; pass_td?: number; pass_int?: number };
+  stats?: {
+    pts_ppr?: number;
+    pass_yd?: number;
+    rush_yd?: number;
+    rec_yd?: number;
+    rec?: number;
+    pass_td?: number;
+    pass_int?: number;
+    pass_att?: number;
+    rush_att?: number;
+    rec_tgt?: number;
+  };
   player?: { first_name?: string; last_name?: string; position?: string };
 }
 
@@ -173,6 +188,12 @@ export async function fetchConsensusSources(season: number, week: number): Promi
           receptions: row.stats?.rec,
           passTds: row.stats?.pass_td,
           passInts: row.stats?.pass_int,
+          opportunity: {
+            passAtt: row.stats?.pass_att ?? 0,
+            rushAtt: row.stats?.rush_att ?? 0,
+            targets: row.stats?.rec_tgt ?? 0,
+            receptions: row.stats?.rec ?? 0,
+          },
         });
       }
       // Zero = bye (or ruled out) that week; averaging it in would make a
@@ -211,8 +232,8 @@ function weightedAverage(parts: [number | null | undefined, number][]): number |
  * or ruled out -- ESPN tracks injury designations more tightly than the
  * other sources, so that 0 is kept rather than averaged back up by a stale
  * non-zero elsewhere. */
-export function blendWeeklyProj(espnWeek: number, sleeperWeek: number | undefined, pos?: string, status?: string | null): number {
-  return blendWithParams(projectionParams(), espnWeek, sleeperWeek, pos, status);
+export function blendWeeklyProj(espnWeek: number, sleeperWeek: number | undefined, pos?: string, ctx?: BlendContext): number {
+  return blendWithParams(projectionParams(), espnWeek, sleeperWeek, pos, ctx);
 }
 
 /** Rest-of-season points per game: ESPN's and Sleeper's projections, plus
@@ -470,8 +491,11 @@ export function consensusFor(
     if (exits) valueSources.injuryExits = exits;
   }
   if (usage) valueSources.usage = usage;
+  const role = currentRoleSummary(espn.id);
+  const signals = currentRoleSignals(espn.id, espn.pos, week?.opportunity);
+  if (role) valueSources.role = { ...role, ...signals };
   return {
-    proj: isRuledOut(espn.status) ? 0 : blendWeeklyProj(espn.proj, week?.pts, espn.pos, espn.status),
+    proj: isRuledOut(espn.status) ? 0 : blendWeeklyProj(espn.proj, week?.pts, espn.pos, { status: espn.status, ...signals }),
     valueSources,
     ...(seasonProj != null ? { seasonProj } : {}),
     ...(market ? { marketPosRank: market.posRank, marketValue: market.value } : {}),

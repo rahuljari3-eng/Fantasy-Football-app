@@ -6,9 +6,11 @@
 // Exits come from ESPN's play-by-play, which logs "CLV-M.Hall was injured
 // during the play" and, when he comes back, "Injury Update: CLV-M.Hall has
 // returned to the game". Snap shares come from Sleeper's weekly stats
-// (off_snp / tm_off_snp), which post a day or two after the games -- they
-// catch a return the play-by-play never logged.
+// (off_snp / tm_off_snp, with the rest of his role: fetchRoleLines), which
+// post a day or two after the games -- they catch a return the play-by-play
+// never logged.
 import { nameKey } from "./consensus.js";
+import type { RoleLine } from "./roleStats.js";
 
 const ESPN_NFL_SITE = "https://site.api.espn.com/apis/site/v2/sports/football/nfl";
 const SLEEPER_STATS_BASE = "https://api.sleeper.com/stats/nfl";
@@ -136,38 +138,75 @@ export async function fetchInjuryExits(season: number, week: number, players: Ga
   return out;
 }
 
-/** Each of `players`' share of his team's offensive snaps in `week`, from
- * Sleeper's stats. `espnToSleeper` maps ids where known; the rest match on
- * name and position. Empty until Sleeper posts the week's snaps. */
-export async function fetchSnapShares(
+/** Each of `players`' role in `week` (lib/roleStats.ts RoleLine), from
+ * Sleeper's stats: snap share, targets and carries with their share of the
+ * team's, pass attempts, catches, red-zone looks, air yards. `espnToSleeper`
+ * maps ids where known; the rest match on name and position. Empty until
+ * Sleeper posts the week. */
+export async function fetchRoleLines(
   season: number,
   week: number,
   players: Pick<GamePlayer, "id" | "name" | "pos">[],
   espnToSleeper: Map<number, string>
-): Promise<Map<number, number>> {
-  type Row = { player_id?: string; stats?: { off_snp?: number; tm_off_snp?: number }; player?: { first_name?: string; last_name?: string; position?: string } };
+): Promise<Map<number, RoleLine>> {
+  type Stats = {
+    off_snp?: number;
+    tm_off_snp?: number;
+    rec_tgt?: number;
+    rush_att?: number;
+    pass_att?: number;
+    rec?: number;
+    rec_rz_tgt?: number;
+    rush_rz_att?: number;
+    rec_air_yd?: number;
+  };
+  type Row = { player_id?: string; team?: string; stats?: Stats; player?: { first_name?: string; last_name?: string; position?: string } };
   const qs = SKILL_POSITIONS.map((p) => `position%5B%5D=${p}`).join("&");
   const res = await fetch(`${SLEEPER_STATS_BASE}/${season}/${week}?season_type=regular&${qs}`);
   if (!res.ok) throw new Error(`Sleeper stats for week ${week} failed (${res.status})`);
-  const rows = (await res.json()) as Row[];
+  const rows = ((await res.json()) as Row[]).filter((r) => r.player_id && r.stats?.tm_off_snp);
 
-  const byId = new Map<string, number>();
-  const byName = new Map<string, number[]>();
+  // Team totals, for the shares.
+  const teamTargets = new Map<string, number>();
+  const teamCarries = new Map<string, number>();
   rows.forEach((r) => {
-    const team = r.stats?.tm_off_snp;
-    if (!r.player_id || !team) return;
-    const share = Math.round(((r.stats?.off_snp ?? 0) / team) * 100) / 100;
-    byId.set(r.player_id, share);
-    const key = nameKey(`${r.player?.first_name ?? ""} ${r.player?.last_name ?? ""}`, r.player?.position ?? "");
-    byName.set(key, [...(byName.get(key) ?? []), share]);
+    if (!r.team) return;
+    teamTargets.set(r.team, (teamTargets.get(r.team) ?? 0) + (r.stats?.rec_tgt ?? 0));
+    teamCarries.set(r.team, (teamCarries.get(r.team) ?? 0) + (r.stats?.rush_att ?? 0));
   });
 
-  const out = new Map<number, number>();
+  const round2 = (v: number) => Math.round(v * 100) / 100;
+  const byId = new Map<string, RoleLine>();
+  const byName = new Map<string, RoleLine[]>();
+  rows.forEach((r) => {
+    const s = r.stats!;
+    const tgt = s.rec_tgt ?? 0;
+    const car = s.rush_att ?? 0;
+    const tmTgt = r.team ? teamTargets.get(r.team) : undefined;
+    const tmCar = r.team ? teamCarries.get(r.team) : undefined;
+    const line: RoleLine = {
+      snap: round2((s.off_snp ?? 0) / s.tm_off_snp!),
+      tgt,
+      ...(tmTgt ? { tgtSh: round2(tgt / tmTgt) } : {}),
+      car,
+      ...(tmCar ? { carSh: round2(car / tmCar) } : {}),
+      pa: s.pass_att ?? 0,
+      rec: s.rec ?? 0,
+      rzT: s.rec_rz_tgt ?? 0,
+      rzC: s.rush_rz_att ?? 0,
+      air: s.rec_air_yd ?? 0,
+    };
+    byId.set(r.player_id!, line);
+    const key = nameKey(`${r.player?.first_name ?? ""} ${r.player?.last_name ?? ""}`, r.player?.position ?? "");
+    byName.set(key, [...(byName.get(key) ?? []), line]);
+  });
+
+  const out = new Map<number, RoleLine>();
   players.forEach((p) => {
     const sleeperId = espnToSleeper.get(p.id);
     const named = byName.get(nameKey(p.name, p.pos));
-    const share = (sleeperId != null ? byId.get(sleeperId) : undefined) ?? (named?.length === 1 ? named[0] : undefined);
-    if (share != null) out.set(p.id, share);
+    const line = (sleeperId != null ? byId.get(sleeperId) : undefined) ?? (named?.length === 1 ? named[0] : undefined);
+    if (line) out.set(p.id, line);
   });
   return out;
 }

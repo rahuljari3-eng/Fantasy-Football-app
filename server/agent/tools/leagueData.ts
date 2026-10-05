@@ -188,6 +188,13 @@ export function serializePlayer(p: Player) {
      * ratio > 1 = more work than projected; factor = what it multiplied the
      * projection half of seasonProj by. Null before games / for K, DST. */
     usage: p.valueSources?.usage ?? null,
+    /** Role in his offense per full game so far (injury exits left out):
+     * snapShare / targetShare / carryShare (0-1), targets, carries, passAtt,
+     * receptions, rzTargets + rzCarries (red-zone looks), airYards, games.
+     * role / rz are the signals they feed this week's projection (opportunity
+     * vs projected, red-zone looks beyond his volume's usual share); they
+     * only move it once the projection refit finds they help. */
+    role: p.valueSources?.role ?? null,
     /** Positional rank by FantasyCalc redraft trade value (real trades). */
     marketPosRank: p.marketPosRank ?? null,
     /** Season projection rank at the position. */

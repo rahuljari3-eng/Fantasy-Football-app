@@ -31,12 +31,14 @@
 // Also freezes each player's boom/bust odds (lib/boomBust.ts) at kickoff in
 // the same projectionHistory.json records, for the boom/bust track record.
 //
-// And for finished weeks, records who an injury knocked out of his game and
-// everyone's snap share (lib/gameExits.ts), so a game cut short isn't graded
-// as a projection miss or counted in per-game averages (isFullGame).
+// And for finished weeks, records who an injury knocked out of his game
+// (lib/gameExits.ts), so a game cut short isn't graded as a projection miss
+// or counted in per-game averages (isFullGame), and everyone's role in his
+// offense -- snap, target and carry shares, red-zone looks -- in
+// src/data/roleHistory.json (lib/roleStats.ts), which feeds the projection.
 //
 // Usage: npm run record:projections
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ESPN_LEAGUE_BASE_URL, LEAGUE_CONFIG } from "../src/config/league.js";
@@ -64,12 +66,14 @@ import {
 import { fetchWeeklyMatchups, type WeeklyMatchups } from "../src/lib/matchup.js";
 import type { ProjectionHistory, ProjectionRecord } from "../src/lib/projectionAccuracy.js";
 import { weeklyBoomBust } from "../src/lib/boomBust.js";
-import { fetchInjuryExits, fetchSnapShares, isInjuryExit, type GamePlayer } from "../src/lib/gameExits.js";
+import { fetchInjuryExits, fetchRoleLines, isInjuryExit, type GamePlayer } from "../src/lib/gameExits.js";
+import { redZoneRates, roleSignals, roleSummary, type RoleHistory, type RoleSignals } from "../src/lib/roleStats.js";
 
 const DATA_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "../src/data");
 const HISTORY_FILE = path.join(DATA_DIR, "projectionHistory.json");
 const VEGAS_HISTORY_FILE = path.join(DATA_DIR, "vegasHistory.json");
 const VEGAS_VALUES_FILE = path.join(DATA_DIR, "vegasValues.ts");
+const ROLE_HISTORY_FILE = path.join(DATA_DIR, "roleHistory.json");
 const SKILL = new Set(["QB", "RB", "WR", "TE"]);
 
 /** Actual points in `week` for each of `ids`, in this league's scoring,
@@ -119,8 +123,9 @@ async function fetchWeekActuals(week: number, ids: number[]): Promise<Map<number
 type PlayerProps = WeeklyMatchups["playerProps"] | undefined;
 const round2 = (v: number) => Math.round(v * 100) / 100;
 
-/** The inputs the custom projection is built from (lib/projectionModel.ts). */
-function projectionInputs(src: ConsensusSources, props: PlayerProps, snap: Pick<EspnPlayerSnapshot, "id" | "name" | "pos">) {
+/** The inputs the custom projection is built from (lib/projectionModel.ts),
+ * with his role signals when known. */
+function projectionInputs(src: ConsensusSources, props: PlayerProps, snap: Pick<EspnPlayerSnapshot, "id" | "name" | "pos">, signals?: RoleSignals) {
   const key = sleeperKeyFor(src, snap.id, snap.name, snap.pos);
   const sleeperWeek = key ? src.sleeperWeek.get(key) : undefined;
   const prop = propYardsDelta(props?.[snap.id], sleeperWeek);
@@ -128,6 +133,7 @@ function projectionInputs(src: ConsensusSources, props: PlayerProps, snap: Pick<
     pos: snap.pos,
     ...(sleeperWeek?.pts != null ? { sleeper: round2(sleeperWeek.pts) } : {}),
     ...(prop != null ? { prop: round2(prop) } : {}),
+    ...(signals ? { role: signals.role, rz: signals.rz } : {}),
   };
 }
 
@@ -139,7 +145,14 @@ function projectionRecord(src: ConsensusSources, props: PlayerProps, snap: EspnP
     // Overwritten every run until kickoff, so this ends up as his designation
     // going into the game (empty for a backfilled week: his status now isn't
     // his status then).
-    record: { espn: snap.proj, custom, actual: null, ...(snap.status ? { status: snap.status } : {}), ...projectionInputs(src, props, snap) },
+    // The role signals are the ones consensusFor built `custom` with.
+    record: {
+      espn: snap.proj,
+      custom,
+      actual: null,
+      ...(snap.status ? { status: snap.status } : {}),
+      ...projectionInputs(src, props, snap, { role: c.valueSources?.role?.role ?? 0, rz: c.valueSources?.role?.rz ?? 0 }),
+    },
     seasonProj: c.seasonProj ?? null,
   };
 }
@@ -334,34 +347,77 @@ for (const [w, players] of Object.entries(history.weeks)) {
   });
 }
 
-// ---------- In-game injuries ----------
+// ---------- In-game injuries and roles ----------
 // For each finished week: who was knocked out of his game by an injury
-// (ESPN play-by-play) and everyone's snap share (Sleeper). A week is checked
-// until Sleeper's snaps for it are in -- they post a day or two after the
-// games, and are what catch a return the play-by-play never logged.
+// (ESPN play-by-play), and everyone's role in his offense (Sleeper's stats:
+// snaps, targets, carries, red-zone looks, team shares). A week is checked
+// until Sleeper's stats for it are in -- they post a day or two after the
+// games, and their snap counts are what catch a return the play-by-play
+// never logged.
+const roleHistory: RoleHistory = existsSync(ROLE_HISTORY_FILE)
+  ? JSON.parse(readFileSync(ROLE_HISTORY_FILE, "utf8"))
+  : { season: LEAGUE_CONFIG.espnSeason, players: {} };
+if (roleHistory.season !== LEAGUE_CONFIG.espnSeason) {
+  roleHistory.season = LEAGUE_CONFIG.espnSeason;
+  roleHistory.players = {};
+}
+const poolIds = [...ALL_TEAMS.flatMap((t) => t.roster), ...FREE_AGENTS].map((p) => p.id);
+let poolCards: GamePlayer[] | null = null;
 for (const [w, players] of Object.entries(history.weeks)) {
   if (Number(w) >= period) continue;
-  const played = Object.entries(players).filter(([, r]) => r.actual != null && r.dnp !== true);
-  if (!played.length || played.some(([, r]) => r.snapShare != null)) continue;
+  if (Object.values(roleHistory.players).some((p) => p.weeks[w])) continue;
   try {
-    const cards = await fetchPlayerCards(Object.keys(players).map(Number));
-    const [exits, snaps] = await Promise.all([
+    // Everyone recorded that week plus today's pool, so a player picked up
+    // since still has his earlier games.
+    poolCards ??= await fetchPlayerCards([...new Set([...poolIds, ...Object.values(history.weeks).flatMap((ps) => Object.keys(ps).map(Number))])]);
+    const cards = poolCards;
+    const [exits, roles] = await Promise.all([
       fetchInjuryExits(LEAGUE_CONFIG.espnSeason, Number(w), cards),
-      fetchSnapShares(LEAGUE_CONFIG.espnSeason, Number(w), cards, sources.espnToSleeper),
+      fetchRoleLines(LEAGUE_CONFIG.espnSeason, Number(w), cards, sources.espnToSleeper),
     ]);
     Object.entries(players).forEach(([id, r]) => {
       const at = exits.get(Number(id));
       if (at != null) r.injuredAt = at;
       else delete r.injuredAt;
-      const share = snaps.get(Number(id));
+      const share = roles.get(Number(id))?.snap;
       if (share != null) r.snapShare = share;
     });
-    console.log(`Week ${w}: ${exits.size} left injured, snap shares for ${snaps.size}/${played.length} who played.`);
+    const posById = new Map(cards.map((c) => [c.id, c.pos]));
+    roles.forEach((line, id) => {
+      const entry = (roleHistory.players[String(id)] ??= { pos: posById.get(id) ?? "", weeks: {} });
+      entry.weeks[w] = line;
+    });
+    console.log(`Week ${w}: ${exits.size} left injured; roles for ${roles.size} players.`);
   } catch (err) {
-    console.warn(`Couldn't check week ${w} for in-game injuries:`, err instanceof Error ? err.message : err);
+    console.warn(`Couldn't check week ${w} for injuries and roles:`, err instanceof Error ? err.message : err);
   }
 }
+writeFileSync(ROLE_HISTORY_FILE, JSON.stringify(roleHistory) + "\n");
 const exitCount = applyInjuryExitVerdicts(history);
+
+// Records from before role signals were kept: fill them in as they'd have
+// been at kickoff -- his role over the full games before that week, against
+// the opportunities Sleeper projected for it.
+for (const [w, players] of Object.entries(history.weeks)) {
+  const missing = Object.entries(players).filter(([, r]) => r.role == null && r.pos != null);
+  if (!missing.length) continue;
+  try {
+    const wk = Number(w);
+    const weekSources = wk === period ? sources : await fetchConsensusSources(LEAGUE_CONFIG.espnSeason, wk);
+    const names = new Map((poolCards ?? []).map((c) => [c.id, c.name]));
+    const rates = redZoneRates(roleHistory, history, wk);
+    missing.forEach(([id, r]) => {
+      const key = sleeperKeyFor(weekSources, Number(id), names.get(Number(id)) ?? "", r.pos as EspnPlayerSnapshot["pos"]);
+      const projected = key ? weekSources.sleeperWeek.get(key)?.opportunity : undefined;
+      const signals = roleSignals(r.pos!, roleSummary(roleHistory, history, Number(id), wk), projected, rates[r.pos!]);
+      r.role = signals.role;
+      r.rz = signals.rz;
+    });
+    console.log(`Filled role signals for ${missing.length} week ${w} records.`);
+  } catch (err) {
+    console.warn(`Couldn't fill week ${w} role signals:`, err instanceof Error ? err.message : err);
+  }
+}
 
 writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 1) + "\n");
 console.log(

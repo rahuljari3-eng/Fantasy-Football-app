@@ -1,6 +1,7 @@
 // Shared domain types for the whole app. Keeping these in one place means every
 // page/hook/lib module agrees on the exact shape of a "player" or "team" instead
 // of each file inventing its own loose object shape.
+import type { RoleSignals, RoleSummary } from "./lib/roleStats.js";
 
 export type Position = "QB" | "RB" | "WR" | "TE" | "DST" | "K";
 
@@ -24,6 +25,10 @@ export interface ValueSources {
    * usageFactor). Absent before a player's first game or without a
    * projected stat line to compare against. */
   usage?: UsageSignal;
+  /** His role in the offense so far (per full game: snap/target/carry
+   * shares, red-zone looks...) and the signals it feeds this week's
+   * projection (lib/roleStats.ts). */
+  role?: RoleSummary & RoleSignals;
 }
 
 /** Per-game opportunities: pass attempts, carries, targets, receptions. */

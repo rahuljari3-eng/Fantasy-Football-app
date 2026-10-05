@@ -52,6 +52,21 @@ function SourceRow({ label, value, detail }: { label: string; value: string; det
   );
 }
 
+/** "71% snaps · 24% tgt share (7.1/g) · 1.3 RZ looks/g" -- his role in the
+ * offense over his full games so far. */
+function roleDetail(pos: Player["pos"], role: NonNullable<Player["valueSources"]>["role"] & object): string {
+  const pct = (v: number | null) => (v == null ? null : `${Math.round(v * 100)}%`);
+  const parts = [
+    role.snapShare != null ? `${pct(role.snapShare)} snaps` : null,
+    pos === "QB" ? `${role.passAtt.toFixed(1)} att/g` : null,
+    pos === "QB" || pos === "RB" ? `${pct(role.carryShare) ?? "–"} carry share (${role.carries.toFixed(1)}/g)` : null,
+    pos !== "QB" ? `${pct(role.targetShare) ?? "–"} tgt share (${role.targets.toFixed(1)}/g)` : null,
+    pos === "WR" || pos === "TE" ? `${role.airYards.toFixed(0)} air yds/g` : null,
+    `${(role.rzTargets + role.rzCarries).toFixed(1)} red-zone looks/g`,
+  ];
+  return `${parts.filter(Boolean).join(" · ")} · ${role.games} full game${role.games === 1 ? "" : "s"}`;
+}
+
 /** "8.3 tgt/g (proj 4.9)" for the opportunities that matter at a position. */
 function usageDetail(pos: Player["pos"], usage: UsageSignal): string {
   const keys: [keyof UsageLine, string][] =
@@ -67,7 +82,7 @@ function ValueBreakdown({ player }: { player: Player }) {
   const quality = qualityScore(player);
   const model = seasonModelValue(player) * (player.positionScale ?? 1);
   const hasMarket = player.marketQuality != null;
-  const weekFromProjections = src ? blendWeeklyProj(src.espnWeek, src.sleeperWeek, player.pos, player.status) : null;
+  const weekFromProjections = src ? blendWeeklyProj(src.espnWeek, src.sleeperWeek, player.pos, { status: player.status, role: src.role?.role, rz: src.role?.rz }) : null;
   const propsApplied = weekFromProjections != null && Math.abs(weekFromProjections - player.proj) >= 0.05;
   const fmt = (v: number | undefined) => (v == null ? null : v.toFixed(1));
   const parts = (items: [string, string | null][]) =>
@@ -127,6 +142,19 @@ function ValueBreakdown({ player }: { player: Player }) {
             label="Usage vs projected"
             value={`${src.usage.factor >= 1 ? "+" : ""}${((src.usage.factor - 1) * 100).toFixed(1)}%`}
             detail={usageDetail(player.pos, src.usage)}
+          />
+        )}
+        {src?.role && (
+          <SourceRow
+            label="Role in the offense"
+            value={
+              player.pos === "QB"
+                ? `${src.role.passAtt.toFixed(1)} att/g`
+                : player.pos === "RB"
+                  ? `${Math.round((src.role.carryShare ?? 0) * 100)}% carries`
+                  : `${Math.round((src.role.targetShare ?? 0) * 100)}% targets`
+            }
+            detail={roleDetail(player.pos, src.role)}
           />
         )}
         {player.marketPosRank != null && (
