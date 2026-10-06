@@ -4,6 +4,7 @@
 // Missing signals → 1.0. Applied via Player.scheduleEase inside qualityScore.
 import { SCHEDULE_EASE_MAX, SCHEDULE_EASE_MIN } from "../config/scoring.js";
 import type { VegasHistory } from "./bettingValue.js";
+import { getRosThroughWeek } from "./rosHorizon.js";
 import { normalizeNflAbbrev, teamScheduleRemaining, type NflGameSlot, type NflScheduleSnapshot } from "./nflSchedule.js";
 import type { Player } from "../types.js";
 
@@ -85,7 +86,10 @@ export function applyScheduleEase<P extends Player>(
   return pool.map((p) => {
     if (!p.team || p.team === "FA") return { ...p, scheduleEase: 1 };
     const remaining = teamScheduleRemaining(opts.schedule!, p.team, opts.currentWeek);
-    const games = remaining.filter((s): s is NflGameSlot => !("bye" in s && s.bye));
+    // Only games inside the fantasy season count -- an easy NFL week 18 is
+    // worth nothing to a fantasy roster whose championship is week 17.
+    const throughWeek = getRosThroughWeek();
+    const games = remaining.filter((s): s is NflGameSlot => !("bye" in s && s.bye) && s.week <= throughWeek);
     if (!games.length) return { ...p, scheduleEase: 1 };
     const signals = games.map((g) => gameEase(p, g, byTeam, leagueAvg));
     return { ...p, scheduleEase: scheduleEaseMultiplier(signals) };

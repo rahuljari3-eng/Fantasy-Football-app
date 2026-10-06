@@ -17,10 +17,14 @@ import {
   WEEK_PRICER,
 } from "../../../src/lib/tradeEngine.js";
 import { findWhatItWouldTake } from "../../../src/lib/whatWouldItTake.js";
+import { evaluateLineupImpact } from "../../../src/lib/lineupImpact.js";
+import { firstUnplayedWeek, getNflSchedule } from "../../../src/lib/nflSchedule.js";
+import { getRosCurrentWeek } from "../../../src/lib/rosHorizon.js";
 import type { Player, Position } from "../../../src/types.js";
 import {
   findPlayerOwner,
   findPlayers,
+  findTeamByIdOrName,
   freeAgentPool,
   leagueBaseline,
   needReason,
@@ -288,6 +292,44 @@ export const evaluateTradeTool: ToolDefinition = {
       };
     }
 
+    // Starting-lineup impact over the rest of the fantasy season: both
+    // rosters replayed week by week with and without the trade (byes, forced
+    // cuts, free-agent pickups, who'd really start). Other side = the given
+    // opponent, else whoever owns everyone on the get side.
+    const getOwnerIds = new Set(get.map((p) => findPlayerOwner(p.id)?.teamId).filter((id): id is number => id != null));
+    const oppTeamId =
+      typeof args.opponentTeamId === "number" ? args.opponentTeamId : getOwnerIds.size === 1 ? [...getOwnerIds][0] : null;
+    const myTeam = findTeamByIdOrName(ctx.managedTeamId);
+    const oppTeam = oppTeamId != null ? findTeamByIdOrName(oppTeamId) : undefined;
+    const irIds = new Set([...(myTeam?.roster ?? []), ...(oppTeam?.roster ?? [])].filter((p) => p.slot === "IR").map((p) => p.id));
+    const currentWeek = getRosCurrentWeek();
+    const nflSchedule = await getNflSchedule().catch(() => null);
+    const impact = evaluateLineupImpact({
+      currentWeek,
+      fromWeek: currentWeek != null ? firstUnplayedWeek(nflSchedule, currentWeek) : undefined,
+      myRoster: teamPlayersRanked(ctx.managedTeamId),
+      theirRoster: oppTeam ? teamPlayersRanked(oppTeam.id) : null,
+      give,
+      get,
+      freeAgents: freeAgentPool(),
+      irIds,
+    });
+    const r1 = (n: number) => Math.round(n * 10) / 10;
+    const serializeImpact = (s: NonNullable<typeof impact>["my"]) => ({
+      restOfSeasonPts: r1(s.delta),
+      perWeek: r1(s.perWeek),
+      playoffPerWeek: s.playoffPerWeek == null ? null : r1(s.playoffPerWeek),
+      wouldDrop: s.dropped.map((p) => p.name),
+      openRosterSpots: s.openSpots,
+    });
+    const lineupImpact = impact
+      ? {
+          weeks: `${impact.fromWeek}-${impact.throughWeek}`,
+          mine: serializeImpact(impact.my),
+          theirs: impact.their ? { teamName: oppTeam?.name ?? null, ...serializeImpact(impact.their) } : null,
+        }
+      : null;
+
     const weekBlock = {
       giveValue: Math.round(weekGive * 10) / 10,
       getValue: Math.round(weekGet * 10) / 10,
@@ -315,6 +357,7 @@ export const evaluateTradeTool: ToolDefinition = {
       week: weekBlock,
       season: seasonBlock,
       needAdjusted,
+      lineupImpact,
       fairWindow: { min: FAIR_RATIO_MIN, max: FAIR_RATIO_MAX },
       citeHints: [
         `Week: give ${weekBlock.giveValue} vs get ${weekBlock.getValue} (ratio ${weekBlock.ratio}, verdict ${weekBlock.verdict}).`,
@@ -322,8 +365,13 @@ export const evaluateTradeTool: ToolDefinition = {
         `Star gate OK: ${gateOk}.${starGateNotes.length ? ` ${starGateNotes.join(" ")}` : ""} Fair ratio window ${FAIR_RATIO_MIN}–${FAIR_RATIO_MAX}. Star gate is independent of the points ratio — do not treat likely_unfair_star_gate as "favors them" if the ROS ratio leans your way.`,
         `Give: ${giveSerialized.map((p) => `${p.name} (proj ${p.proj}, weekValue ${p.weekValue}, bye ${p.bye}, status ${p.status})${matchupLine(p)}`).join("; ")}.`,
         `Get: ${getSerialized.map((p) => `${p.name} (proj ${p.proj}, weekValue ${p.weekValue}, bye ${p.bye}, status ${p.status})${matchupLine(p)}`).join("; ")}.`,
+        ...(lineupImpact
+          ? [
+              `Starting-lineup impact weeks ${lineupImpact.weeks}: yours ${lineupImpact.mine.restOfSeasonPts} pts (${lineupImpact.mine.perWeek}/wk, playoffs ${lineupImpact.mine.playoffPerWeek ?? "n/a"}/wk)${lineupImpact.theirs ? `; theirs ${lineupImpact.theirs.restOfSeasonPts} pts (${lineupImpact.theirs.perWeek}/wk)` : ""}.${lineupImpact.mine.wouldDrop.length ? ` You'd drop ${lineupImpact.mine.wouldDrop.join(", ")}.` : ""}${lineupImpact.mine.openRosterSpots ? ` Opens ${lineupImpact.mine.openRosterSpots} roster spot(s) for waivers.` : ""}`,
+            ]
+          : []),
       ],
-      note: "Each player carries thisWeekMatchup (opponent, grade, implied total/workload label) -- weave this real football context into your reasoning (game script, opponent strength, role), not just the bare value numbers. Package values discount extras (not a plain sum of weekValue/rosValue). Quote week/season/needAdjusted verdicts exactly; if starGateOk is false, quote starGateNotes and explain that the gate is separate from who 'wins' on points.",
+      note: "Each player carries thisWeekMatchup (opponent, grade, implied total/workload label) -- weave this real football context into your reasoning (game script, opponent strength, role), not just the bare value numbers. Package values discount extras (not a plain sum of weekValue/rosValue). Quote week/season/needAdjusted verdicts exactly; lineupImpact is what the trade does to each team's actual starting lineup week by week (byes, forced cuts, waiver streaming at free-agent level) -- when it disagrees with the value verdict, say so (e.g. wins on value but doesn't improve who you start); if starGateOk is false, quote starGateNotes and explain that the gate is separate from who 'wins' on points.",
     };
   },
 };

@@ -39,9 +39,10 @@ import {
   rosPackageFloor,
   fairnessRatio,
 } from "../lib/tradeEngine";
-import { setRosHorizon } from "../lib/rosHorizon";
+import { getRosCurrentWeek, setRosHorizon } from "../lib/rosHorizon";
+import { evaluateLineupImpact, type LineupImpact } from "../lib/lineupImpact";
 import { applyScheduleEase } from "../lib/scheduleEase";
-import { getNflSchedule, type NflScheduleSnapshot } from "../lib/nflSchedule";
+import { firstUnplayedWeek, getNflSchedule, type NflScheduleSnapshot } from "../lib/nflSchedule";
 import type { VegasHistory } from "../lib/bettingValue";
 import vegasHistoryJson from "../data/vegasHistory.json" with { type: "json" };
 import { findWhatItWouldTake as solveWhatItWouldTake, type WhatWouldItTakeOption } from "../lib/whatWouldItTake";
@@ -160,7 +161,7 @@ export function useFantasyApp() {
 
   const [tradeGive, setTradeGive] = useState<number[]>([]);
   const [tradeGet, setTradeGet] = useState<number[]>([]);
-  const [tradeHorizon, setTradeHorizon] = useState<TradeHorizon>("week");
+  const [tradeHorizon, setTradeHorizon] = useState<TradeHorizon>("season");
   const [tradeOpponentId, setTradeOpponentId] = useState<number | null>(null);
   /** When true (season mode), package values use needAdjustedPackageValue like Coach/Sensei. */
   const [tradeNeedAdjust, setTradeNeedAdjust] = useState(false);
@@ -291,8 +292,8 @@ export function useFantasyApp() {
 
   useEffect(() => {
     const week = leagueSchedule?.currentWeek;
-    if (week != null && week > 0) setRosHorizon(week);
-  }, [leagueSchedule?.currentWeek]);
+    if (week != null && week > 0) setRosHorizon(week, leagueSchedule?.finalWeek);
+  }, [leagueSchedule?.currentWeek, leagueSchedule?.finalWeek]);
 
   useEffect(() => {
     let cancelled = false;
@@ -300,7 +301,7 @@ export function useFantasyApp() {
       .then((snap) => {
         if (!cancelled) {
           setNflScheduleSnap(snap);
-          if (leagueSchedule?.currentWeek) setRosHorizon(leagueSchedule.currentWeek, snap.maxWeek);
+          if (leagueSchedule?.currentWeek) setRosHorizon(leagueSchedule.currentWeek, leagueSchedule.finalWeek);
         }
       })
       .catch(() => {
@@ -1399,6 +1400,55 @@ export function useFantasyApp() {
   // Fairness ratio: what you get / what you give. 1.0 = dead even.
   const tradeRatio = giveVal > 0 && getVal > 0 ? fairnessRatio(giveVal, getVal) : null;
 
+  // Lineup impact: replay every remaining fantasy week (or just this one, in
+  // "This week" mode) for both rosters with and without the trade -- byes,
+  // forced cuts, the free agent an opened spot buys, and who'd really start.
+  // The other side is the picked opponent, or whoever owns everyone on the
+  // receive side when no opponent is picked.
+  const tradeLineupImpact = useMemo((): LineupImpact | null => {
+    const give = tradePlayers(tradeGive);
+    const get = tradePlayers(tradeGet);
+    if (!give.length && !get.length) return null;
+    const getOwners = new Set(
+      tradeGet.map((id) => effectiveAllLeaguePlayers.find((p) => p.id === id)?.fantasyTeamId).filter((x) => x != null)
+    );
+    const oppId = tradeOpponentId ?? (getOwners.size === 1 ? [...getOwners][0] : null);
+    const oppTeam = oppId != null ? allTeams.find((t) => t.id === oppId) : undefined;
+    const rostered = new Set(allTeams.flatMap((t) => t.roster.map((p) => p.id)));
+    const freeAgents = (liveFreeAgents ?? FREE_AGENTS).filter((p) => !rostered.has(p.id)).map(applyOverride);
+    const irIds = new Set(
+      [...selectedTeam.roster, ...(oppTeam?.roster ?? [])].filter((p) => p.slot === "IR").map((p) => p.id)
+    );
+    const currentWeek = leagueSchedule?.currentWeek ?? getRosCurrentWeek();
+    const fromWeek = currentWeek != null ? firstUnplayedWeek(nflScheduleSnap, currentWeek) : undefined;
+    return evaluateLineupImpact({
+      myRoster: effectiveMyTeamPlayers,
+      theirRoster: oppTeam ? oppTeam.roster.map(applyOverride) : null,
+      give,
+      get,
+      freeAgents,
+      irIds,
+      currentWeek,
+      fromWeek,
+      throughWeek: tradeHorizon === "week" && fromWeek != null ? fromWeek : leagueSchedule?.finalWeek,
+    });
+  }, [
+    tradePlayers,
+    tradeGive,
+    tradeGet,
+    tradeOpponentId,
+    effectiveAllLeaguePlayers,
+    allTeams,
+    liveFreeAgents,
+    applyOverride,
+    selectedTeam,
+    leagueSchedule?.currentWeek,
+    leagueSchedule?.finalWeek,
+    effectiveMyTeamPlayers,
+    tradeHorizon,
+    nflScheduleSnap,
+  ]);
+
   /** Raw package value for arbitrary id lists (completed trades) — never need-adjusted. */
   const tradeSideValue = useCallback(
     (list: number[]): number => {
@@ -1544,6 +1594,7 @@ export function useFantasyApp() {
     diff,
     diffPct,
     tradeRatio,
+    tradeLineupImpact,
     tradeStarGateViolation,
     toggleTradeList,
     // Value of an arbitrary package of player ids -- same curve as

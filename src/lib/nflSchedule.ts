@@ -213,3 +213,22 @@ export function resolveNflTeam(snap: NflScheduleSnapshot, query: string): NflTea
     ) ?? null
   );
 }
+
+/** How long after kickoff a game is treated as final. */
+const GAME_FINAL_AFTER_MS = 4 * 60 * 60 * 1000;
+
+/** The first week from `currentWeek` on that still has a game left to play.
+ * ESPN keeps reporting the just-finished week as current until Wednesday, so
+ * on a Tuesday "week 5" is already over -- simulating it again would count a
+ * week no trade can affect. Falls back to `currentWeek` when kickoff times
+ * are unknown. */
+export function firstUnplayedWeek(snap: NflScheduleSnapshot | null | undefined, currentWeek: number, now = Date.now()): number {
+  if (!snap) return currentWeek;
+  let lastKickoff = 0;
+  for (const team of Object.values(snap.teamsById)) {
+    const g = team.gamesByWeek[currentWeek];
+    if (g?.dateMs) lastKickoff = Math.max(lastKickoff, g.dateMs);
+  }
+  if (!lastKickoff) return currentWeek;
+  return now > lastKickoff + GAME_FINAL_AFTER_MS ? currentWeek + 1 : currentWeek;
+}

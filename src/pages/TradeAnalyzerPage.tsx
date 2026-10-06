@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, Plus, ShieldAlert, TrendingDown, TrendingUp, X } from "lucide-react";
 import { HowItWorks } from "../components/HowItWorks";
+import { LineupImpactPanel } from "../components/LineupImpactPanel";
 import { MarketCheckBadge } from "../components/MarketCheckBadge";
 import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
@@ -172,6 +173,7 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
     getVal,
     diff,
     tradeRatio,
+    tradeLineupImpact,
     playerById,
     tradeValueOf,
     toggleTradeList,
@@ -289,6 +291,11 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
                   : "This week: each player's value for this week only, from consensus projections (ESPN, Sleeper, and DraftKings yardage props when posted)."}{" "}
                 Elite players are worth more than their raw points suggest, and each extra player in a package is discounted — you can't out-total a stud
                 with role players. Side totals therefore often won't equal the sum of the chips.
+              </p>
+              <p>
+                Starting-lineup impact is the team-specific half: it replays every remaining fantasy week (through the championship, week 17) for
+                both rosters with and without the trade — byes, the player you'd have to cut to make room, streaming free agents into empty slots, and who'd
+                actually start. A trade can win on value and still not help the lineup you'd field, or vice versa.
               </p>
               <p>
                 The market badge is FantasyCalc alone (real redraft trades). It can disagree with the app's ratio — that's intentional; managers often see the
@@ -460,6 +467,13 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
                   <span>You get {getVal.toFixed(1)}</span>
                 </div>
               </div>
+            )}
+            {tradeLineupImpact && (
+              <LineupImpactPanel
+                impact={tradeLineupImpact}
+                ratio={tradeRatio}
+                theirName={opponent?.name ?? effectiveAllLeaguePlayers.find((p) => tradeGet.includes(p.id))?.fantasyTeamName ?? null}
+              />
             )}
           </div>
           );

@@ -84,9 +84,19 @@ export const POINTS_WEIGHT = 0.45;
  * use remainingRosWeeks() in lib/rosHorizon.ts instead. */
 export const ROS_WEEKS = 16;
 
-/** Default last fantasy-relevant NFL week for remaining-ROS counts (regular
- * season through week 18 on ESPN/Sleeper calendars). */
-export const ROS_HORIZON_THROUGH_WEEK = 18;
+/** Last week that counts for fantasy -- this league's championship week
+ * (ESPN status.finalScoringPeriod: 14 regular-season weeks + 3 playoff
+ * rounds = week 17). NOT the NFL's last week (18): week 18 games score
+ * nothing in this league, so counting them handed every player a phantom
+ * game of rest-of-season value and skewed comparisons between players whose
+ * byes had / hadn't passed. A live ESPN sync overrides this via
+ * setRosHorizon when the league reports its own final period. */
+export const ROS_HORIZON_THROUGH_WEEK = 17;
+
+/** First fantasy-playoff week (regular season is matchupPeriodCount = 14
+ * weeks). Lineup-impact reports a separate playoff-weeks number from here on,
+ * since a contender's trade is really judged by who starts weeks 15-17. */
+export const FANTASY_PLAYOFF_START_WEEK = 15;
 
 /** Season-outlook multiplier for current injury status. Questionable barely
  * dents a multi-week outlook; Out / IR imply real missed-time risk. IR is

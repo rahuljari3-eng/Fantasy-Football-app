@@ -467,7 +467,9 @@ export async function syncLiveRosters(knownPlayers: Player[]): Promise<LiveLeagu
     (p) => !rosteredIds.has(p.id)
   );
 
-  setRosHorizon(scoringPeriodId, schedule.maxWeek);
+  // Through the league's championship week (config default), not the NFL's
+  // last week -- week 18 games score nothing in this league.
+  setRosHorizon(scoringPeriodId);
   const easedPool = applyScheduleEase([...teams.flatMap((t) => t.roster), ...freeAgents], {
     schedule,
     currentWeek: scoringPeriodId,

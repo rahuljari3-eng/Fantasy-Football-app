@@ -3,6 +3,7 @@
 // lib/espn.ts, so no backend proxy is needed here either. Powers the League
 // tab's Standings and Playoff Race views.
 import { ESPN_LEAGUE_BASE_URL } from "../config/league.js";
+import { ROS_HORIZON_THROUGH_WEEK } from "../config/scoring.js";
 import { ALL_TEAMS } from "../data/allTeams.js";
 
 interface EspnMember {
@@ -43,7 +44,7 @@ interface EspnScheduleEntry {
 }
 
 interface EspnLeaguePayload {
-  status?: { currentMatchupPeriod?: number };
+  status?: { currentMatchupPeriod?: number; finalScoringPeriod?: number };
   settings?: { scheduleSettings?: { matchupPeriodCount?: number; playoffTeamCount?: number } };
   teams?: EspnTeam[];
   members?: EspnMember[];
@@ -79,6 +80,9 @@ export interface LeagueScheduleSnapshot {
   fetchedAt: number;
   currentWeek: number;
   regularSeasonWeeks: number;
+  /** The league's championship week (ESPN status.finalScoringPeriod) --
+   * where rest-of-season valuation stops counting games. */
+  finalWeek: number;
   playoffTeamCount: number;
   standings: StandingRow[];
   schedule: ScheduledMatchup[];
@@ -147,6 +151,7 @@ export async function fetchLeagueScheduleSnapshot(): Promise<LeagueScheduleSnaps
     fetchedAt: Date.now(),
     currentWeek: data.status?.currentMatchupPeriod ?? 1,
     regularSeasonWeeks,
+    finalWeek: data.status?.finalScoringPeriod ?? ROS_HORIZON_THROUGH_WEEK,
     playoffTeamCount: data.settings?.scheduleSettings?.playoffTeamCount ?? 6,
     standings,
     schedule,
