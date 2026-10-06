@@ -4,6 +4,7 @@ import { PosBadge } from "../components/PosBadge";
 import { StatusIndicator } from "../components/StatusIndicator";
 import { PlayerNameLink } from "../components/PlayerNameLink";
 import { BoomBustBadge } from "../components/BoomBustBadge";
+import { MatchupBadge } from "../components/MatchupBadge";
 import { AddPlayerActions } from "../components/AddPlayerActions";
 import { InactiveToggle } from "../components/InactiveToggle";
 import { SearchInput } from "../components/SearchInput";
@@ -27,6 +28,7 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
     addToBench,
     playerHasNews,
     openPlayerNews,
+    matchupForPlayer,
   } = app;
 
   return (
@@ -59,10 +61,11 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
                         onOpen={() => openPlayerNews(p.id)}
                         className="text-sm font-medium truncate"
                       />
-                      <div className="text-[11px] text-[#98989D] flex items-center gap-1.5">
+                      <div className="text-[11px] text-[#98989D] flex items-center gap-1.5 flex-wrap">
                         <span>
                           {p.team} · bye {p.bye}
                         </span>
+                        <MatchupBadge matchup={matchupForPlayer(p)} />
                         <BoomBustBadge player={p} />
                     <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                       </div>
@@ -96,10 +99,11 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
                     onOpen={() => openPlayerNews(p.id)}
                     className="text-sm font-medium truncate"
                   />
-                  <div className="text-[11px] text-[#98989D] flex items-center gap-1.5">
+                  <div className="text-[11px] text-[#98989D] flex items-center gap-1.5 flex-wrap">
                     <span>
                       {p.team} · bye {p.bye}
                     </span>
+                    <MatchupBadge matchup={matchupForPlayer(p)} />
                     <BoomBustBadge player={p} />
                   </div>
                 </div>
@@ -152,10 +156,11 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
                     onOpen={() => openPlayerNews(p.id)}
                     className="text-sm font-medium truncate"
                   />
-                  <div className="text-[11px] text-[#98989D] flex items-center gap-1.5">
+                  <div className="text-[11px] text-[#98989D] flex items-center gap-1.5 flex-wrap">
                     <span>
                       {p.team} · bye {p.bye}
                     </span>
+                    <MatchupBadge matchup={matchupForPlayer(p)} />
                     <BoomBustBadge player={p} />
                     <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                   </div>

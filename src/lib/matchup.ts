@@ -13,7 +13,7 @@
 // in the season's early weeks there isn't enough of a sample for "yards
 // allowed to RBs" to mean anything, whereas the market already prices in
 // opponent strength, injuries, and expected usage for this specific week.
-import { ESPN_LEAGUE_BASE_URL } from "../config/league.js";
+import { ESPN_LEAGUE_BASE_URL, LEAGUE_CONFIG } from "../config/league.js";
 import type { MatchupGrade, Player, PlayerMatchup, Position } from "../types.js";
 
 const SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
@@ -21,6 +21,7 @@ const CORE_API_BASE = "https://sports.core.api.espn.com/v2/sports/football/leagu
 // DraftKings -- same provider id used for the team-total odds on the
 // scoreboard, so the two signals are at least internally consistent.
 const ODDS_PROVIDER_ID = "100";
+const REGULAR_SEASON_WEEKS = 18;
 
 interface EspnOdds {
   spread?: number;
@@ -45,6 +46,7 @@ interface EspnEvent {
 }
 interface EspnScoreboardResponse {
   week?: { number?: number };
+  season?: { year?: number; type?: number };
   events?: EspnEvent[];
 }
 
@@ -188,27 +190,31 @@ async function fetchGameOdds(eventId: string): Promise<EspnOdds | undefined> {
  * `week`, ESPN's scoreboard defaults to "this week" based on today's date;
  * pass `week` (and `season`) to pull a past week's closing lines instead. */
 export async function fetchWeeklyMatchups(options: { week?: number; season?: number } = {}): Promise<WeeklyMatchups> {
-  const url = options.week != null ? `${SCOREBOARD_URL}?week=${options.week}&seasontype=2&dates=${options.season ?? ""}` : SCOREBOARD_URL;
-  const [res, periodRes] = await Promise.all([
-    fetch(url, { headers: { Accept: "application/json" } }),
+  const scoreboardUrl = (week?: number, season?: number) =>
+    week != null ? `${SCOREBOARD_URL}?week=${week}&seasontype=2&dates=${season ?? ""}` : SCOREBOARD_URL;
+  const fetchScoreboard = async (week?: number, season?: number) => {
+    const res = await fetch(scoreboardUrl(week, season), { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error(`ESPN scoreboard request failed (${res.status})`);
+    return (await res.json()) as EspnScoreboardResponse;
+  };
+  const [initial, periodRes] = await Promise.all([
+    fetchScoreboard(options.week, options.season),
     // Cross-checked against the FANTASY side's own current scoring period --
-    // see scoreboardIsStale below. Best-effort: if this fails, just skip the
+    // see the rollover logic below. Best-effort: if this fails, just skip the
     // cross-check rather than blocking the whole matchup refresh over it.
-    fetch(`${ESPN_LEAGUE_BASE_URL}?view=mTeam`, { headers: { Accept: "application/json" } }).catch(() => null),
+    options.week == null
+      ? fetch(`${ESPN_LEAGUE_BASE_URL}?view=mTeam`, { headers: { Accept: "application/json" } }).catch(() => null)
+      : null,
   ]);
-  if (!res.ok) throw new Error(`ESPN scoreboard request failed (${res.status})`);
-  const data = (await res.json()) as EspnScoreboardResponse;
+  let data = initial;
 
   // This NFL scoreboard and the fantasy scoring period are two independent
-  // ESPN systems that don't necessarily roll over to a new week at the same
-  // moment -- confirmed live: the scoreboard kept reporting last week's now-
-  // FINAL games as "this week" for a stretch after the fantasy scoring
-  // period had already advanced to the new one. When that's happening, none
-  // of this response's "post" game states are actually about the current
-  // fantasy week -- trusting them would lock every player in (and surface
-  // last week's final score instead of this week's projection) before this
-  // week's real games have even happened. Force every team to "pre" in that
-  // window instead; it self-corrects the moment the scoreboard catches up.
+  // ESPN systems that don't roll over to a new week at the same moment --
+  // confirmed live: the scoreboard keeps reporting last week's now-FINAL
+  // games as "this week" until midweek. Showing those would list every
+  // player against the team they already played (and lock every slot).
+  // Roll forward to the real upcoming week when either the fantasy period
+  // has already advanced, or every game on the board is final.
   let currentFantasyPeriod: number | null = null;
   if (periodRes?.ok) {
     try {
@@ -218,8 +224,25 @@ export async function fetchWeeklyMatchups(options: { week?: number; season?: num
       // Malformed response -- skip the cross-check, same as a failed fetch.
     }
   }
-  const scoreboardIsStale =
-    options.week == null && currentFantasyPeriod != null && data.week?.number != null && data.week.number !== currentFantasyPeriod;
+  const boardWeek = data.week?.number ?? null;
+  let scoreboardIsStale = false;
+  if (options.week == null && boardWeek != null) {
+    const boardEvents = data.events || [];
+    const weekIsOver = boardEvents.length > 0 && boardEvents.every((ev) => normalizeGameState(ev.status?.type?.state) === "post");
+    let target: number | null = null;
+    if (currentFantasyPeriod != null && currentFantasyPeriod > boardWeek) target = currentFantasyPeriod;
+    else if (weekIsOver && boardWeek < REGULAR_SEASON_WEEKS) target = boardWeek + 1;
+    if (target != null) {
+      const season = data.season?.year ?? LEAGUE_CONFIG.espnSeason;
+      try {
+        data = await fetchScoreboard(target, season);
+      } catch {
+        // Couldn't load the upcoming week -- keep last week's board but don't
+        // let its final games lock anyone in (state forced to "pre" below).
+        scoreboardIsStale = true;
+      }
+    }
+  }
 
   const teams: Record<string, TeamMatchup> = {};
   const eventIds: string[] = [];
