@@ -3,13 +3,34 @@ import type { Position } from "../types.js";
 
 /** PACKAGE VALUE: a side of a trade is NOT the sum of its players. The single
  * best player counts in full; every ADDITIONAL player contributes only its
- * ABOVE-REPLACEMENT portion (value minus VOR_BASELINE), and that portion is
+ * ABOVE-REPLACEMENT portion (value minus PACKAGE_REPLACEMENT_VALUE -- the
+ * roster spot he takes could hold a waiver pickup), and that portion is
  * discounted compounding by EXTRA_PIECE_DISCOUNT per step (2nd piece x d, 3rd
- * piece x d**2, ...). Consequences: bundling replacement-level bodies adds
- * almost nothing, and you can't out-total one stud by stacking role players --
- * which is exactly how real fantasy trades work. Lower d = harsher on
- * quantity; ~0.3-0.5 is sane. */
-export const EXTRA_PIECE_DISCOUNT = 0.4;
+ * piece x d**2, ...). Bundling replacement-level bodies still adds nothing.
+ *
+ * Fit to real accepted redraft trades (src/data/marketTrades.json, scored by
+ * scripts/fitTradeValue.ts): managers who said yes valued second and third
+ * pieces far more than the old 0.4 / floor-40 setting assumed -- that setting
+ * called the side sending more players short-changed in trade after trade
+ * both managers were happy with. 0.85 with a floor of 25 fit best on every
+ * slice of the data (all trades, each half, uneven-count trades alone); the
+ * star gate below still blocks "a stud for a pile of role players". */
+export const EXTRA_PIECE_DISCOUNT = 0.85;
+
+/** The qualityScore of a freely available replacement -- roughly what the
+ * best healthy free agents score in this league. A package's extra pieces
+ * only count above this (see EXTRA_PIECE_DISCOUNT); rest-of-season pricing
+ * multiplies it by the remaining weeks (rosPackageFloor). */
+export const PACKAGE_REPLACEMENT_VALUE = 25;
+
+/** A package's second (third, ...) QB or TE only counts this fraction of what
+ * an extra piece normally would: this league starts one of each, so the
+ * extra one mostly sits on the bench (QB never flexes; a TE2 almost never
+ * does). Without it, the higher EXTRA_PIECE_DISCOUNT made "two QBs for a
+ * starter" look fair. None of the real accepted trades in
+ * src/data/marketTrades.json sends two QBs or two TEs on one side. */
+export const DUPLICATE_SINGLE_SLOT_DISCOUNT = 0.3;
+export const SINGLE_SLOT_POSITIONS: Position[] = ["QB", "TE", "DST", "K"];
 
 /** FAIRNESS RATIO window: a trade's fairness is (value you get) / (value you
  * give), after the package discount and team-need adjustment. The Coach only

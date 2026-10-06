@@ -48,6 +48,13 @@ jobs:
       - run: npm run record:projections
         continue-on-error: true
 
+      # Real accepted redraft trades from FantasyCalc's public feed, the
+      # yardstick the trade-value model is fit against (scripts/
+      # recordMarketTrades.ts, scripts/fitTradeValue.ts). The feed only keeps
+      # the last ~2 hours, so it's recorded every run. Best-effort.
+      - run: npm run record:trades
+        continue-on-error: true
+
       # Refit the boom/bust formula's tunables from every finished game
       # (scripts/fitBoomBust.ts) -- how the odds learn as the season goes.
       - run: npm run fit:boombust
@@ -67,6 +74,6 @@ jobs:
             echo "No roster changes since last sync."
             exit 0
           fi
-          git add src/data/leagueTeams.ts src/data/myTeam.ts src/data/freeAgents.ts src/data/projectionHistory.json src/data/vegasHistory.json src/data/vegasValues.ts src/data/boomBustModel.json src/data/projectionModel.json src/data/roleHistory.json
+          git add src/data/leagueTeams.ts src/data/myTeam.ts src/data/freeAgents.ts src/data/projectionHistory.json src/data/vegasHistory.json src/data/vegasValues.ts src/data/boomBustModel.json src/data/projectionModel.json src/data/roleHistory.json src/data/marketTrades.json
           git commit -m "Sync league snapshot and projection history from ESPN [automated]"
           git push

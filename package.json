@@ -15,7 +15,9 @@
     "record:projections": "node --import tsx scripts/recordProjections.ts",
     "build:boombust": "node --import tsx scripts/buildBoomBustHistory.ts",
     "fit:boombust": "node --import tsx scripts/fitBoomBust.ts",
-    "fit:projections": "node --import tsx scripts/fitProjections.ts"
+    "fit:projections": "node --import tsx scripts/fitProjections.ts",
+    "record:trades": "node --import tsx scripts/recordMarketTrades.ts",
+    "fit:trades": "node --import tsx scripts/fitTradeValue.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",

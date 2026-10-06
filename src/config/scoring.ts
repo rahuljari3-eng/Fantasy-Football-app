@@ -194,6 +194,16 @@ export const MARKET_VALUE_WEIGHT = 0.65;
  * MIN market-valued players, and clamped so a thin or odd market day can
  * never rescale a position by more than this. */
 export const MARKET_CALIBRATION_MIN_PLAYERS = 8;
+
+/** How the trade market's VALUES (not just its order) map onto the model's
+ * scale: marketQuality = low + (high - low) * (value / topValue) ^ this,
+ * where high/low are the model's values for the best and worst player the
+ * market prices. Using the market's real gaps -- a WR24 trades for under
+ * half a WR1, a rank-100 player for a tenth of the top one -- instead of
+ * pinning each player to the model's value at the same rank cut the error
+ * against real accepted trades by ~10% (scripts/fitTradeValue.ts). Below 1
+ * softens the market's steep top end (0.6-0.7 fit best; 0.9+ clearly worse). */
+export const MARKET_VALUE_EXPONENT = 0.7;
 export const MARKET_CALIBRATION_MIN = 0.5;
 export const MARKET_CALIBRATION_MAX = 1.5;
 

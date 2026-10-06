@@ -13,6 +13,7 @@ import {
   COACH_MIN_TWO_FOR_TWO,
   FAIR_RATIO_MAX,
   FAIR_RATIO_MIN,
+  SINGLE_SLOT_POSITIONS,
 } from "../config/trade.js";
 import { analyzeRosterNeeds } from "./rosterNeeds.js";
 import { playerValue, qualityScore } from "./scoring.js";
@@ -514,7 +515,15 @@ export function buildCoachPools(ctx: CoachContext): CoachPools {
     twoForTwoFallback: twoForTwoFallbackSuggestions(ctx),
   };
   const all = allPoolSuggestions(pools);
-  return filterPools(pools, (s) => !all.some((t) => dominates(t, s)));
+  return filterPools(pools, (s) => !stacksSingleSlot(s.give) && !stacksSingleSlot(s.get) && !all.some((t) => dominates(t, s)));
+}
+
+/** A side carrying two players at a position the league starts only one of
+ * (QB, TE, ...): the receiving team benches one of them, so however the
+ * package math prices it, nobody would suggest it -- and real managers
+ * essentially never send one (see DUPLICATE_SINGLE_SLOT_DISCOUNT). */
+function stacksSingleSlot(side: Player[]): boolean {
+  return SINGLE_SLOT_POSITIONS.some((pos) => side.filter((p) => p.pos === pos).length > 1);
 }
 
 /** True when `t` is strictly the better deal for you than `s` with the same

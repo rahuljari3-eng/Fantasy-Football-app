@@ -31,10 +31,12 @@ import {
   NEED_MULTIPLIER_NEUTRAL,
   NEED_BASELINE_FRACTION,
   NEED_HELP_MIN_GAIN,
+  PACKAGE_REPLACEMENT_VALUE,
+  DUPLICATE_SINGLE_SLOT_DISCOUNT,
+  SINGLE_SLOT_POSITIONS,
 } from "../config/trade.js";
 import { POSITIONS, REQUIRED_STARTERS } from "../config/league.js";
 import { analyzeRosterNeeds } from "./rosterNeeds.js";
-import { VOR_BASELINE } from "../config/scoring.js";
 import { playerValue, qualityScore, rosValue } from "./scoring.js";
 import { remainingRosWeeks } from "./rosHorizon.js";
 import type { Player, Position, RosterNeeds, TradeFit } from "../types.js";
@@ -78,7 +80,7 @@ export const ROS_PRICER: Pricer = {
 /** Replacement floor on the ROS-scaled value axis (no per-player bye — package
  * level). */
 export function rosPackageFloor(): number {
-  return VOR_BASELINE * remainingRosWeeks();
+  return PACKAGE_REPLACEMENT_VALUE * remainingRosWeeks();
 }
 
 /** Shared trade-label ladder: fair window first, then slightly-favors band
@@ -222,15 +224,24 @@ export type PositionBaseline = Record<Position, number>;
 /** Value of one whole side of a trade: best piece full, every extra piece only
  * its marginal (above-replacement) value, discounted compounding by
  * EXTRA_PIECE_DISCOUNT. Pass `floor` when the pricer is ROS-scaled
- * (use rosPackageFloor()); defaults to VOR_BASELINE for week/quality scales. */
-export function packageValue(players: Player[], pricer: Pricer, floor: number = VOR_BASELINE): number {
+ * (use rosPackageFloor()); defaults to PACKAGE_REPLACEMENT_VALUE for week/quality scales. */
+export function packageValue(players: Player[], pricer: Pricer, floor: number = PACKAGE_REPLACEMENT_VALUE): number {
   const sorted = [...players].sort((a, b) => pricer.value(b) - pricer.value(a));
   if (!sorted.length) return 0;
   let total = pricer.value(sorted[0]);
   for (let i = 1; i < sorted.length; i++) {
-    total += marginalValue(sorted[i], pricer, floor) * Math.pow(EXTRA_PIECE_DISCOUNT, i);
+    total += marginalValue(sorted[i], pricer, floor) * extraPieceWeight(sorted, i);
   }
   return total;
+}
+
+/** Weight of the i-th (0-based, i >= 1) piece of a value-sorted package:
+ * compounding EXTRA_PIECE_DISCOUNT, cut further when an earlier piece already
+ * fills the same single-starter position (a second QB or TE mostly sits). */
+function extraPieceWeight(sorted: Player[], i: number): number {
+  const p = sorted[i];
+  const duplicate = SINGLE_SLOT_POSITIONS.includes(p.pos) && sorted.slice(0, i).some((q) => q.pos === p.pos);
+  return Math.pow(EXTRA_PIECE_DISCOUNT, i) * (duplicate ? DUPLICATE_SINGLE_SLOT_DISCOUNT : 1);
 }
 
 /** (value you get) / (value you give). > 1 favors the receiving side, < 1
@@ -297,7 +308,7 @@ export function needAdjustedPackageValue(
   needs: RosterNeeds,
   baseline: PositionBaseline,
   pricer: Pricer,
-  floor: number = VOR_BASELINE
+  floor: number = PACKAGE_REPLACEMENT_VALUE
 ): number {
   const sorted = [...players].sort((a, b) => pricer.value(b) - pricer.value(a));
   if (!sorted.length) return 0;
@@ -305,7 +316,7 @@ export function needAdjustedPackageValue(
   for (let i = 1; i < sorted.length; i++) {
     total +=
       marginalValue(sorted[i], pricer, floor) *
-      Math.pow(EXTRA_PIECE_DISCOUNT, i) *
+      extraPieceWeight(sorted, i) *
       needFactor(needs, baseline, sorted[i], pricer);
   }
   return total;

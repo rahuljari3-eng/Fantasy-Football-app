@@ -32,6 +32,7 @@ import {
   CONSENSUS_ACTUAL_MAX_WEIGHT,
   CONSENSUS_SEASON_WEIGHTS,
   MARKET_CALIBRATION_MAX,
+  MARKET_VALUE_EXPONENT,
   MARKET_CALIBRATION_MIN,
   MARKET_CALIBRATION_MIN_PLAYERS,
   SLEEPER_ROS_WEEKS,
@@ -505,11 +506,11 @@ export function consensusFor(
 
 /** Stamp the pool-relative fields every valuation needs, over a whole player
  * pool (all rosters + free agents): posRank (this week's projection),
- * seasonPosRank (season projection), and marketQuality -- the pool ordered by
- * trade-market value across ALL positions, each player assigned the
- * projection model's value at that same overall rank. That keeps the market
- * on qualityScore's scale while letting it decide who's worth more than whom,
- * including across positions. Shared by the app (hooks/useFantasyApp.ts) and
+ * seasonPosRank (season projection), and marketQuality -- each player's
+ * trade-market value, across ALL positions, mapped onto the projection
+ * model's value range with the market's own proportions intact. That keeps
+ * the market on qualityScore's scale while letting it decide both who's worth
+ * more than whom (including across positions) and by how much. Shared by the app (hooks/useFantasyApp.ts) and
  * Roster Sensei (server/agent/tools/leagueData.ts) so both price identically. */
 export function rankPlayerPool<P extends Player>(pool: P[]): P[] {
   const weekRank = new Map<number, number>();
@@ -533,11 +534,21 @@ export function rankPlayerPool<P extends Player>(pool: P[]): P[] {
   ranked.forEach((p) => {
     if (p.marketValue != null && !valued.has(p.id)) valued.set(p.id, p);
   });
+  // The market's own value gaps, placed on the model's scale: the best
+  // market-valued player gets the model's top value, the least-valued one
+  // the model's bottom value, and everyone between keeps the market's
+  // proportions (see MARKET_VALUE_EXPONENT).
   const modelValues = [...valued.values()].map(seasonModelValue).sort((a, b) => b - a);
   const marketQuality = new Map<number, number>();
-  [...valued.values()]
-    .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
-    .forEach((p, i) => marketQuality.set(p.id, modelValues[i]));
+  const topMarket = Math.max(0, ...[...valued.values()].map((p) => p.marketValue ?? 0));
+  const high = modelValues[0] ?? 0;
+  const low = modelValues[modelValues.length - 1] ?? 0;
+  if (topMarket > 0) {
+    valued.forEach((p) => {
+      const share = Math.max(0, p.marketValue ?? 0) / topMarket;
+      marketQuality.set(p.id, low + (high - low) * Math.pow(share, MARKET_VALUE_EXPONENT));
+    });
+  }
 
   // Per-position calibration of the projection model itself: the median of
   // (market value / model value) among players the market values. The model
