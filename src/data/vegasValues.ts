@@ -4,7 +4,7 @@ import type { VegasSeasonValue } from "../lib/bettingValue.js";
 
 export const VEGAS_VALUES: Record<number, VegasSeasonValue> = {
   8439: { pts: 14.7, weeks: 5 },
-  12483: { pts: 16.7, weeks: 5 },
+  12483: { pts: 16.6, weeks: 5 },
   14880: { pts: 14.7, weeks: 5 },
   15168: { pts: 9.3, weeks: 1 },
   15818: { pts: 8.1, weeks: 4 },
@@ -72,7 +72,7 @@ export const VEGAS_VALUES: Record<number, VegasSeasonValue> = {
   3917315: { pts: 17.4, weeks: 4 },
   3917792: { pts: 15.9, weeks: 5 },
   3917914: { pts: 3.1, weeks: 4 },
-  3918298: { pts: 23.3, weeks: 5 },
+  3918298: { pts: 23.2, weeks: 5 },
   3921690: { pts: 3, weeks: 3 },
   3924327: { pts: 15.6, weeks: 1 },
   3925357: { pts: 3.9, weeks: 5 },
@@ -81,7 +81,7 @@ export const VEGAS_VALUES: Record<number, VegasSeasonValue> = {
   3930086: { pts: 3.8, weeks: 5 },
   4032473: { pts: 7.1, weeks: 5 },
   4035538: { pts: 14, weeks: 5 },
-  4035671: { pts: 15.7, weeks: 1 },
+  4035671: { pts: 15.8, weeks: 1 },
   4035687: { pts: 8.4, weeks: 3 },
   4036131: { pts: 4.2, weeks: 4 },
   4036133: { pts: 9.3, weeks: 5 },
