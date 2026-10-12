@@ -16,7 +16,7 @@ export const VEGAS_VALUES: Record<number, VegasSeasonValue> = {
   16800: { pts: 15.2, weeks: 5 },
   2531358: { pts: 0.2, weeks: 1 },
   2573079: { pts: 15.7, weeks: 1 },
-  2573401: { pts: 5.7, weeks: 4 },
+  2573401: { pts: 5.8, weeks: 4 },
   2576581: { pts: 1.7, weeks: 1 },
   2576925: { pts: 7.1, weeks: 4 },
   2576980: { pts: 14.7, weeks: 2 },
