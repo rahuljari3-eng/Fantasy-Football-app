@@ -1,5 +1,5 @@
 {
-  "fittedAt": "2026-10-06T09:58:39.615Z",
+  "fittedAt": "2026-10-13T09:10:40.511Z",
   "params": {
     "priorGames": 30,
     "lastSeasonWeight": 0.5,
@@ -9,8 +9,8 @@
     "shrink": 0.7
   },
   "backtest": {
-    "games": 695,
-    "brier": 0.13950624806161518,
-    "baseRateBrier": 0.14038071888709716
+    "games": 878,
+    "brier": 0.14188076282575665,
+    "baseRateBrier": 0.14252732485326908
   }
 }
