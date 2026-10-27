@@ -1,5 +1,5 @@
 {
-  "fittedAt": "2026-10-20T11:14:57.489Z",
+  "fittedAt": "2026-10-27T07:39:07.474Z",
   "params": {
     "sleeperShare": 0.5,
     "propWeight": 0.5,
@@ -8,7 +8,7 @@
       "QB": 1,
       "RB": 1,
       "WR": 1.025,
-      "TE": 1.025
+      "TE": 1
     },
     "questionableScale": 0.8,
     "roleWeight": 0,
@@ -16,19 +16,20 @@
   },
   "adopted": false,
   "backtest": {
-    "games": 931,
+    "games": 1118,
     "weeks": [
       2,
       3,
       4,
       5,
-      6
+      6,
+      7
     ],
-    "fittedRmse": 7.044573446106863,
-    "defaultRmse": 7.016515732061031,
-    "espnRmse": 7.047912596338603,
-    "fittedMae": 5.577228786251343,
-    "defaultMae": 5.548012889366269,
-    "espnMae": 5.672502685284641
+    "fittedRmse": 6.97646760036129,
+    "defaultRmse": 6.9503954148078835,
+    "espnRmse": 6.994285937690518,
+    "fittedMae": 5.538550983899825,
+    "defaultMae": 5.505187835420392,
+    "espnMae": 5.635241502683366
   }
 }

@@ -23590,7 +23590,7 @@
    "8439": {
     "espn": 19.5,
     "custom": 18.5,
-    "actual": null,
+    "actual": 13.1,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 17.04,
@@ -23601,12 +23601,13 @@
     "bust": 0.089,
     "boomAt": 22.7,
     "bustAt": 7.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "12483": {
     "espn": 18.6,
     "custom": 18,
-    "actual": null,
+    "actual": 17.5,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 17.35,
@@ -23617,12 +23618,13 @@
     "bust": 0.14,
     "boomAt": 26.1,
     "bustAt": 9.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "14880": {
     "espn": 16.4,
     "custom": 16.3,
-    "actual": null,
+    "actual": 20.4,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 15.79,
@@ -23633,12 +23635,13 @@
     "bust": 0.15,
     "boomAt": 23.2,
     "bustAt": 8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "15818": {
     "espn": 9,
     "custom": 9.2,
-    "actual": null,
+    "actual": 6.1,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 9.32,
@@ -23649,12 +23652,13 @@
     "bust": 0.209,
     "boomAt": 16.8,
     "bustAt": 3.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.52
    },
    "15847": {
     "espn": 10.1,
     "custom": 10.3,
-    "actual": null,
+    "actual": 8.4,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 12.15,
@@ -23665,12 +23669,13 @@
     "bust": 0.187,
     "boomAt": 18.3,
     "bustAt": 4.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.83
    },
    "15864": {
     "espn": 16,
     "custom": 14.8,
-    "actual": null,
+    "actual": 23.5,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 16.04,
@@ -23681,12 +23686,13 @@
     "bust": 0.189,
     "boomAt": 21.4,
     "bustAt": 6.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "16002": {
     "espn": 3.7,
     "custom": 3.7,
-    "actual": null,
+    "actual": 10.1,
     "status": "Healthy",
     "pos": "RB",
     "role": 0,
@@ -23696,7 +23702,7 @@
    "16731": {
     "espn": 6.3,
     "custom": 5.7,
-    "actual": null,
+    "actual": 2.3,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 8,
@@ -23707,32 +23713,35 @@
     "bust": 0.16,
     "boomAt": 10.9,
     "bustAt": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.68
    },
    "16737": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "WR",
     "role": 0,
     "rz": 0.321,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "2515270": {
     "espn": 0.4,
     "custom": 0.4,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "RB",
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false
    },
    "2573401": {
     "espn": 7.4,
     "custom": 8.3,
-    "actual": null,
+    "actual": 3.4,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 9.72,
@@ -23743,12 +23752,13 @@
     "bust": 0.088,
     "boomAt": 11.8,
     "bustAt": 0.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.74
    },
    "2576925": {
     "espn": 5.8,
     "custom": 6.1,
-    "actual": null,
+    "actual": 12,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 7.57,
@@ -23759,12 +23769,13 @@
     "bust": 0.241,
     "boomAt": 13.1,
     "bustAt": 1.5,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.45
    },
    "2577417": {
     "espn": 16.7,
     "custom": 16.9,
-    "actual": null,
+    "actual": 23.3,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 15.9,
@@ -23780,7 +23791,7 @@
    "2578570": {
     "espn": 14.2,
     "custom": 15.3,
-    "actual": null,
+    "actual": 16.5,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 13.92,
@@ -23791,34 +23802,39 @@
     "bust": 0.153,
     "boomAt": 22.7,
     "bustAt": 7.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "2580216": {
     "espn": 0.1,
     "custom": 0.2,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.25,
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0
    },
    "2971281": {
     "espn": 1.3,
     "custom": 1,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 0.61,
     "role": 0,
     "rz": -0.031,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.24
    },
    "2973405": {
     "espn": 5.3,
     "custom": 5.5,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 7,
@@ -23829,33 +23845,37 @@
     "bust": 0.296,
     "boomAt": 14.1,
     "bustAt": 2.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.7
    },
    "2975417": {
     "espn": 0.5,
     "custom": 0.5,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "RB",
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false
    },
    "2975863": {
     "espn": 1.4,
     "custom": 1.5,
-    "actual": null,
+    "actual": 2.7,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.6,
     "role": 0,
     "rz": 0.114,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.32
    },
    "2977187": {
     "espn": 6.4,
     "custom": 6,
-    "actual": null,
+    "actual": 4,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 6.99,
@@ -23866,12 +23886,13 @@
     "bust": 0.205,
     "boomAt": 12.9,
     "bustAt": 1.3,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.65
    },
    "2983509": {
     "espn": 6.1,
     "custom": 6.2,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 6.25,
@@ -23881,23 +23902,27 @@
     "bust": 0.162,
     "boomAt": 11.8,
     "bustAt": 0.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.11
    },
    "2998565": {
     "espn": 2.8,
     "custom": 2.1,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.49,
     "role": 0,
     "rz": 0.054,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.67
    },
    "3040151": {
     "espn": 16.7,
     "custom": 16.5,
-    "actual": null,
+    "actual": 14.8,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 17.06,
@@ -23908,12 +23933,13 @@
     "bust": 0.099,
     "boomAt": 21.4,
     "bustAt": 6.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.91
    },
    "3042519": {
     "espn": 12.3,
     "custom": 10.3,
-    "actual": null,
+    "actual": 3.6,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 12.78,
@@ -23924,12 +23950,14 @@
     "bust": 0.23,
     "boomAt": 19.9,
     "bustAt": 5.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "injuredAt": 0.79,
+    "snapShare": 0.25
    },
    "3043078": {
     "espn": 18,
     "custom": 16.7,
-    "actual": null,
+    "actual": 5.9,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 16.65,
@@ -23940,24 +23968,26 @@
     "bust": 0.184,
     "boomAt": 25.5,
     "bustAt": 9.5,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.51
    },
    "3043275": {
     "espn": 2,
     "custom": 1.9,
-    "actual": null,
+    "actual": 4.1,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 3.45,
     "prop": -0.97,
     "role": 0,
     "rz": -0.011,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.42
    },
    "3045523": {
     "espn": 7.7,
     "custom": 7.6,
-    "actual": null,
+    "actual": 3.9,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 7.7,
@@ -23968,12 +23998,13 @@
     "bust": 0.147,
     "boomAt": 13.6,
     "bustAt": 1.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.56
    },
    "3046439": {
     "espn": 8.2,
     "custom": 7.9,
-    "actual": null,
+    "actual": 14.1,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 9.46,
@@ -23984,12 +24015,13 @@
     "bust": 0.194,
     "boomAt": 14.9,
     "bustAt": 2.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.76
    },
    "3046779": {
     "espn": 18.5,
     "custom": 18.1,
-    "actual": null,
+    "actual": 18,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 19.94,
@@ -24000,12 +24032,13 @@
     "bust": 0.177,
     "boomAt": 27.7,
     "bustAt": 10.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "3051876": {
     "espn": 5.7,
     "custom": 5.4,
-    "actual": null,
+    "actual": 1.2,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 5.76,
@@ -24016,35 +24049,38 @@
     "bust": 0.167,
     "boomAt": 11,
     "bustAt": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.39
    },
    "3051889": {
     "espn": 5.9,
     "custom": 4.8,
-    "actual": null,
+    "actual": 3.9,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 4.9,
     "prop": -0.64,
     "role": 0.06,
     "rz": 0.006,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.78
    },
    "3052096": {
     "espn": 2.7,
     "custom": 2.3,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.86,
     "role": 0,
     "rz": -0.094,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false
    },
    "3052587": {
     "espn": 15.1,
     "custom": 14.5,
-    "actual": null,
+    "actual": 6.7,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 15.32,
@@ -24055,23 +24091,25 @@
     "bust": 0.198,
     "boomAt": 22.9,
     "bustAt": 7.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.9
    },
    "3054212": {
     "espn": 2,
     "custom": 2.2,
-    "actual": null,
+    "actual": 1.9,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 2.32,
     "role": 0,
     "rz": 0.007,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.25
    },
    "3054850": {
     "espn": 8.2,
     "custom": 7.5,
-    "actual": null,
+    "actual": 13.2,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 7.54,
@@ -24082,12 +24120,13 @@
     "bust": 0.149,
     "boomAt": 12.4,
     "bustAt": 1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.56
    },
    "3116164": {
     "espn": 6.9,
     "custom": 6.4,
-    "actual": null,
+    "actual": 7.6,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 8.15,
@@ -24098,12 +24137,13 @@
     "bust": 0.21,
     "boomAt": 13.9,
     "bustAt": 1.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.38
    },
    "3116165": {
     "espn": 11.1,
     "custom": 10.8,
-    "actual": null,
+    "actual": 6.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 11.4,
@@ -24114,12 +24154,13 @@
     "bust": 0.097,
     "boomAt": 15.8,
     "bustAt": 3.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.73
    },
    "3116365": {
     "espn": 8.1,
     "custom": 8.1,
-    "actual": null,
+    "actual": 5.3,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 7.96,
@@ -24130,12 +24171,13 @@
     "bust": 0.214,
     "boomAt": 15.1,
     "bustAt": 2.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.57
    },
    "3116389": {
     "espn": 6.2,
     "custom": 6.9,
-    "actual": null,
+    "actual": 7.6,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 5.74,
@@ -24146,12 +24188,13 @@
     "bust": 0.114,
     "boomAt": 11.7,
     "bustAt": 0.5,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.23
    },
    "3117251": {
     "espn": 21.9,
     "custom": 22.5,
-    "actual": null,
+    "actual": 22,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 20.98,
@@ -24162,12 +24205,13 @@
     "bust": 0.095,
     "boomAt": 28.4,
     "bustAt": 11.4,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.52
    },
    "3117256": {
     "espn": 8.5,
     "custom": 7.7,
-    "actual": null,
+    "actual": 9.5,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 8.49,
@@ -24178,12 +24222,13 @@
     "bust": 0.192,
     "boomAt": 15.2,
     "bustAt": 2.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.57
    },
    "3121023": {
     "espn": 11.3,
     "custom": 11.8,
-    "actual": null,
+    "actual": 9.8,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 11.51,
@@ -24199,7 +24244,7 @@
    "3122840": {
     "espn": 14.2,
     "custom": 15.7,
-    "actual": null,
+    "actual": 18.2,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 14.28,
@@ -24210,23 +24255,25 @@
     "bust": 0.093,
     "boomAt": 20,
     "bustAt": 6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "3127310": {
     "espn": 2.4,
     "custom": 2.7,
-    "actual": null,
+    "actual": 10.4,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 3.09,
     "role": 0,
     "rz": 0.006,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.55
    },
    "3128429": {
     "espn": 8.9,
     "custom": 8.4,
-    "actual": null,
+    "actual": 7.5,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 9,
@@ -24237,23 +24284,26 @@
     "bust": 0.178,
     "boomAt": 14.2,
     "bustAt": 2.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.7
    },
    "3134353": {
     "espn": 1.5,
     "custom": 1.6,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 1.77,
     "role": 0,
     "rz": -0.123,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.12
    },
    "3139477": {
     "espn": 15.6,
     "custom": 15.6,
-    "actual": null,
+    "actual": 6,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 16.5,
@@ -24264,56 +24314,63 @@
     "bust": 0.273,
     "boomAt": 26.4,
     "bustAt": 10.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "3676833": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "WR",
     "role": 0,
     "rz": 0.211,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "3843945": {
     "espn": 3.9,
     "custom": 3.2,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 3.17,
     "prop": -0.3,
     "role": 0,
     "rz": 0.203,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.34
    },
    "3871102": {
     "espn": 2,
     "custom": 2,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.25
    },
    "3886598": {
     "espn": 2,
     "custom": 2.7,
-    "actual": null,
+    "actual": 5.4,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 5.73,
     "prop": -1.55,
     "role": -0.308,
     "rz": 0.07,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.56
    },
    "3895856": {
     "espn": 8,
     "custom": 6.8,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 7.03,
@@ -24324,24 +24381,28 @@
     "bust": 0.162,
     "boomAt": 12.3,
     "bustAt": 0.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.3
    },
    "3911853": {
     "espn": 1,
     "custom": 1.1,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.93,
     "prop": -0.75,
     "role": 0,
     "rz": -0.066,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.61
    },
    "3912547": {
     "espn": 12.9,
     "custom": 13.3,
-    "actual": null,
+    "actual": 14,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 15.23,
@@ -24352,12 +24413,13 @@
     "bust": 0.248,
     "boomAt": 21.5,
     "bustAt": 6.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "3915511": {
     "espn": 19.3,
     "custom": 18.8,
-    "actual": null,
+    "actual": 28.9,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 19.61,
@@ -24368,12 +24430,13 @@
     "bust": 0.179,
     "boomAt": 27.8,
     "bustAt": 11,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.94
    },
    "3916148": {
     "espn": 13.4,
     "custom": 13.1,
-    "actual": null,
+    "actual": 36.5,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 11.9,
@@ -24384,22 +24447,24 @@
     "bust": 0.073,
     "boomAt": 16.6,
     "bustAt": 3.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.75
    },
    "3916387": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "QB",
     "role": 0,
     "rz": 0.236,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "3917315": {
     "espn": 18,
     "custom": 17,
-    "actual": null,
+    "actual": 13.9,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 16.42,
@@ -24410,12 +24475,13 @@
     "bust": 0.135,
     "boomAt": 24.6,
     "bustAt": 9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "3917792": {
     "espn": 9.6,
     "custom": 10.1,
-    "actual": null,
+    "actual": 3.6,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 10.74,
@@ -24426,53 +24492,59 @@
     "bust": 0.256,
     "boomAt": 20.4,
     "bustAt": 6.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1.05
    },
    "3917914": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "WR",
     "role": 0,
     "rz": -0.136,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "3919510": {
     "espn": 0.1,
     "custom": 0.1,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.04
    },
    "3925357": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "WR",
     "role": 0,
     "rz": -0.005,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "3926231": {
     "espn": 4.1,
     "custom": 2.3,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.46,
     "role": 0,
     "rz": 0,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": false
    },
    "3929630": {
     "espn": 15.2,
     "custom": 13.3,
-    "actual": null,
+    "actual": 15.1,
     "status": "Questionable",
     "pos": "RB",
     "sleeper": 14.21,
@@ -24488,7 +24560,7 @@
    "3929645": {
     "espn": 8.7,
     "custom": 8.3,
-    "actual": null,
+    "actual": 1.7,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 10.3,
@@ -24499,12 +24571,13 @@
     "bust": 0.217,
     "boomAt": 16.9,
     "bustAt": 3.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.56
    },
    "4032473": {
     "espn": 7.9,
     "custom": 6.7,
-    "actual": null,
+    "actual": 2.1,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 5.93,
@@ -24515,53 +24588,58 @@
     "bust": 0.171,
     "boomAt": 13.1,
     "bustAt": 1.5,
-    "gameStatus": "Questionable"
+    "gameStatus": "Questionable",
+    "snapShare": 0.32
    },
    "4035020": {
     "espn": 0.9,
     "custom": 0.8,
-    "actual": null,
+    "actual": 2.2,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 0.74,
     "role": 0,
     "rz": -0.052,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.71
    },
    "4035537": {
     "espn": 0.2,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "RB",
     "role": 0,
     "rz": 0,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4035538": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "RB",
     "role": 0,
     "rz": -0.037,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4035656": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "WR",
     "role": 0,
     "rz": -0.054,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4035671": {
     "espn": 15.9,
     "custom": 14.7,
-    "actual": null,
+    "actual": 15.1,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 14.41,
@@ -24572,12 +24650,13 @@
     "bust": 0.083,
     "boomAt": 18.2,
     "bustAt": 4.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "4035693": {
     "espn": 3.1,
     "custom": 3.1,
-    "actual": null,
+    "actual": 0.8,
     "status": "Healthy",
     "pos": "RB",
     "role": 0,
@@ -24587,31 +24666,33 @@
    "4035886": {
     "espn": 4.2,
     "custom": 3.1,
-    "actual": null,
+    "actual": 3.8,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 3.48,
     "prop": -0.66,
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.16
    },
    "4036131": {
     "espn": 2.7,
     "custom": 3.3,
-    "actual": null,
+    "actual": 3.1,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 5.61,
     "prop": -0.91,
     "role": -0.035,
     "rz": 0.089,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.46
    },
    "4036133": {
     "espn": 10.5,
     "custom": 9.7,
-    "actual": null,
+    "actual": 13.5,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 10.05,
@@ -24622,12 +24703,13 @@
     "bust": 0.215,
     "boomAt": 17.2,
     "bustAt": 4.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.76
    },
    "4036378": {
     "espn": 19.6,
     "custom": 19.8,
-    "actual": null,
+    "actual": 17,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 19.83,
@@ -24638,12 +24720,13 @@
     "bust": 0.116,
     "boomAt": 25.8,
     "bustAt": 9.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "4038441": {
     "espn": 5.9,
     "custom": 6.6,
-    "actual": null,
+    "actual": 6.3,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 7.28,
@@ -24654,12 +24737,13 @@
     "bust": 0.121,
     "boomAt": 11.3,
     "bustAt": 0.3,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.46
    },
    "4038815": {
     "espn": 7.7,
     "custom": 7.6,
-    "actual": null,
+    "actual": 14.6,
     "status": "Questionable",
     "pos": "RB",
     "sleeper": 8.87,
@@ -24670,80 +24754,88 @@
     "bust": 0.169,
     "boomAt": 14.3,
     "bustAt": 2.3,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.44
    },
    "4039050": {
     "espn": 0.1,
     "custom": 0.1,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.18,
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0
    },
    "4039057": {
     "espn": 1.5,
     "custom": 1.7,
-    "actual": null,
+    "actual": 1.5,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 1.8,
     "role": 0,
     "rz": -0.041,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.25
    },
    "4040612": {
     "espn": 1.7,
     "custom": 1.8,
-    "actual": null,
+    "actual": 2.4,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.88,
     "role": 0,
     "rz": 0.041,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.39
    },
    "4040655": {
     "espn": 5.2,
     "custom": 4.2,
-    "actual": null,
+    "actual": 1.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 3.24,
     "prop": 0.01,
     "role": 0.153,
     "rz": -0.258,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.55
    },
    "4040761": {
     "espn": 4.3,
     "custom": 4.4,
-    "actual": null,
+    "actual": 14.5,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 4.24,
     "prop": 0.12,
     "role": 0.062,
     "rz": 0.001,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.29
    },
    "4045305": {
     "espn": 1.2,
     "custom": 0.9,
-    "actual": null,
+    "actual": 1.8,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 0.58,
     "role": 0,
     "rz": -0.066,
-    "gameStatus": "Questionable"
+    "gameStatus": "Questionable",
+    "snapShare": 0.26
    },
    "4047365": {
     "espn": 12.6,
     "custom": 12.2,
-    "actual": null,
+    "actual": 20.1,
     "status": "DAY_TO_DAY",
     "pos": "RB",
     "sleeper": 11.9,
@@ -24754,12 +24846,13 @@
     "bust": 0.237,
     "boomAt": 21.6,
     "bustAt": 7,
-    "gameStatus": "DAY_TO_DAY"
+    "gameStatus": "DAY_TO_DAY",
+    "snapShare": 0.52
    },
    "4047646": {
     "espn": 15.9,
     "custom": 14.4,
-    "actual": null,
+    "actual": 7.8,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 14.91,
@@ -24770,12 +24863,13 @@
     "bust": 0.16,
     "boomAt": 21.4,
     "bustAt": 6.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.91
    },
    "4047650": {
     "espn": 14.8,
     "custom": 13.8,
-    "actual": null,
+    "actual": 7.6,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 12.31,
@@ -24786,33 +24880,37 @@
     "bust": 0.099,
     "boomAt": 18.7,
     "bustAt": 5.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.92
    },
    "4061956": {
     "espn": 2.1,
     "custom": 1.3,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.43,
     "role": 0,
     "rz": -0.143,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.02
    },
    "4239934": {
     "espn": 3.3,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "RB",
     "role": 0,
     "rz": -0.23,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4239993": {
     "espn": 14.2,
     "custom": 13.3,
-    "actual": null,
+    "actual": 26.8,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 15.03,
@@ -24823,34 +24921,37 @@
     "bust": 0.214,
     "boomAt": 22.5,
     "bustAt": 7.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.87
    },
    "4240472": {
     "espn": 4,
     "custom": 4,
-    "actual": null,
+    "actual": 7.4,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 4.17,
     "prop": -0.1,
     "role": -0.073,
     "rz": 0.03,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.53
    },
    "4240577": {
     "espn": 3.7,
     "custom": 3.7,
-    "actual": null,
+    "actual": 4.4,
     "status": "Healthy",
     "pos": "WR",
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.45
    },
    "4241372": {
     "espn": 5.7,
     "custom": 5.7,
-    "actual": null,
+    "actual": 5,
     "status": "Healthy",
     "pos": "WR",
     "role": 0,
@@ -24864,7 +24965,7 @@
    "4241389": {
     "espn": 18.5,
     "custom": 17.5,
-    "actual": null,
+    "actual": 24.4,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 17.2,
@@ -24880,18 +24981,19 @@
    "4241410": {
     "espn": 1.6,
     "custom": 1.1,
-    "actual": null,
+    "actual": 0.9,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 0.6,
     "role": 0,
     "rz": -0.066,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.24
    },
    "4241416": {
     "espn": 14.5,
     "custom": 14.6,
-    "actual": null,
+    "actual": 10,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 16.26,
@@ -24902,32 +25004,36 @@
     "bust": 0.168,
     "boomAt": 23.7,
     "bustAt": 8.3,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.61
    },
    "4241424": {
     "espn": 0.9,
     "custom": 0.8,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.78,
     "role": 0,
     "rz": -0.018,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.16
    },
    "4241457": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "RB",
     "role": 0,
-    "rz": 0.215
+    "rz": 0.215,
+    "dnp": true
    },
    "4241463": {
     "espn": 5.9,
     "custom": 5.3,
-    "actual": null,
+    "actual": 6.1,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 3.11,
@@ -24938,54 +25044,59 @@
     "bust": 0.206,
     "boomAt": 11.3,
     "bustAt": 0.3,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.61
    },
    "4241474": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "RB",
     "role": 0,
     "rz": -0.44,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4241478": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "WR",
     "role": 0,
     "rz": -0.232,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4241961": {
     "espn": 0.3,
     "custom": 0.5,
-    "actual": null,
+    "actual": 2.3,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 0.65,
     "role": 0,
     "rz": -0.085,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.1
    },
    "4241983": {
     "espn": 3.7,
     "custom": 3.7,
-    "actual": null,
+    "actual": 1.4,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 3.64,
     "role": 0,
     "rz": 0.281,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.25
    },
    "4241985": {
     "espn": 13.4,
     "custom": 11.3,
-    "actual": null,
+    "actual": 8.3,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 9.94,
@@ -24996,12 +25107,13 @@
     "bust": 0.124,
     "boomAt": 16.3,
     "bustAt": 3.5,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.23
    },
    "4242335": {
     "espn": 15.2,
     "custom": 16.3,
-    "actual": null,
+    "actual": 19,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 17.48,
@@ -25012,12 +25124,13 @@
     "bust": 0.259,
     "boomAt": 28.3,
     "bustAt": 11.3,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.71
    },
    "4242355": {
     "espn": 5.9,
     "custom": 5.9,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 7.81,
@@ -25028,23 +25141,26 @@
     "bust": 0.234,
     "boomAt": 14,
     "bustAt": 2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false
    },
    "4242392": {
     "espn": 1.7,
     "custom": 1.8,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.85,
     "role": 0,
     "rz": 0.006,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.56
    },
    "4242512": {
     "espn": 12.8,
     "custom": 13.7,
-    "actual": null,
+    "actual": 26,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 14.76,
@@ -25055,12 +25171,13 @@
     "bust": 0.172,
     "boomAt": 21,
     "bustAt": 6.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "4242557": {
     "espn": 8.2,
     "custom": 7,
-    "actual": null,
+    "actual": 9.8,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 6.74,
@@ -25071,22 +25188,25 @@
     "bust": 0.098,
     "boomAt": 10.6,
     "bustAt": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.69
    },
    "4243176": {
     "espn": 0.4,
     "custom": 0.4,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "RB",
     "role": 0,
     "rz": -0.047,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.32
    },
    "4243331": {
     "espn": 7.9,
     "custom": 8.2,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 8.36,
@@ -25097,12 +25217,14 @@
     "bust": 0.128,
     "boomAt": 13.3,
     "bustAt": 1.5,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.89
    },
    "4248528": {
     "espn": 16.7,
     "custom": 17.4,
-    "actual": null,
+    "actual": 10.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 18.05,
@@ -25112,45 +25234,51 @@
     "bust": 0.133,
     "boomAt": 24.9,
     "bustAt": 9.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.81
    },
    "4249417": {
     "espn": 0.7,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "WR",
     "role": 0,
     "rz": 0.076,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4249836": {
     "espn": 3.9,
     "custom": 3.7,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 3.85,
     "prop": -0.19,
     "role": 0,
     "rz": 0.314,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.12
    },
    "4257188": {
     "espn": 2,
     "custom": 1.2,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.49,
     "role": 0,
     "rz": -0.053,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0
    },
    "4258173": {
     "espn": 16.7,
     "custom": 16.4,
-    "actual": null,
+    "actual": 2.6,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 17.21,
@@ -25161,35 +25289,39 @@
     "bust": 0.172,
     "boomAt": 24.7,
     "bustAt": 9.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.67
    },
    "4258595": {
     "espn": 3.1,
     "custom": 2.8,
-    "actual": null,
+    "actual": 5.8,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 4.15,
     "prop": -0.78,
     "role": 0,
     "rz": -0.05,
-    "gameStatus": "Questionable"
+    "gameStatus": "Questionable",
+    "injuredAt": 0.9,
+    "snapShare": 0.55
    },
    "4259305": {
     "espn": 2.3,
     "custom": 2,
-    "actual": null,
+    "actual": 1.4,
     "status": "Questionable",
     "pos": "WR",
     "sleeper": 1.62,
     "role": 0,
     "rz": -0.096,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.19
    },
    "4259545": {
     "espn": 16.3,
     "custom": 17.2,
-    "actual": null,
+    "actual": 19,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 15.79,
@@ -25200,12 +25332,13 @@
     "bust": 0.103,
     "boomAt": 23.2,
     "bustAt": 8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.86
    },
    "4262921": {
     "espn": 18.5,
     "custom": 17.2,
-    "actual": null,
+    "actual": 8.4,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 16.87,
@@ -25216,24 +25349,26 @@
     "bust": 0.17,
     "boomAt": 23.9,
     "bustAt": 8.5,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.93
    },
    "4360238": {
     "espn": 6.9,
     "custom": 4.5,
-    "actual": null,
+    "actual": 11.8,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 5.98,
     "prop": -1.86,
     "role": 0.425,
     "rz": -0.37,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "injuredAt": 0.86
    },
    "4360248": {
     "espn": 9.8,
     "custom": 9.3,
-    "actual": null,
+    "actual": 13.2,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 8.91,
@@ -25244,12 +25379,13 @@
     "bust": 0.119,
     "boomAt": 14.2,
     "bustAt": 2.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.55
    },
    "4360423": {
     "espn": 14.6,
     "custom": 14.7,
-    "actual": null,
+    "actual": 20.4,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 15.49,
@@ -25260,12 +25396,13 @@
     "bust": 0.163,
     "boomAt": 21.4,
     "bustAt": 6.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.99
    },
    "4360516": {
     "espn": 4.8,
     "custom": 5.6,
-    "actual": null,
+    "actual": 8.7,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 5.41,
@@ -25276,12 +25413,15 @@
     "bust": 0.224,
     "boomAt": 12,
     "bustAt": 0.8,
-    "gameStatus": "Questionable"
+    "gameStatus": "Questionable",
+    "injuredAt": 0.41,
+    "snapShare": 0.15,
+    "injuryExit": true
    },
    "4360569": {
     "espn": 10.3,
     "custom": 10.3,
-    "actual": null,
+    "actual": 6.8,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 9.68,
@@ -25292,12 +25432,13 @@
     "bust": 0.119,
     "boomAt": 15.7,
     "bustAt": 3.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.64
    },
    "4360689": {
     "espn": 15.3,
     "custom": 15.2,
-    "actual": null,
+    "actual": 13.8,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 15.85,
@@ -25308,12 +25449,13 @@
     "bust": 0.245,
     "boomAt": 26.1,
     "bustAt": 9.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "4360761": {
     "espn": 12.3,
     "custom": 11.6,
-    "actual": null,
+    "actual": 10.6,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 12.56,
@@ -25324,35 +25466,40 @@
     "bust": 0.185,
     "boomAt": 20.2,
     "bustAt": 6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.9
    },
    "4360763": {
     "espn": 4.4,
     "custom": 3.8,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 3.27,
     "role": 0,
     "rz": -0.123,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.38
    },
    "4360797": {
     "espn": 4.3,
     "custom": 2.8,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 2.11,
     "prop": -0.38,
     "role": 0,
     "rz": -0.061,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.35
    },
    "4360939": {
     "espn": 6.1,
     "custom": 5.1,
-    "actual": null,
+    "actual": 5.3,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 4.68,
@@ -25363,12 +25510,13 @@
     "bust": 0.271,
     "boomAt": 12,
     "bustAt": 0.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.73
    },
    "4360967": {
     "espn": 3.2,
     "custom": 3,
-    "actual": null,
+    "actual": 3.1,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 2.08,
@@ -25380,7 +25528,7 @@
    "4361050": {
     "espn": 14.3,
     "custom": 13.2,
-    "actual": null,
+    "actual": 3.2,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 12.72,
@@ -25391,12 +25539,13 @@
     "bust": 0.259,
     "boomAt": 23.2,
     "bustAt": 8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.86
    },
    "4361307": {
     "espn": 15.8,
     "custom": 16.5,
-    "actual": null,
+    "actual": 27.1,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 15.31,
@@ -25407,12 +25556,13 @@
     "bust": 0.136,
     "boomAt": 24.9,
     "bustAt": 9.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.93
    },
    "4361370": {
     "espn": 15.7,
     "custom": 15.1,
-    "actual": null,
+    "actual": 11.6,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 16.99,
@@ -25423,23 +25573,26 @@
     "bust": 0.206,
     "boomAt": 26,
     "bustAt": 9.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.77
    },
    "4361372": {
     "espn": 1,
     "custom": 1.9,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 2.76,
     "role": 0,
     "rz": -0.003,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.39
    },
    "4361409": {
     "espn": 7.7,
     "custom": 6.7,
-    "actual": null,
+    "actual": 1.6,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 5.62,
@@ -25450,12 +25603,13 @@
     "bust": 0.121,
     "boomAt": 11.4,
     "bustAt": 0.4,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.55
    },
    "4361411": {
     "espn": 10,
     "custom": 9.2,
-    "actual": null,
+    "actual": 4,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 9.88,
@@ -25466,23 +25620,25 @@
     "bust": 0.179,
     "boomAt": 15.7,
     "bustAt": 3.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.53
    },
    "4361516": {
     "espn": 2.8,
     "custom": 2.4,
-    "actual": null,
+    "actual": 1.4,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.98,
     "role": 0,
     "rz": -0.022,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.48
    },
    "4361579": {
     "espn": 16.8,
     "custom": 17.5,
-    "actual": null,
+    "actual": 21.5,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 17.66,
@@ -25498,7 +25654,7 @@
    "4361741": {
     "espn": 20.4,
     "custom": 18.9,
-    "actual": null,
+    "actual": 12,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 20.46,
@@ -25509,23 +25665,26 @@
     "bust": 0.177,
     "boomAt": 29.2,
     "bustAt": 12,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "4362018": {
     "espn": 1.3,
     "custom": 1.8,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 2.21,
     "role": 0,
     "rz": 0.054,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.31
    },
    "4362238": {
     "espn": 14.7,
     "custom": 13.7,
-    "actual": null,
+    "actual": 9.8,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 15.12,
@@ -25536,23 +25695,26 @@
     "bust": 0.213,
     "boomAt": 23.4,
     "bustAt": 8.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.75
    },
    "4362504": {
     "espn": 0.6,
     "custom": 0.5,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 0.44,
     "role": 0,
     "rz": -0.039,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.02
    },
    "4362523": {
     "espn": 7.6,
     "custom": 6.1,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 5.28,
@@ -25563,12 +25725,14 @@
     "bust": 0.167,
     "boomAt": 11.8,
     "bustAt": 0.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.36
    },
    "4362628": {
     "espn": 21.8,
     "custom": 20.8,
-    "actual": null,
+    "actual": 17.2,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 18.72,
@@ -25579,45 +25743,50 @@
     "bust": 0.13,
     "boomAt": 26.8,
     "bustAt": 10.4,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.87
    },
    "4362748": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "IR",
     "pos": "RB",
     "role": 0,
     "rz": -0.117,
-    "gameStatus": "IR"
+    "gameStatus": "IR",
+    "dnp": true
    },
    "4366031": {
     "espn": 2.3,
     "custom": 2.1,
-    "actual": null,
+    "actual": 5.5,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 1.95,
     "prop": 0.03,
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.23
    },
    "4366963": {
     "espn": 2.1,
     "custom": 1.3,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 0.4,
     "role": 0,
     "rz": -0.022,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0
    },
    "4367209": {
     "espn": 5.7,
     "custom": 5.3,
-    "actual": null,
+    "actual": 13.6,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 6.67,
@@ -25628,22 +25797,25 @@
     "bust": 0.202,
     "boomAt": 11.8,
     "bustAt": 0.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.65
    },
    "4369886": {
     "espn": 2.4,
     "custom": 2.4,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "role": 0,
     "rz": -0.041,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.26
    },
    "4371733": {
     "espn": 6.7,
     "custom": 6.1,
-    "actual": null,
+    "actual": 8.8,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 7.31,
@@ -25654,12 +25826,13 @@
     "bust": 0.176,
     "boomAt": 12.5,
     "bustAt": 1.1,
-    "gameStatus": "Questionable"
+    "gameStatus": "Questionable",
+    "snapShare": 0.3
    },
    "4372016": {
     "espn": 11.2,
     "custom": 11,
-    "actual": null,
+    "actual": 8.8,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 12.65,
@@ -25670,23 +25843,26 @@
     "bust": 0.203,
     "boomAt": 18.1,
     "bustAt": 4.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "injuredAt": 0.92,
+    "snapShare": 0.56
    },
    "4372096": {
     "espn": 0.6,
     "custom": 0.8,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 0.96,
     "role": 0,
     "rz": -0.047,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false
    },
    "4372414": {
     "espn": 5,
     "custom": 3.7,
-    "actual": null,
+    "actual": 3.6,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 4.57,
@@ -25698,41 +25874,46 @@
    "4372505": {
     "espn": 1,
     "custom": 1.1,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.18,
     "role": 0,
     "rz": -0.028,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.46
    },
    "4372716": {
     "espn": 0.1,
     "custom": 0.2,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.22,
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0
    },
    "4372780": {
     "espn": 5,
     "custom": 4.6,
-    "actual": null,
+    "actual": 1.8,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 4.48,
     "prop": -0.09,
     "role": 0.283,
     "rz": 0.001,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.48
    },
    "4373626": {
     "espn": 11.1,
     "custom": 10.1,
-    "actual": null,
+    "actual": 7.9,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 11.41,
@@ -25743,22 +25924,25 @@
     "bust": 0.073,
     "boomAt": 13.4,
     "bustAt": 1.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.47
    },
    "4374045": {
     "espn": 0.6,
     "custom": 0.6,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "role": 0,
     "rz": 0.281,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.36
    },
    "4374302": {
     "espn": 19.5,
     "custom": 19.8,
-    "actual": null,
+    "actual": 24.2,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 20.28,
@@ -25769,12 +25953,13 @@
     "bust": 0.163,
     "boomAt": 28.6,
     "bustAt": 11.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.78
    },
    "4382466": {
     "espn": 5.7,
     "custom": 5,
-    "actual": null,
+    "actual": 3.4,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 4.31,
@@ -25784,12 +25969,13 @@
     "bust": 0.257,
     "boomAt": 12.1,
     "bustAt": 0.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.75
    },
    "4383396": {
     "espn": 1.5,
     "custom": 1.5,
-    "actual": null,
+    "actual": 0.3,
     "status": "Healthy",
     "pos": "RB",
     "role": 0,
@@ -25799,41 +25985,47 @@
    "4383429": {
     "espn": 0.1,
     "custom": 0.2,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 0.29,
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0
    },
    "4383440": {
     "espn": 1.7,
     "custom": 1.8,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.96,
     "role": 0,
     "rz": 0.206,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.39
    },
    "4384852": {
     "espn": 5.7,
     "custom": 4.5,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 3.07,
     "prop": 0.14,
     "role": 0,
     "rz": -0.259,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.38
    },
    "4426338": {
     "espn": 16.1,
     "custom": 16.2,
-    "actual": null,
+    "actual": 26.2,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 19.23,
@@ -25844,12 +26036,13 @@
     "bust": 0.172,
     "boomAt": 23.3,
     "bustAt": 8.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "4426354": {
     "espn": 13.2,
     "custom": 12.5,
-    "actual": null,
+    "actual": 15.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 11.5,
@@ -25865,17 +26058,18 @@
    "4426385": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "RB",
     "role": 0,
     "rz": 0,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4426386": {
     "espn": 9.1,
     "custom": 8.6,
-    "actual": null,
+    "actual": 1.3,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 9.86,
@@ -25886,12 +26080,13 @@
     "bust": 0.106,
     "boomAt": 12.7,
     "bustAt": 1.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.14
    },
    "4426388": {
     "espn": 10.8,
     "custom": 10.6,
-    "actual": null,
+    "actual": 26.1,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 12.44,
@@ -25902,34 +26097,37 @@
     "bust": 0.218,
     "boomAt": 18.2,
     "bustAt": 4.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.84
    },
    "4426485": {
     "espn": 2.7,
     "custom": 1.5,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.26,
     "role": 0,
     "rz": 0.032,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false
    },
    "4426496": {
     "espn": 0.5,
     "custom": 0.7,
-    "actual": null,
+    "actual": 2.9,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 0.92,
     "role": 0,
     "rz": -0.057,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.36
    },
    "4426502": {
     "espn": 17.1,
     "custom": 16,
-    "actual": null,
+    "actual": 19.6,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 16.76,
@@ -25940,12 +26138,13 @@
     "bust": 0.148,
     "boomAt": 22.5,
     "bustAt": 7.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.8
    },
    "4426515": {
     "espn": 22.6,
     "custom": 20,
-    "actual": null,
+    "actual": 21.8,
     "status": "Questionable",
     "pos": "WR",
     "sleeper": 22.25,
@@ -25956,36 +26155,39 @@
     "bust": 0.255,
     "boomAt": 31.8,
     "bustAt": 13.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.85
    },
    "4426553": {
     "espn": 1.9,
     "custom": 1.9,
-    "actual": null,
+    "actual": 18,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 2.71,
     "prop": -0.43,
     "role": 0,
     "rz": -0.14,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.69
    },
    "4426844": {
     "espn": 4,
     "custom": 3.4,
-    "actual": null,
+    "actual": 4.7,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.81,
     "prop": 0.49,
     "role": 0,
     "rz": -0.05,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.48
    },
    "4427095": {
     "espn": 10.5,
     "custom": 9.2,
-    "actual": null,
+    "actual": 5.3,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 8.56,
@@ -25996,22 +26198,24 @@
     "bust": 0.104,
     "boomAt": 14.1,
     "bustAt": 2.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.65
    },
    "4427366": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "RB",
     "role": 0,
     "rz": -0.22,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4427728": {
     "espn": 8.1,
     "custom": 8.2,
-    "actual": null,
+    "actual": 9.3,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 7.62,
@@ -26022,43 +26226,47 @@
     "bust": 0.117,
     "boomAt": 12.8,
     "bustAt": 1.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.53
    },
    "4427834": {
     "espn": 4.4,
     "custom": 3.1,
-    "actual": null,
+    "actual": 5.6,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.89,
     "role": 0,
     "rz": -0.105,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.28
    },
    "4428331": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "WR",
     "role": 0,
     "rz": 0.236,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4428557": {
     "espn": 6.5,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "RB",
     "role": 0,
     "rz": -0.371,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4428718": {
     "espn": 10.5,
     "custom": 9.7,
-    "actual": null,
+    "actual": 21.3,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 9.06,
@@ -26069,46 +26277,50 @@
     "bust": 0.141,
     "boomAt": 16.8,
     "bustAt": 3.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.82
    },
    "4428850": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "WR",
     "role": 0,
     "rz": 0.03,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4429022": {
     "espn": 3,
     "custom": 2.7,
-    "actual": null,
+    "actual": 3.5,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 2.72,
     "prop": -0.22,
     "role": 0,
     "rz": 0.042,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.31
    },
    "4429023": {
     "espn": 3.2,
     "custom": 3,
-    "actual": null,
+    "actual": 5.5,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 5,
     "prop": -1.13,
     "role": 0.453,
     "rz": 0.402,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.36
    },
    "4429059": {
     "espn": 14,
     "custom": 14.1,
-    "actual": null,
+    "actual": 9.1,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 14.88,
@@ -26119,12 +26331,13 @@
     "bust": 0.059,
     "boomAt": 15.1,
     "bustAt": 2.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.89
    },
    "4429086": {
     "espn": 8.4,
     "custom": 8,
-    "actual": null,
+    "actual": 6.2,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 7.14,
@@ -26135,12 +26348,13 @@
     "bust": 0.172,
     "boomAt": 14.2,
     "bustAt": 2.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.82
    },
    "4429096": {
     "espn": 10,
     "custom": 8.7,
-    "actual": null,
+    "actual": 17.1,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 7.75,
@@ -26151,22 +26365,24 @@
     "bust": 0.124,
     "boomAt": 14.1,
     "bustAt": 2.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.44
    },
    "4429148": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "TE",
     "role": 0,
     "rz": -0.046,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4429205": {
     "espn": 10.9,
     "custom": 9.6,
-    "actual": null,
+    "actual": 4.3,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 8.39,
@@ -26177,12 +26393,13 @@
     "bust": 0.137,
     "boomAt": 15.2,
     "bustAt": 2.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.83
    },
    "4429615": {
     "espn": 15.2,
     "custom": 14.3,
-    "actual": null,
+    "actual": 27.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 16.79,
@@ -26193,12 +26410,13 @@
     "bust": 0.218,
     "boomAt": 25.2,
     "bustAt": 9.4,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.85
    },
    "4429676": {
     "espn": 3.4,
     "custom": 3,
-    "actual": null,
+    "actual": 3.8,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 3.49,
@@ -26210,17 +26428,18 @@
    "4429684": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "WR",
     "role": 0,
     "rz": 0,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4429795": {
     "espn": 26,
     "custom": 27.8,
-    "actual": null,
+    "actual": 17.3,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 26.37,
@@ -26231,12 +26450,13 @@
     "bust": 0.174,
     "boomAt": 37.1,
     "bustAt": 17.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.9
    },
    "4429835": {
     "espn": 7,
     "custom": 5.6,
-    "actual": null,
+    "actual": 3.3,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 7.07,
@@ -26247,12 +26467,13 @@
     "bust": 0.23,
     "boomAt": 13,
     "bustAt": 1.3,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.36
    },
    "4430027": {
     "espn": 12.7,
     "custom": 12.1,
-    "actual": null,
+    "actual": 2.8,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 13.4,
@@ -26263,23 +26484,26 @@
     "bust": 0.168,
     "boomAt": 20.3,
     "bustAt": 6.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.97
    },
    "4430656": {
     "espn": 0.6,
     "custom": 0.4,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.1,
     "role": 0,
     "rz": 0.113,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.03
    },
    "4430737": {
     "espn": 19.7,
     "custom": 19.3,
-    "actual": null,
+    "actual": 18.1,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 19.81,
@@ -26290,12 +26514,13 @@
     "bust": 0.147,
     "boomAt": 27,
     "bustAt": 10.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.51
    },
    "4430802": {
     "espn": 8.6,
     "custom": 7.2,
-    "actual": null,
+    "actual": 7.4,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 7.21,
@@ -26306,12 +26531,13 @@
     "bust": 0.109,
     "boomAt": 11.8,
     "bustAt": 0.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.56
    },
    "4430807": {
     "espn": 21.1,
     "custom": 22.3,
-    "actual": null,
+    "actual": 17.2,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 23.97,
@@ -26322,24 +26548,26 @@
     "bust": 0.15,
     "boomAt": 29.7,
     "bustAt": 12.3,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.8
    },
    "4430871": {
     "espn": 2.4,
     "custom": 2,
-    "actual": null,
+    "actual": 11.2,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 1.62,
     "prop": 0,
     "role": 0,
     "rz": 0.342,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.14
    },
    "4430878": {
     "espn": 20,
     "custom": 21,
-    "actual": null,
+    "actual": 31.3,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 24.28,
@@ -26350,46 +26578,53 @@
     "bust": 0.187,
     "boomAt": 33.1,
     "bustAt": 14.5,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.77
    },
    "4431196": {
     "espn": 0.5,
     "custom": 0.6,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 0.68,
     "role": 0,
     "rz": -0.035,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.09
    },
    "4431268": {
     "espn": 3.2,
     "custom": 2.5,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 1.76,
     "role": 0,
     "rz": -0.088,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.21
    },
    "4431280": {
     "espn": 4.1,
     "custom": 3.8,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 5.27,
     "prop": -0.9,
     "role": -0.343,
     "rz": 0.077,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.46
    },
    "4431299": {
     "espn": 10.2,
     "custom": 8.8,
-    "actual": null,
+    "actual": 10.9,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 10.87,
@@ -26400,34 +26635,38 @@
     "bust": 0.242,
     "boomAt": 17.2,
     "bustAt": 4.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.94
    },
    "4431346": {
     "espn": 0.6,
     "custom": 0.6,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "role": 0,
     "rz": -0.028,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.25
    },
    "4431431": {
     "espn": 2.2,
     "custom": 2.9,
-    "actual": null,
+    "actual": 1.3,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 4.93,
     "prop": -0.72,
     "role": -0.099,
     "rz": 0.318,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.11
    },
    "4431452": {
     "espn": 20.6,
     "custom": 18.9,
-    "actual": null,
+    "actual": 27.4,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 21.72,
@@ -26438,7 +26677,8 @@
     "bust": 0.184,
     "boomAt": 28.1,
     "bustAt": 11.3,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "4431453": {
     "espn": 0,
@@ -26452,17 +26692,18 @@
    "4431459": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "TE",
     "role": 0,
     "rz": -0.126,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4431466": {
     "espn": 7.4,
     "custom": 5.9,
-    "actual": null,
+    "actual": 8.6,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 6.37,
@@ -26473,12 +26714,13 @@
     "bust": 0.159,
     "boomAt": 11.3,
     "bustAt": 0.3,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.76
    },
    "4431487": {
     "espn": 7.9,
     "custom": 6.8,
-    "actual": null,
+    "actual": 8.1,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 2.47,
@@ -26489,24 +26731,26 @@
     "bust": 0.164,
     "boomAt": 12.5,
     "bustAt": 1.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.6
    },
    "4431574": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 0.98,
     "prop": 0.04,
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false
    },
    "4431611": {
     "espn": 17.6,
     "custom": 17.5,
-    "actual": null,
+    "actual": 22.1,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 18.65,
@@ -26517,23 +26761,26 @@
     "bust": 0.212,
     "boomAt": 27.8,
     "bustAt": 11,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "4432260": {
     "espn": 3.1,
     "custom": 2.7,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 2.29,
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.39
    },
    "4432577": {
     "espn": 19.5,
     "custom": 18.8,
-    "actual": null,
+    "actual": 16.5,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 18.41,
@@ -26544,12 +26791,13 @@
     "bust": 0.092,
     "boomAt": 24.7,
     "bustAt": 9.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "4432665": {
     "espn": 18.5,
     "custom": 17.9,
-    "actual": null,
+    "actual": 13.3,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 17.15,
@@ -26560,12 +26808,13 @@
     "bust": 0.128,
     "boomAt": 25.2,
     "bustAt": 9.4,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.84
    },
    "4432708": {
     "espn": 7.3,
     "custom": 6.5,
-    "actual": null,
+    "actual": 7.6,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 3.52,
@@ -26576,12 +26825,13 @@
     "bust": 0.25,
     "boomAt": 13.6,
     "bustAt": 1.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.21
    },
    "4432710": {
     "espn": 7.1,
     "custom": 6.2,
-    "actual": null,
+    "actual": 4.3,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 6.97,
@@ -26592,33 +26842,37 @@
     "bust": 0.255,
     "boomAt": 13.6,
     "bustAt": 1.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.24
    },
    "4432775": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "IR",
     "pos": "WR",
     "role": 0,
     "rz": 0,
-    "gameStatus": "IR"
+    "gameStatus": "IR",
+    "dnp": true
    },
    "4433959": {
     "espn": 0.5,
     "custom": 0.4,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 0.2,
     "role": 0,
     "rz": -0.031,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.51
    },
    "4433970": {
     "espn": 16.4,
     "custom": 14.8,
-    "actual": null,
+    "actual": 10.2,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 13.37,
@@ -26629,23 +26883,26 @@
     "bust": 0.165,
     "boomAt": 20.8,
     "bustAt": 6.4,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.92
    },
    "4565185": {
     "espn": 1,
     "custom": 1.3,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 1.5,
     "role": 0,
     "rz": 0.029,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.07
    },
    "4567048": {
     "espn": 19.1,
     "custom": 19.3,
-    "actual": null,
+    "actual": 9.7,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 19.38,
@@ -26656,34 +26913,37 @@
     "bust": 0.217,
     "boomAt": 30.9,
     "bustAt": 13.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.74
    },
    "4567096": {
     "espn": 4.8,
     "custom": 3.8,
-    "actual": null,
+    "actual": 4,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 1.49,
     "prop": 0.72,
     "role": 0,
     "rz": -0.052,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.46
    },
    "4567750": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "WR",
     "role": 0,
     "rz": -0.025,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4568490": {
     "espn": 11.4,
     "custom": 10.4,
-    "actual": null,
+    "actual": 14,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 11.07,
@@ -26694,12 +26954,13 @@
     "bust": 0.137,
     "boomAt": 17.2,
     "bustAt": 4.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.26
    },
    "4569173": {
     "espn": 11.5,
     "custom": 12,
-    "actual": null,
+    "actual": 22.5,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 11.13,
@@ -26710,35 +26971,40 @@
     "bust": 0.167,
     "boomAt": 18.5,
     "bustAt": 4.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.69
    },
    "4569371": {
     "espn": 0.9,
     "custom": 0.6,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.37,
     "role": 0,
     "rz": -0.086,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.22
    },
    "4569382": {
     "espn": 3.2,
     "custom": 2.4,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 1.74,
     "prop": -0.14,
     "role": 0,
     "rz": -0.049,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.21
    },
    "4569559": {
     "espn": 10.3,
     "custom": 9.6,
-    "actual": null,
+    "actual": 16.4,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 10.19,
@@ -26749,12 +27015,13 @@
     "bust": 0.107,
     "boomAt": 14.7,
     "bustAt": 2.5,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.89
    },
    "4569587": {
     "espn": 8.5,
     "custom": 8.7,
-    "actual": null,
+    "actual": 4.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 10.21,
@@ -26765,12 +27032,13 @@
     "bust": 0.201,
     "boomAt": 16.5,
     "bustAt": 3.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.6
    },
    "4569603": {
     "espn": 10.2,
     "custom": 9.8,
-    "actual": null,
+    "actual": 6.5,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 9.64,
@@ -26781,12 +27049,13 @@
     "bust": 0.125,
     "boomAt": 16.5,
     "bustAt": 3.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.8
    },
    "4569618": {
     "espn": 15.1,
     "custom": 14.9,
-    "actual": null,
+    "actual": 4.6,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 16.75,
@@ -26797,12 +27066,13 @@
     "bust": 0.186,
     "boomAt": 22.8,
     "bustAt": 7.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.85
    },
    "4569987": {
     "espn": 17.7,
     "custom": 15.9,
-    "actual": null,
+    "actual": 16.7,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 16.94,
@@ -26813,12 +27083,13 @@
     "bust": 0.108,
     "boomAt": 23.1,
     "bustAt": 7.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.63
    },
    "4572680": {
     "espn": 12.1,
     "custom": 11.8,
-    "actual": null,
+    "actual": 14.8,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 11.8,
@@ -26829,23 +27100,25 @@
     "bust": 0.104,
     "boomAt": 17.2,
     "bustAt": 4.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.88
    },
    "4575665": {
     "espn": 4.8,
     "custom": 3.5,
-    "actual": null,
+    "actual": 7.8,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 2.21,
     "role": 0,
     "rz": -0.082,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.39
    },
    "4576297": {
     "espn": 7.4,
     "custom": 7,
-    "actual": null,
+    "actual": 8.6,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 7.88,
@@ -26856,22 +27129,25 @@
     "bust": 0.145,
     "boomAt": 12.8,
     "bustAt": 1.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.8
    },
    "4578436": {
     "espn": 0.1,
     "custom": 0.1,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0
    },
    "4586312": {
     "espn": 8.5,
     "custom": 7.2,
-    "actual": null,
+    "actual": 1.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 8.86,
@@ -26882,22 +27158,24 @@
     "bust": 0.152,
     "boomAt": 12.9,
     "bustAt": 1.3,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.31
    },
    "4590292": {
     "espn": 1.7,
     "custom": 1.7,
-    "actual": null,
+    "actual": 3.9,
     "status": "Healthy",
     "pos": "TE",
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.11
    },
    "4595348": {
     "espn": 17.7,
     "custom": 15.8,
-    "actual": null,
+    "actual": 18.1,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 14.06,
@@ -26908,12 +27186,13 @@
     "bust": 0.189,
     "boomAt": 24.1,
     "bustAt": 8.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.73
    },
    "4596448": {
     "espn": 14.1,
     "custom": 13.8,
-    "actual": null,
+    "actual": 24,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 16.41,
@@ -26924,12 +27203,13 @@
     "bust": 0.248,
     "boomAt": 22.6,
     "bustAt": 7.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.59
    },
    "4597500": {
     "espn": 7.9,
     "custom": 6.7,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 6.56,
@@ -26940,24 +27220,28 @@
     "bust": 0.197,
     "boomAt": 13.6,
     "bustAt": 1.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.44
    },
    "4597703": {
     "espn": 2,
     "custom": 2.4,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 3.46,
     "prop": -0.31,
     "role": 0,
     "rz": -0.012,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.45
    },
    "4599739": {
     "espn": 9.4,
     "custom": 9.1,
-    "actual": null,
+    "actual": 5.8,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 8.85,
@@ -26968,32 +27252,36 @@
     "bust": 0.118,
     "boomAt": 14.3,
     "bustAt": 2.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.39
    },
    "4605951": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.04
    },
    "4608686": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "RB",
     "role": 0,
     "rz": 0.61,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4608810": {
     "espn": 8.8,
     "custom": 7.3,
-    "actual": null,
+    "actual": 12.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 5.48,
@@ -27004,35 +27292,40 @@
     "bust": 0.195,
     "boomAt": 13.1,
     "bustAt": 1.5,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.65
    },
    "4613202": {
     "espn": 4.3,
     "custom": 4,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 4.8,
     "prop": -0.63,
     "role": -0.185,
     "rz": -0.132,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.39
    },
    "4635009": {
     "espn": 0.7,
     "custom": 0.5,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.29,
     "role": 0,
     "rz": -0.054,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.06
    },
    "4682648": {
     "espn": 8,
     "custom": 6.1,
-    "actual": null,
+    "actual": 12.3,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 5.47,
@@ -27043,24 +27336,26 @@
     "bust": 0.142,
     "boomAt": 11.6,
     "bustAt": 0.4,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.74
    },
    "4682745": {
     "espn": 4.6,
     "custom": 4.3,
-    "actual": null,
+    "actual": 0.8,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 4.86,
     "prop": -0.43,
     "role": -0.312,
     "rz": -0.027,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.12
    },
    "4683062": {
     "espn": 12.4,
     "custom": 12.4,
-    "actual": null,
+    "actual": 4.1,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 11.15,
@@ -27071,23 +27366,25 @@
     "bust": 0.098,
     "boomAt": 16.9,
     "bustAt": 3.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.87
    },
    "4683243": {
     "espn": 1.7,
     "custom": 1.7,
-    "actual": null,
+    "actual": 5.9,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.73,
     "role": 0,
     "rz": 0.065,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.5
    },
    "4685201": {
     "espn": 14.7,
     "custom": 13.6,
-    "actual": null,
+    "actual": 10.5,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 14.12,
@@ -27103,7 +27400,7 @@
    "4685247": {
     "espn": 14.6,
     "custom": 15.4,
-    "actual": null,
+    "actual": 19.4,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 15.42,
@@ -27114,12 +27411,13 @@
     "bust": 0.058,
     "boomAt": 14.9,
     "bustAt": 2.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.78
    },
    "4685261": {
     "espn": 13.4,
     "custom": 12.9,
-    "actual": null,
+    "actual": 5.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 11.49,
@@ -27130,12 +27428,13 @@
     "bust": 0.056,
     "boomAt": 11.4,
     "bustAt": 0.4,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.91
    },
    "4685278": {
     "espn": 12.7,
     "custom": 12.3,
-    "actual": null,
+    "actual": 23.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 12.57,
@@ -27146,34 +27445,38 @@
     "bust": 0.143,
     "boomAt": 20,
     "bustAt": 6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.61
    },
    "4685307": {
     "espn": 5.8,
     "custom": 4,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 2.24,
     "role": 0,
     "rz": -0.009,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.15
    },
    "4685350": {
     "espn": 0.1,
     "custom": 0.8,
-    "actual": null,
+    "actual": 4.5,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 1.46,
     "role": 0,
     "rz": -0.032,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.3
    },
    "4685472": {
     "espn": 15.8,
     "custom": 14.9,
-    "actual": null,
+    "actual": 8,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 14.1,
@@ -27184,23 +27487,26 @@
     "bust": 0.175,
     "boomAt": 22.7,
     "bustAt": 7.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.68
    },
    "4685504": {
     "espn": 0.5,
     "custom": 1.4,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 2.28,
     "role": 0,
     "rz": 0.045,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.2
    },
    "4685702": {
     "espn": 13.2,
     "custom": 12,
-    "actual": null,
+    "actual": 23.4,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 11.24,
@@ -27211,12 +27517,13 @@
     "bust": 0.173,
     "boomAt": 18.6,
     "bustAt": 5,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.53
    },
    "4685720": {
     "espn": 17.7,
     "custom": 18.2,
-    "actual": null,
+    "actual": 5.4,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 18.55,
@@ -27227,48 +27534,52 @@
     "bust": 0.168,
     "boomAt": 26.6,
     "bustAt": 10.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.77
    },
    "4686422": {
     "espn": 4.1,
     "custom": 3.4,
-    "actual": null,
+    "actual": 11.9,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 2.27,
     "prop": 0.21,
     "role": 0,
     "rz": -0.261,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.56
    },
    "4686468": {
     "espn": 2.7,
     "custom": 2.9,
-    "actual": null,
+    "actual": 5.8,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 3,
     "prop": 0.01,
     "role": 0,
     "rz": -0.099,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.34
    },
    "4686472": {
     "espn": 5.5,
     "custom": 4.8,
-    "actual": null,
+    "actual": 7.6,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 4.79,
     "prop": -0.3,
     "role": -0.062,
     "rz": -0.159,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.26
    },
    "4686658": {
     "espn": 5.9,
     "custom": 5.7,
-    "actual": null,
+    "actual": 2.7,
     "status": "Questionable",
     "pos": "RB",
     "sleeper": 5.58,
@@ -27278,24 +27589,26 @@
     "bust": 0.194,
     "boomAt": 12.3,
     "bustAt": 0.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.26
    },
    "4686728": {
     "espn": 4.1,
     "custom": 3.9,
-    "actual": null,
+    "actual": 5.4,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 5.08,
     "prop": -0.7,
     "role": -0.207,
     "rz": 0.092,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.84
    },
    "4688380": {
     "espn": 11.5,
     "custom": 11.7,
-    "actual": null,
+    "actual": 5.7,
     "status": "Healthy",
     "pos": "QB",
     "sleeper": 13.36,
@@ -27306,12 +27619,13 @@
     "bust": 0.23,
     "boomAt": 20,
     "bustAt": 6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 1
    },
    "4688813": {
     "espn": 8.4,
     "custom": 9,
-    "actual": null,
+    "actual": 3.8,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 9.23,
@@ -27322,35 +27636,38 @@
     "bust": 0.194,
     "boomAt": 16.4,
     "bustAt": 3.6,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.9
    },
    "4690143": {
     "espn": 0.1,
     "custom": 0.2,
-    "actual": null,
+    "actual": 2.5,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.22,
     "role": 0,
     "rz": -0.052,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.01
    },
    "4692835": {
     "espn": 4.6,
     "custom": 4.1,
-    "actual": null,
+    "actual": 4.5,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 3.02,
     "prop": 0.25,
     "role": -0.211,
     "rz": 0.048,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.64
    },
    "4695193": {
     "espn": 8.3,
     "custom": 6,
-    "actual": null,
+    "actual": 2.6,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 5.27,
@@ -27361,12 +27678,13 @@
     "bust": 0.137,
     "boomAt": 10.7,
     "bustAt": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.63
    },
    "4695404": {
     "espn": 7.5,
     "custom": 6.9,
-    "actual": null,
+    "actual": 8.4,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 6.22,
@@ -27376,12 +27694,13 @@
     "bust": 0.174,
     "boomAt": 12.4,
     "bustAt": 1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.22
    },
    "4695883": {
     "espn": 15.4,
     "custom": 15.5,
-    "actual": null,
+    "actual": 1.9,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 15.63,
@@ -27392,12 +27711,13 @@
     "bust": 0.154,
     "boomAt": 22.7,
     "bustAt": 7.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.66
    },
    "4696044": {
     "espn": 6.4,
     "custom": 6.1,
-    "actual": null,
+    "actual": 10.9,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 5.51,
@@ -27408,23 +27728,26 @@
     "bust": 0.13,
     "boomAt": 10.7,
     "bustAt": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.47
    },
    "4696882": {
     "espn": 1.9,
     "custom": 2.7,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 3.59,
     "role": 0,
     "rz": -0.012,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.3
    },
    "4696981": {
     "espn": 7.8,
     "custom": 8,
-    "actual": null,
+    "actual": 19.1,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 6.87,
@@ -27435,23 +27758,25 @@
     "bust": 0.224,
     "boomAt": 15.9,
     "bustAt": 3.3,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.56
    },
    "4698597": {
     "espn": 0.9,
     "custom": 0.7,
-    "actual": null,
+    "actual": 8.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.53,
     "role": 0,
     "rz": -0.037,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.21
    },
    "4701936": {
     "espn": 16.9,
     "custom": 15.6,
-    "actual": null,
+    "actual": 9.9,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 15.61,
@@ -27462,46 +27787,50 @@
     "bust": 0.126,
     "boomAt": 22.2,
     "bustAt": 7.4,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.85
    },
    "4702555": {
     "espn": 2.7,
     "custom": 4,
-    "actual": null,
+    "actual": 8.9,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 4.74,
     "prop": 0.35,
     "role": 0,
     "rz": 0.157,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.49
    },
    "4702559": {
     "espn": 0.5,
     "custom": 1,
-    "actual": null,
+    "actual": 1.2,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.5,
     "role": 0,
     "rz": -0.063,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.28
    },
    "4708049": {
     "espn": 1.5,
     "custom": 1.1,
-    "actual": null,
+    "actual": 2.7,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 0.75,
     "role": 0,
     "rz": -0.011,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.12
    },
    "4710855": {
     "espn": 7.5,
     "custom": 6,
-    "actual": null,
+    "actual": 2.5,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 5.02,
@@ -27512,12 +27841,13 @@
     "bust": 0.161,
     "boomAt": 11.7,
     "bustAt": 0.5,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.43
    },
    "4711533": {
     "espn": 11.8,
     "custom": 12.2,
-    "actual": null,
+    "actual": 17.3,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 13.27,
@@ -27528,12 +27858,13 @@
     "bust": 0.068,
     "boomAt": 14,
     "bustAt": 2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.83
    },
    "4715355": {
     "espn": 9.1,
     "custom": 9.2,
-    "actual": null,
+    "actual": 2.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 9.59,
@@ -27549,29 +27880,32 @@
    "4722893": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 1.33,
     "role": 0,
     "rz": -0.188,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0
    },
    "4722908": {
     "espn": 0.9,
     "custom": 0.9,
-    "actual": null,
+    "actual": 3.2,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 0.84,
     "role": 0,
     "rz": -0.047,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0
    },
    "4723086": {
     "espn": 11.5,
     "custom": 11,
-    "actual": null,
+    "actual": 19.9,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 9.81,
@@ -27582,12 +27916,13 @@
     "bust": 0.119,
     "boomAt": 15.7,
     "bustAt": 3.1,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.84
    },
    "4723820": {
     "espn": 8,
     "custom": 7.5,
-    "actual": null,
+    "actual": 22.5,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 9.42,
@@ -27598,12 +27933,13 @@
     "bust": 0.111,
     "boomAt": 11.4,
     "bustAt": 0.4,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.64
    },
    "4808766": {
     "espn": 5.6,
     "custom": 5.1,
-    "actual": null,
+    "actual": 25.2,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 4.35,
@@ -27614,35 +27950,39 @@
     "bust": 0.175,
     "boomAt": 10.5,
     "bustAt": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.63
    },
    "4808839": {
     "espn": 0.4,
     "custom": 1.4,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 2.47,
     "role": 0,
     "rz": -0.11,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.09
    },
    "4831959": {
     "espn": 5,
     "custom": 4.4,
-    "actual": null,
+    "actual": 14.6,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 5.57,
     "prop": -0.93,
     "role": -0.05,
     "rz": 0.235,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.54
    },
    "4832800": {
     "espn": 12,
     "custom": 11.1,
-    "actual": null,
+    "actual": 5.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 10.86,
@@ -27653,24 +27993,26 @@
     "bust": 0.142,
     "boomAt": 16.9,
     "bustAt": 3.9,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.87
    },
    "4832955": {
     "espn": 5.3,
     "custom": 4.1,
-    "actual": null,
+    "actual": 3.7,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 3.79,
     "prop": -0.36,
     "role": 0,
     "rz": -0.141,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.26
    },
    "4869645": {
     "espn": 7.1,
     "custom": 6.9,
-    "actual": null,
+    "actual": 21,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 7.69,
@@ -27681,47 +28023,52 @@
     "bust": 0.244,
     "boomAt": 14.5,
     "bustAt": 2.3,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.68
    },
    "4869748": {
     "espn": 1.6,
     "custom": 1.7,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 1.89,
     "role": 0,
     "rz": -0.074,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.07
    },
    "4869961": {
     "espn": 5.4,
     "custom": 4.5,
-    "actual": null,
+    "actual": 5.5,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 5.66,
     "prop": -0.96,
     "role": -0.138,
     "rz": -0.121,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.48
    },
    "4870612": {
     "espn": 4.5,
     "custom": 3.6,
-    "actual": null,
+    "actual": 2.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 3.01,
     "prop": -0.22,
     "role": 0,
     "rz": -0.109,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.33
    },
    "4870653": {
     "espn": 8.9,
     "custom": 9.3,
-    "actual": null,
+    "actual": 23.2,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 9.71,
@@ -27732,12 +28079,13 @@
     "bust": 0.182,
     "boomAt": 16,
     "bustAt": 3.4,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.79
    },
    "4870795": {
     "espn": 8.6,
     "custom": 8.9,
-    "actual": null,
+    "actual": 19.7,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 8.96,
@@ -27753,17 +28101,18 @@
    "4870808": {
     "espn": 0,
     "custom": 0,
-    "actual": null,
+    "actual": 0,
     "status": "Out",
     "pos": "RB",
     "role": 0,
     "rz": 0.02,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": true
    },
    "4870847": {
     "espn": 4.8,
     "custom": 5.2,
-    "actual": null,
+    "actual": 5.5,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 5.32,
@@ -27774,12 +28123,13 @@
     "bust": 0.169,
     "boomAt": 10.7,
     "bustAt": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.69
    },
    "4871023": {
     "espn": 11.1,
     "custom": 10.9,
-    "actual": null,
+    "actual": 9.9,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 12.36,
@@ -27790,59 +28140,65 @@
     "bust": 0.219,
     "boomAt": 19.5,
     "bustAt": 5.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.89
    },
    "4876132": {
     "espn": 1.5,
     "custom": 1.4,
-    "actual": null,
+    "actual": 5.5,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.61,
     "prop": -0.22,
     "role": 0,
     "rz": -0.003,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.22
    },
    "4879276": {
     "espn": 5.1,
     "custom": 3.9,
-    "actual": null,
+    "actual": 3.2,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 2.6,
     "prop": 0.04,
     "role": 0,
     "rz": -0.093,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.79
    },
    "4880236": {
     "espn": 1.9,
     "custom": 1.6,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 1.32,
     "role": 0,
     "rz": -0.105,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.45
    },
    "4883647": {
     "espn": 5.7,
     "custom": 4.9,
-    "actual": null,
+    "actual": 7.4,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 5.72,
     "prop": -0.82,
     "role": -0.218,
     "rz": 0.551,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.89
    },
    "4887558": {
     "espn": 10.7,
     "custom": 11.4,
-    "actual": null,
+    "actual": 18.5,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 10.08,
@@ -27853,23 +28209,26 @@
     "bust": 0.163,
     "boomAt": 18.3,
     "bustAt": 4.8,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.48
    },
    "4890373": {
     "espn": 1,
     "custom": 0.6,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 0.11,
     "role": 0,
     "rz": -0.019,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.25
    },
    "4890973": {
     "espn": 17,
     "custom": 17,
-    "actual": null,
+    "actual": 21.6,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 16.11,
@@ -27880,47 +28239,52 @@
     "bust": 0.196,
     "boomAt": 25,
     "bustAt": 9.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.72
    },
    "4912218": {
     "espn": 4.1,
     "custom": 2.8,
-    "actual": null,
+    "actual": 2.8,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 2.11,
     "prop": -0.31,
     "role": 0,
     "rz": -0.054,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.3
    },
    "4912274": {
     "espn": 4.4,
     "custom": 3.7,
-    "actual": null,
+    "actual": 0.5,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 4.49,
     "prop": -0.67,
     "role": -0.106,
     "rz": -0.241,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.13
    },
    "5081338": {
     "espn": 1.3,
     "custom": 0.7,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.15,
     "role": 0,
     "rz": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0
    },
    "5081397": {
     "espn": 6.1,
     "custom": 5.9,
-    "actual": null,
+    "actual": 10.7,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 6.21,
@@ -27931,24 +28295,27 @@
     "bust": 0.172,
     "boomAt": 11.2,
     "bustAt": 0.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.46
    },
    "5081999": {
     "espn": 4.4,
     "custom": 4.2,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "RB",
     "sleeper": 3.38,
     "prop": 0.32,
     "role": 0,
     "rz": -0.094,
-    "gameStatus": "Out"
+    "gameStatus": "Out",
+    "dnp": false,
+    "snapShare": 0.07
    },
    "5082630": {
     "espn": 7.2,
     "custom": 6.6,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 6.31,
@@ -27959,12 +28326,14 @@
     "bust": 0.147,
     "boomAt": 12,
     "bustAt": 0.7,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.68
    },
    "5083076": {
     "espn": 8.2,
     "custom": 8.4,
-    "actual": null,
+    "actual": 13.1,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 10.99,
@@ -27975,24 +28344,26 @@
     "bust": 0.181,
     "boomAt": 15.8,
     "bustAt": 3.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.83
    },
    "5083315": {
     "espn": 5.2,
     "custom": 4.8,
-    "actual": null,
+    "actual": 1.6,
     "status": "Healthy",
     "pos": "TE",
     "sleeper": 4.85,
     "prop": -0.17,
     "role": 0,
     "rz": -0.156,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.37
    },
    "5083754": {
     "espn": 8.9,
     "custom": 8.3,
-    "actual": null,
+    "actual": 11,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 7.03,
@@ -28008,30 +28379,33 @@
    "5093923": {
     "espn": 5.7,
     "custom": 4.2,
-    "actual": null,
+    "actual": 1.3,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 3.32,
     "prop": -0.34,
     "role": 0,
     "rz": 0.151,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.58
    },
    "5097554": {
     "espn": 1,
     "custom": 1.5,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 1.99,
     "role": 0,
     "rz": -0.022,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.03
    },
    "5123663": {
     "espn": 7.3,
     "custom": 5.8,
-    "actual": null,
+    "actual": 2,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 4.59,
@@ -28042,34 +28416,39 @@
     "bust": 0.151,
     "boomAt": 10.6,
     "bustAt": 0,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "snapShare": 0.49
    },
    "5150247": {
     "espn": 1.3,
     "custom": 1,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.77,
     "role": 0,
     "rz": 0.01,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.04
    },
    "5160110": {
     "espn": 0.5,
     "custom": 0.4,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 0.25,
     "role": 0,
     "rz": 0.098,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.04
    },
    "5220680": {
     "espn": 10,
     "custom": 9,
-    "actual": null,
+    "actual": 0,
     "status": "Healthy",
     "pos": "WR",
     "sleeper": 7.97,
@@ -28080,7 +28459,3791 @@
     "bust": 0.077,
     "boomAt": 11.2,
     "bustAt": 0.2,
-    "gameStatus": "Healthy"
+    "gameStatus": "Healthy",
+    "dnp": false,
+    "snapShare": 0.56
+   }
+  },
+  "8": {
+   "8439": {
+    "espn": 15.1,
+    "custom": 15.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 15.83,
+    "role": 0.157,
+    "rz": -0.182,
+    "boom": 0.176,
+    "bust": 0.165,
+    "boomAt": 22.3,
+    "bustAt": 7.5
+   },
+   "12483": {
+    "espn": 16.9,
+    "custom": 16.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 15.95,
+    "role": 0.123,
+    "rz": 0.198,
+    "boom": 0.134,
+    "bust": 0.168,
+    "boomAt": 25.8,
+    "bustAt": 9.8
+   },
+   "14880": {
+    "espn": 16.6,
+    "custom": 16.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 16.53,
+    "role": 0.036,
+    "rz": -0.242,
+    "boom": 0.202,
+    "bust": 0.15,
+    "boomAt": 23.4,
+    "bustAt": 8.2
+   },
+   "15818": {
+    "espn": 9.2,
+    "custom": 9.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 9.04,
+    "role": 0.188,
+    "rz": -0.101,
+    "boom": 0.153,
+    "bust": 0.203,
+    "boomAt": 16.3,
+    "bustAt": 3.5
+   },
+   "15847": {
+    "espn": 9.3,
+    "custom": 10.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 11.65,
+    "role": -0.07,
+    "rz": -0.138,
+    "boom": 0.164,
+    "bust": 0.183,
+    "boomAt": 18.3,
+    "bustAt": 4.9
+   },
+   "15864": {
+    "espn": 18.4,
+    "custom": 17.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 16.84,
+    "role": -0.011,
+    "rz": -0.099,
+    "boom": 0.209,
+    "bust": 0.118,
+    "boomAt": 21.7,
+    "bustAt": 7.1
+   },
+   "2515270": {
+    "espn": 0.4,
+    "custom": 0.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "role": 0,
+    "rz": 0
+   },
+   "2573401": {
+    "espn": 6.6,
+    "custom": 7.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 8.4,
+    "role": 0.053,
+    "rz": -0.18,
+    "boom": 0.215,
+    "bust": 0.098,
+    "boomAt": 11.6,
+    "bustAt": 0.4
+   },
+   "2576925": {
+    "espn": 5.4,
+    "custom": 5.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 7.74,
+    "prop": -0.96,
+    "role": -0.008,
+    "rz": 0.078,
+    "boom": 0.145,
+    "bust": 0.258,
+    "boomAt": 13.1,
+    "bustAt": 1.5
+   },
+   "2577417": {
+    "espn": 18.8,
+    "custom": 20.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 22.37,
+    "role": 0.048,
+    "rz": 0.022,
+    "boom": 0.199,
+    "bust": 0.112,
+    "boomAt": 26.7,
+    "bustAt": 10.3
+   },
+   "2578570": {
+    "espn": 15.6,
+    "custom": 17.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 18.89,
+    "role": 0.056,
+    "rz": 0.128,
+    "boom": 0.184,
+    "bust": 0.111,
+    "boomAt": 23.2,
+    "bustAt": 8
+   },
+   "2580216": {
+    "espn": 0.1,
+    "custom": 0.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.41,
+    "role": 0,
+    "rz": 0
+   },
+   "2973405": {
+    "espn": 4.9,
+    "custom": 5.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 6.55,
+    "role": 0.28,
+    "rz": -0.188,
+    "boom": 0.139,
+    "bust": 0.245,
+    "boomAt": 13.5,
+    "bustAt": 1.7
+   },
+   "2975863": {
+    "espn": 1,
+    "custom": 1.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 1.3,
+    "role": 0,
+    "rz": 0.114
+   },
+   "2976212": {
+    "espn": 12.2,
+    "custom": 11.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 11.67,
+    "role": 0.097,
+    "rz": -0.078,
+    "boom": 0.172,
+    "bust": 0.178,
+    "boomAt": 19.2,
+    "bustAt": 5.4
+   },
+   "2977187": {
+    "espn": 6.7,
+    "custom": 7.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 7.46,
+    "role": 0.02,
+    "rz": -0.129,
+    "boom": 0.144,
+    "bust": 0.158,
+    "boomAt": 12.6,
+    "bustAt": 1.2
+   },
+   "2998565": {
+    "espn": 1,
+    "custom": 1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.93,
+    "role": 0,
+    "rz": 0.054
+   },
+   "3042519": {
+    "espn": 10.5,
+    "custom": 9.9,
+    "actual": null,
+    "status": "Questionable",
+    "pos": "RB",
+    "sleeper": 9.32,
+    "role": 0.439,
+    "rz": -0.577,
+    "boom": 0.102,
+    "bust": 0.206,
+    "boomAt": 18.9,
+    "bustAt": 5.3
+   },
+   "3043078": {
+    "espn": 18.8,
+    "custom": 17.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 15.91,
+    "role": 0.142,
+    "rz": 0.898,
+    "boom": 0.179,
+    "bust": 0.162,
+    "boomAt": 25,
+    "bustAt": 9.2
+   },
+   "3043275": {
+    "espn": 2.1,
+    "custom": 2.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 3.39,
+    "role": 0,
+    "rz": -0.011
+   },
+   "3045523": {
+    "espn": 7.7,
+    "custom": 8.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 9.52,
+    "role": -0.004,
+    "rz": 0.352,
+    "boom": 0.182,
+    "bust": 0.125,
+    "boomAt": 13.7,
+    "bustAt": 1.9
+   },
+   "3046439": {
+    "espn": 10.6,
+    "custom": 10.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 9.6,
+    "role": -0.053,
+    "rz": 0.103,
+    "boom": 0.205,
+    "bust": 0.136,
+    "boomAt": 15.3,
+    "bustAt": 2.9
+   },
+   "3046779": {
+    "espn": 16.1,
+    "custom": 16.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 16.17,
+    "prop": 0.77,
+    "role": 0.064,
+    "rz": -0.002,
+    "boom": 0.129,
+    "bust": 0.225,
+    "boomAt": 27.4,
+    "bustAt": 10.8
+   },
+   "3051876": {
+    "espn": 5.2,
+    "custom": 5.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 4.93,
+    "role": 0.01,
+    "rz": -0.122,
+    "boom": 0.138,
+    "bust": 0.176,
+    "boomAt": 10.8,
+    "bustAt": 0
+   },
+   "3051889": {
+    "espn": 5.6,
+    "custom": 4.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 3.63,
+    "role": 0,
+    "rz": 0.006
+   },
+   "3052096": {
+    "espn": 1,
+    "custom": 1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.92,
+    "role": 0,
+    "rz": -0.094
+   },
+   "3052587": {
+    "espn": 15.7,
+    "custom": 16.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 16.49,
+    "role": -0.013,
+    "rz": 0.237,
+    "boom": 0.149,
+    "bust": 0.108,
+    "boomAt": 21.8,
+    "bustAt": 7.2
+   },
+   "3054212": {
+    "espn": 1.8,
+    "custom": 1.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 2.01,
+    "role": 0,
+    "rz": 0.007
+   },
+   "3068267": {
+    "espn": 3.2,
+    "custom": 4.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 5.64,
+    "role": -0.068,
+    "rz": -0.097
+   },
+   "3116164": {
+    "espn": 6.3,
+    "custom": 7.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 8.64,
+    "role": -0.066,
+    "rz": 0.147,
+    "boom": 0.201,
+    "bust": 0.149,
+    "boomAt": 13.5,
+    "bustAt": 1.7
+   },
+   "3116165": {
+    "espn": 9,
+    "custom": 9.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 10.55,
+    "role": -0.036,
+    "rz": -0.27,
+    "boom": 0.155,
+    "bust": 0.115,
+    "boomAt": 15.7,
+    "bustAt": 3.1
+   },
+   "3116365": {
+    "espn": 9.6,
+    "custom": 9.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 8.82,
+    "role": 0.058,
+    "rz": -0.039,
+    "boom": 0.163,
+    "bust": 0.195,
+    "boomAt": 15.4,
+    "bustAt": 3
+   },
+   "3116389": {
+    "espn": 7.3,
+    "custom": 7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 6.66,
+    "role": 0.038,
+    "rz": 0.238,
+    "boom": 0.203,
+    "bust": 0.108,
+    "boomAt": 11.6,
+    "bustAt": 0.4
+   },
+   "3121023": {
+    "espn": 10.9,
+    "custom": 10.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 10.7,
+    "role": 0.176,
+    "rz": -0.095,
+    "boom": 0.178,
+    "bust": 0.182,
+    "boomAt": 17.7,
+    "bustAt": 4.5
+   },
+   "3122840": {
+    "espn": 13,
+    "custom": 13.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 13.66,
+    "role": 0.167,
+    "rz": -0.428,
+    "boom": 0.161,
+    "bust": 0.142,
+    "boomAt": 20,
+    "bustAt": 6
+   },
+   "3127310": {
+    "espn": 2.5,
+    "custom": 2.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 3.27,
+    "role": 0,
+    "rz": 0.006
+   },
+   "3127586": {
+    "espn": 5.4,
+    "custom": 4.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 2.91,
+    "role": 0,
+    "rz": 0
+   },
+   "3128429": {
+    "espn": 8.8,
+    "custom": 8.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 7.45,
+    "role": -0.12,
+    "rz": 0.134,
+    "boom": 0.161,
+    "bust": 0.184,
+    "boomAt": 14.2,
+    "bustAt": 2.2
+   },
+   "3134353": {
+    "espn": 0.6,
+    "custom": 0.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 1.14,
+    "role": 0,
+    "rz": -0.123
+   },
+   "3139477": {
+    "espn": 14.2,
+    "custom": 15.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 17.2,
+    "role": -0.033,
+    "rz": 0.174,
+    "boom": 0.117,
+    "bust": 0.247,
+    "boomAt": 26,
+    "bustAt": 9.8
+   },
+   "3676833": {
+    "espn": 2.4,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "WR",
+    "role": 0,
+    "rz": 0.211
+   },
+   "3886598": {
+    "espn": 3.1,
+    "custom": 4.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 6.07,
+    "role": -0.327,
+    "rz": 0.07
+   },
+   "3911853": {
+    "espn": 1.5,
+    "custom": 1.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 1.65,
+    "role": 0,
+    "rz": -0.066
+   },
+   "3912547": {
+    "espn": 14.8,
+    "custom": 15.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 16.32,
+    "role": -0.08,
+    "rz": 0.065,
+    "boom": 0.183,
+    "bust": 0.162,
+    "boomAt": 21.5,
+    "bustAt": 6.9
+   },
+   "3915411": {
+    "espn": 6.1,
+    "custom": 5.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 5.29,
+    "role": -0.006,
+    "rz": -0.231,
+    "boom": 0.157,
+    "bust": 0.138,
+    "boomAt": 11.3,
+    "bustAt": 0.3
+   },
+   "3915416": {
+    "espn": 13.6,
+    "custom": 14,
+    "actual": null,
+    "status": "Questionable",
+    "pos": "WR",
+    "sleeper": 14.35,
+    "role": -0.045,
+    "rz": 0.061,
+    "boom": 0.211,
+    "bust": 0.157,
+    "boomAt": 20,
+    "bustAt": 6
+   },
+   "3915486": {
+    "espn": 0.5,
+    "custom": 0.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.1,
+    "role": 0,
+    "rz": 0
+   },
+   "3915511": {
+    "espn": 22.1,
+    "custom": 21.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 21.37,
+    "role": 0.037,
+    "rz": 0.33,
+    "boom": 0.219,
+    "bust": 0.13,
+    "boomAt": 28,
+    "bustAt": 11.2
+   },
+   "3916148": {
+    "espn": 13.9,
+    "custom": 12.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 10.75,
+    "role": 0.107,
+    "rz": 0.334,
+    "boom": 0.161,
+    "bust": 0.095,
+    "boomAt": 18,
+    "bustAt": 4.6
+   },
+   "3916387": {
+    "espn": 22.2,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "QB",
+    "sleeper": 20.05,
+    "role": -0.052,
+    "rz": 0.236
+   },
+   "3916433": {
+    "espn": 10.8,
+    "custom": 10.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 10.19,
+    "role": -0.052,
+    "rz": 0.239,
+    "boom": 0.157,
+    "bust": 0.132,
+    "boomAt": 16.4,
+    "bustAt": 3.6
+   },
+   "3917315": {
+    "espn": 17.3,
+    "custom": 17.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 17.95,
+    "prop": -0.12,
+    "role": 0.004,
+    "rz": 0.038,
+    "boom": 0.158,
+    "bust": 0.117,
+    "boomAt": 24.4,
+    "bustAt": 8.8
+   },
+   "3917792": {
+    "espn": 11.2,
+    "custom": 11.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 11.95,
+    "role": 0.09,
+    "rz": -0.039,
+    "boom": 0.125,
+    "bust": 0.179,
+    "boomAt": 19.9,
+    "bustAt": 5.9
+   },
+   "3917914": {
+    "espn": 3.2,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "WR",
+    "sleeper": 2.24,
+    "role": 0,
+    "rz": -0.136
+   },
+   "3918298": {
+    "espn": 23.7,
+    "custom": 24,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 24.38,
+    "role": -0.022,
+    "rz": 0.237,
+    "boom": 0.186,
+    "bust": 0.158,
+    "boomAt": 33.7,
+    "bustAt": 14.9
+   },
+   "3919510": {
+    "espn": 0.1,
+    "custom": 0.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "role": 0,
+    "rz": 0
+   },
+   "3925357": {
+    "espn": 3.1,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "WR",
+    "sleeper": 2.85,
+    "role": 0,
+    "rz": -0.005
+   },
+   "3926231": {
+    "espn": 0.1,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "WR",
+    "role": 0,
+    "rz": 0
+   },
+   "3929630": {
+    "espn": 14.3,
+    "custom": 14.9,
+    "actual": null,
+    "status": "Questionable",
+    "pos": "RB",
+    "sleeper": 15.41,
+    "role": -0.17,
+    "rz": -0.173,
+    "boom": 0.17,
+    "bust": 0.125,
+    "boomAt": 19.7,
+    "bustAt": 5.7
+   },
+   "3930086": {
+    "espn": 3.5,
+    "custom": 3.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 3.2,
+    "role": 0,
+    "rz": -0.029
+   },
+   "4032473": {
+    "espn": 8.2,
+    "custom": 7.4,
+    "actual": null,
+    "status": "Questionable",
+    "pos": "WR",
+    "sleeper": 6.51,
+    "role": 0.093,
+    "rz": -0.083,
+    "boom": 0.166,
+    "bust": 0.147,
+    "boomAt": 12.9,
+    "bustAt": 1.3
+   },
+   "4035020": {
+    "espn": 0.9,
+    "custom": 0.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.75,
+    "role": 0,
+    "rz": -0.052
+   },
+   "4036133": {
+    "espn": 11.8,
+    "custom": 10.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 11.11,
+    "prop": -0.82,
+    "role": 0.042,
+    "rz": -0.011,
+    "boom": 0.138,
+    "bust": 0.162,
+    "boomAt": 17.4,
+    "bustAt": 4.2
+   },
+   "4036378": {
+    "espn": 17.1,
+    "custom": 16.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 17.1,
+    "prop": -0.18,
+    "role": 0.014,
+    "rz": -0.038,
+    "boom": 0.141,
+    "bust": 0.192,
+    "boomAt": 25.8,
+    "bustAt": 9.8
+   },
+   "4037235": {
+    "espn": 0.1,
+    "custom": 0.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.68,
+    "role": 0,
+    "rz": 0
+   },
+   "4038441": {
+    "espn": 6.6,
+    "custom": 6.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 5.81,
+    "role": -0.021,
+    "rz": -0.494,
+    "boom": 0.151,
+    "bust": 0.139,
+    "boomAt": 11.7,
+    "bustAt": 0.5
+   },
+   "4038815": {
+    "espn": 9.3,
+    "custom": 9.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 8.86,
+    "role": 0.024,
+    "rz": -0.317,
+    "boom": 0.166,
+    "bust": 0.137,
+    "boomAt": 15.6,
+    "bustAt": 3
+   },
+   "4038941": {
+    "espn": 10.9,
+    "custom": 12.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 13.46,
+    "role": 0.003,
+    "rz": -0.005,
+    "boom": 0.098,
+    "bust": 0.257,
+    "boomAt": 21.8,
+    "bustAt": 7.2
+   },
+   "4039050": {
+    "espn": 0.1,
+    "custom": 0.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.23,
+    "role": 0,
+    "rz": 0
+   },
+   "4039057": {
+    "espn": 0.9,
+    "custom": 1.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 1.89,
+    "role": 0,
+    "rz": -0.041
+   },
+   "4045305": {
+    "espn": 1.2,
+    "custom": 0.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.59,
+    "role": 0,
+    "rz": -0.066
+   },
+   "4047365": {
+    "espn": 15.1,
+    "custom": 14.1,
+    "actual": null,
+    "status": "DAY_TO_DAY",
+    "pos": "RB",
+    "sleeper": 15.45,
+    "prop": -1.16,
+    "role": -0.5,
+    "rz": 0,
+    "boom": 0.148,
+    "bust": 0.194,
+    "boomAt": 22.6,
+    "bustAt": 7.6
+   },
+   "4047646": {
+    "espn": 15.9,
+    "custom": 15.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 15.25,
+    "role": 0.043,
+    "rz": 0.155,
+    "boom": 0.219,
+    "bust": 0.133,
+    "boomAt": 20.8,
+    "bustAt": 6.4
+   },
+   "4047650": {
+    "espn": 12.2,
+    "custom": 11.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 11.3,
+    "role": 0.129,
+    "rz": -0.475,
+    "boom": 0.181,
+    "bust": 0.126,
+    "boomAt": 18.3,
+    "bustAt": 4.9
+   },
+   "4048228": {
+    "espn": 1.5,
+    "custom": 1.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 1.78,
+    "role": 0,
+    "rz": 0.024
+   },
+   "4212909": {
+    "espn": 0.6,
+    "custom": 0.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.51,
+    "role": 0,
+    "rz": -0.049
+   },
+   "4239934": {
+    "espn": 3.4,
+    "custom": 2.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 0.7,
+    "role": 0,
+    "rz": -0.23
+   },
+   "4239993": {
+    "espn": 15.3,
+    "custom": 15.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 15.97,
+    "role": 0.072,
+    "rz": -0.475,
+    "boom": 0.2,
+    "bust": 0.172,
+    "boomAt": 22.9,
+    "bustAt": 7.9
+   },
+   "4240472": {
+    "espn": 3.7,
+    "custom": 3.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 3.65,
+    "role": 0,
+    "rz": 0.03
+   },
+   "4240577": {
+    "espn": 3.5,
+    "custom": 2.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 1.52,
+    "role": 0,
+    "rz": 0
+   },
+   "4241263": {
+    "espn": 4.7,
+    "custom": 4.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 4.1,
+    "role": 0,
+    "rz": -0.009
+   },
+   "4241389": {
+    "espn": 19.4,
+    "custom": 20.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 21,
+    "role": 0.115,
+    "rz": 0.032,
+    "boom": 0.155,
+    "bust": 0.164,
+    "boomAt": 28.9,
+    "bustAt": 11.7
+   },
+   "4241410": {
+    "espn": 1.7,
+    "custom": 1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.35,
+    "role": 0,
+    "rz": -0.066
+   },
+   "4241416": {
+    "espn": 15.3,
+    "custom": 15.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 16.88,
+    "prop": -0.28,
+    "role": -0.029,
+    "rz": -0.238,
+    "boom": 0.163,
+    "bust": 0.118,
+    "boomAt": 23.2,
+    "bustAt": 8
+   },
+   "4241424": {
+    "espn": 0.4,
+    "custom": 0.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.74,
+    "role": 0,
+    "rz": -0.018
+   },
+   "4241463": {
+    "espn": 5.1,
+    "custom": 4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 2.93,
+    "role": 0,
+    "rz": -0.235
+   },
+   "4241474": {
+    "espn": 5.8,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "RB",
+    "sleeper": 4.42,
+    "role": 0.247,
+    "rz": -0.44
+   },
+   "4241478": {
+    "espn": 15.5,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "WR",
+    "role": 0,
+    "rz": -0.232
+   },
+   "4241961": {
+    "espn": 0.3,
+    "custom": 0.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 0.67,
+    "role": 0,
+    "rz": -0.085
+   },
+   "4241983": {
+    "espn": 5,
+    "custom": 4.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 3.61,
+    "role": 0,
+    "rz": 0.281
+   },
+   "4241985": {
+    "espn": 6.9,
+    "custom": 6.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 5.63,
+    "role": 0.385,
+    "rz": -0.344,
+    "boom": 0.088,
+    "bust": 0.293,
+    "boomAt": 15.8,
+    "bustAt": 3.2
+   },
+   "4242335": {
+    "espn": 15.9,
+    "custom": 17.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 18.78,
+    "role": 0.045,
+    "rz": 0.172,
+    "boom": 0.193,
+    "bust": 0.238,
+    "boomAt": 28.3,
+    "bustAt": 11.3
+   },
+   "4242355": {
+    "espn": 6.2,
+    "custom": 7.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 9.62,
+    "role": -0.095,
+    "rz": 0.043,
+    "boom": 0.193,
+    "bust": 0.12,
+    "boomAt": 13.5,
+    "bustAt": 1.7
+   },
+   "4242392": {
+    "espn": 1,
+    "custom": 1.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 1.57,
+    "role": 0,
+    "rz": 0.006
+   },
+   "4242433": {
+    "espn": 2.7,
+    "custom": 2.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 2.98,
+    "role": 0,
+    "rz": -0.15
+   },
+   "4242512": {
+    "espn": 16.2,
+    "custom": 15,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 13.89,
+    "role": -0.031,
+    "rz": -0.161,
+    "boom": 0.189,
+    "bust": 0.152,
+    "boomAt": 21.6,
+    "bustAt": 7
+   },
+   "4242557": {
+    "espn": 8.6,
+    "custom": 7.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 6.63,
+    "role": -0.112,
+    "rz": 0.43,
+    "boom": 0.249,
+    "bust": 0.089,
+    "boomAt": 11.1,
+    "bustAt": 0.1
+   },
+   "4243176": {
+    "espn": 0.5,
+    "custom": 0.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "role": 0,
+    "rz": -0.047
+   },
+   "4243331": {
+    "espn": 7.1,
+    "custom": 7.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 8.18,
+    "role": -0.027,
+    "rz": -0.333,
+    "boom": 0.163,
+    "bust": 0.131,
+    "boomAt": 12.8,
+    "bustAt": 1.2
+   },
+   "4248528": {
+    "espn": 14.5,
+    "custom": 14.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 16.49,
+    "prop": -0.73,
+    "role": 0.021,
+    "rz": 0.131,
+    "boom": 0.189,
+    "bust": 0.219,
+    "boomAt": 24.5,
+    "bustAt": 8.9
+   },
+   "4249624": {
+    "espn": 0.5,
+    "custom": 0.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "role": 0,
+    "rz": 0
+   },
+   "4259305": {
+    "espn": 2.1,
+    "custom": 2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 1.81,
+    "role": 0,
+    "rz": -0.096
+   },
+   "4259545": {
+    "espn": 13,
+    "custom": 13,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 13.08,
+    "role": 0.142,
+    "rz": 1.038,
+    "boom": 0.148,
+    "bust": 0.204,
+    "boomAt": 23.5,
+    "bustAt": 8.3
+   },
+   "4262921": {
+    "espn": 17.3,
+    "custom": 17,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 18.29,
+    "prop": -0.81,
+    "role": -0.249,
+    "rz": 0.104,
+    "boom": 0.166,
+    "bust": 0.167,
+    "boomAt": 23.4,
+    "bustAt": 8.2
+   },
+   "4360238": {
+    "espn": 4.9,
+    "custom": 4.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 3.64,
+    "role": 0.5,
+    "rz": -0.37
+   },
+   "4360248": {
+    "espn": 10.3,
+    "custom": 9.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 8.5,
+    "role": -0.064,
+    "rz": 0.224,
+    "boom": 0.229,
+    "bust": 0.12,
+    "boomAt": 14.5,
+    "bustAt": 2.3
+   },
+   "4360310": {
+    "espn": 20.8,
+    "custom": 21,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 21.14,
+    "role": -0.073,
+    "rz": -0.159,
+    "boom": 0.209,
+    "bust": 0.116,
+    "boomAt": 27.5,
+    "bustAt": 10.9
+   },
+   "4360423": {
+    "espn": 15.7,
+    "custom": 15.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 15.16,
+    "role": -0.007,
+    "rz": -0.018,
+    "boom": 0.164,
+    "bust": 0.158,
+    "boomAt": 21.8,
+    "bustAt": 7.2
+   },
+   "4360569": {
+    "espn": 9.5,
+    "custom": 10.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 10.93,
+    "role": -0.002,
+    "rz": 0.325,
+    "boom": 0.159,
+    "bust": 0.121,
+    "boomAt": 15.7,
+    "bustAt": 3.1
+   },
+   "4360635": {
+    "espn": 8,
+    "custom": 7.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 7.24,
+    "role": -0.017,
+    "rz": -0.29,
+    "boom": 0.165,
+    "bust": 0.152,
+    "boomAt": 13.7,
+    "bustAt": 1.9
+   },
+   "4360761": {
+    "espn": 12.5,
+    "custom": 14.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 15.75,
+    "role": 0.054,
+    "rz": 0.306,
+    "boom": 0.201,
+    "bust": 0.109,
+    "boomAt": 20.2,
+    "bustAt": 6
+   },
+   "4360763": {
+    "espn": 3.3,
+    "custom": 2.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 1.14,
+    "role": 0,
+    "rz": -0.123
+   },
+   "4360797": {
+    "espn": 2.8,
+    "custom": 2.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 2.58,
+    "role": 0,
+    "rz": -0.061
+   },
+   "4360939": {
+    "espn": 6.5,
+    "custom": 6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 5.5,
+    "role": 0.109,
+    "rz": 0.028,
+    "boom": 0.133,
+    "bust": 0.235,
+    "boomAt": 12.4,
+    "bustAt": 1
+   },
+   "4360967": {
+    "espn": 3.4,
+    "custom": 2.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 1.35,
+    "role": 0,
+    "rz": -0.05
+   },
+   "4361307": {
+    "espn": 17.5,
+    "custom": 18.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 19.17,
+    "role": 0.059,
+    "rz": 0.301,
+    "boom": 0.197,
+    "bust": 0.114,
+    "boomAt": 25.5,
+    "bustAt": 9.5
+   },
+   "4361372": {
+    "espn": 0.5,
+    "custom": 1.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 2.68,
+    "role": 0,
+    "rz": -0.003
+   },
+   "4361409": {
+    "espn": 7.3,
+    "custom": 6.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 5.7,
+    "role": 0.086,
+    "rz": 0.172,
+    "boom": 0.231,
+    "bust": 0.12,
+    "boomAt": 11.2,
+    "bustAt": 0.2
+   },
+   "4361411": {
+    "espn": 8.5,
+    "custom": 8.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 9.24,
+    "role": 0.028,
+    "rz": -0.02,
+    "boom": 0.138,
+    "bust": 0.177,
+    "boomAt": 15.2,
+    "bustAt": 2.8
+   },
+   "4361516": {
+    "espn": 2.5,
+    "custom": 2.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 2.14,
+    "role": 0,
+    "rz": -0.022
+   },
+   "4361577": {
+    "espn": 5.1,
+    "custom": 3.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 2.18,
+    "role": 0,
+    "rz": -0.093
+   },
+   "4361579": {
+    "espn": 19.3,
+    "custom": 19.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 19.54,
+    "role": -0.04,
+    "rz": 0.881,
+    "boom": 0.229,
+    "bust": 0.095,
+    "boomAt": 25,
+    "bustAt": 9.2
+   },
+   "4362018": {
+    "espn": 0.9,
+    "custom": 1.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 2.09,
+    "role": 0,
+    "rz": 0.054
+   },
+   "4362238": {
+    "espn": 16.7,
+    "custom": 17.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 17.71,
+    "role": 0.016,
+    "rz": -0.407,
+    "boom": 0.198,
+    "bust": 0.129,
+    "boomAt": 23.1,
+    "bustAt": 7.9
+   },
+   "4362477": {
+    "espn": 0.1,
+    "custom": 0.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.29,
+    "role": 0,
+    "rz": -0.052
+   },
+   "4362523": {
+    "espn": 1.4,
+    "custom": 0.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.36,
+    "role": 0,
+    "rz": 0.011
+   },
+   "4362619": {
+    "espn": 6.2,
+    "custom": 6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 5.85,
+    "role": -0.044,
+    "rz": 0.374,
+    "boom": 0.175,
+    "bust": 0.152,
+    "boomAt": 10.6,
+    "bustAt": 0
+   },
+   "4362628": {
+    "espn": 21.7,
+    "custom": 20.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 19.9,
+    "role": -0.013,
+    "rz": 0.36,
+    "boom": 0.241,
+    "bust": 0.127,
+    "boomAt": 26.4,
+    "bustAt": 10.2
+   },
+   "4367209": {
+    "espn": 7.8,
+    "custom": 7.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 6.39,
+    "role": -0.073,
+    "rz": 0.036,
+    "boom": 0.164,
+    "bust": 0.149,
+    "boomAt": 12.3,
+    "bustAt": 0.9
+   },
+   "4371733": {
+    "espn": 7.8,
+    "custom": 7.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 7.42,
+    "role": -0.048,
+    "rz": -0.09,
+    "boom": 0.2,
+    "bust": 0.128,
+    "boomAt": 12.8,
+    "bustAt": 1.2
+   },
+   "4372016": {
+    "espn": 10.7,
+    "custom": 11.1,
+    "actual": null,
+    "status": "Questionable",
+    "pos": "WR",
+    "sleeper": 11.42,
+    "role": -0.101,
+    "rz": -0.186,
+    "boom": 0.144,
+    "bust": 0.2,
+    "boomAt": 18.1,
+    "bustAt": 4.7
+   },
+   "4372096": {
+    "espn": 0.6,
+    "custom": 1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 1.44,
+    "role": 0,
+    "rz": -0.047
+   },
+   "4372505": {
+    "espn": 0.5,
+    "custom": 0.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.22,
+    "role": 0,
+    "rz": -0.028
+   },
+   "4372716": {
+    "espn": 0.1,
+    "custom": 0.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.15,
+    "role": 0,
+    "rz": 0
+   },
+   "4372780": {
+    "espn": 4.3,
+    "custom": 4.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 4.61,
+    "role": 0.21,
+    "rz": 0.001
+   },
+   "4373626": {
+    "espn": 7.2,
+    "custom": 7.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 7.89,
+    "role": 0.127,
+    "rz": 0.266,
+    "boom": 0.176,
+    "bust": 0.151,
+    "boomAt": 13.3,
+    "bustAt": 1.5
+   },
+   "4373678": {
+    "espn": 9.4,
+    "custom": 9.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 8.89,
+    "role": 0.053,
+    "rz": 0.383,
+    "boom": 0.13,
+    "bust": 0.173,
+    "boomAt": 15.7,
+    "bustAt": 3.1
+   },
+   "4374045": {
+    "espn": 0.6,
+    "custom": 0.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "role": 0,
+    "rz": 0.281
+   },
+   "4374302": {
+    "espn": 17.8,
+    "custom": 18.2,
+    "actual": null,
+    "status": "Questionable",
+    "pos": "WR",
+    "sleeper": 17.19,
+    "prop": 0.69,
+    "role": 0.092,
+    "rz": 1.001,
+    "boom": 0.146,
+    "bust": 0.225,
+    "boomAt": 28.9,
+    "bustAt": 11.7
+   },
+   "4379399": {
+    "espn": 18.8,
+    "custom": 17.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 16.21,
+    "role": 0.07,
+    "rz": 0.154,
+    "boom": 0.176,
+    "bust": 0.152,
+    "boomAt": 25.4,
+    "bustAt": 9.4
+   },
+   "4382466": {
+    "espn": 7.2,
+    "custom": 5.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 3.52,
+    "role": 0,
+    "rz": -0.093,
+    "boom": 0.116,
+    "bust": 0.243,
+    "boomAt": 12.1,
+    "bustAt": 0.8
+   },
+   "4383396": {
+    "espn": 1.6,
+    "custom": 1.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "role": 0,
+    "rz": 0
+   },
+   "4383429": {
+    "espn": 0.1,
+    "custom": 0.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 0.25,
+    "role": 0,
+    "rz": 0
+   },
+   "4383440": {
+    "espn": 1,
+    "custom": 1.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 1.72,
+    "role": 0,
+    "rz": 0.206
+   },
+   "4384852": {
+    "espn": 5.9,
+    "custom": 3.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 1.35,
+    "role": 0,
+    "rz": -0.259
+   },
+   "4385690": {
+    "espn": 8.9,
+    "custom": 9.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 10.35,
+    "role": 0.046,
+    "rz": 0.084,
+    "boom": 0.211,
+    "bust": 0.205,
+    "boomAt": 16.4,
+    "bustAt": 3.6
+   },
+   "4401805": {
+    "espn": 0.6,
+    "custom": 0.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.52,
+    "role": 0,
+    "rz": -0.037
+   },
+   "4426338": {
+    "espn": 13.8,
+    "custom": 14,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 14.23,
+    "role": -0.057,
+    "rz": 0.272,
+    "boom": 0.113,
+    "bust": 0.249,
+    "boomAt": 23.8,
+    "bustAt": 8.4
+   },
+   "4426348": {
+    "espn": 21.4,
+    "custom": 19.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 17.81,
+    "role": -0.013,
+    "rz": -0.137,
+    "boom": 0.161,
+    "bust": 0.154,
+    "boomAt": 28,
+    "bustAt": 11.2
+   },
+   "4426354": {
+    "espn": 13.9,
+    "custom": 14.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 14.31,
+    "role": 0.107,
+    "rz": -0.16,
+    "boom": 0.218,
+    "bust": 0.167,
+    "boomAt": 21.2,
+    "bustAt": 6.8
+   },
+   "4426385": {
+    "espn": 11.4,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "RB",
+    "sleeper": 9.14,
+    "role": 0,
+    "rz": 0
+   },
+   "4426388": {
+    "espn": 11.1,
+    "custom": 10.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 10.08,
+    "prop": -0.36,
+    "role": -0.03,
+    "rz": -0.062,
+    "boom": 0.14,
+    "bust": 0.272,
+    "boomAt": 19.2,
+    "bustAt": 5.4
+   },
+   "4426485": {
+    "espn": 1.1,
+    "custom": 0.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.35,
+    "role": 0,
+    "rz": 0.032
+   },
+   "4426502": {
+    "espn": 18.1,
+    "custom": 17.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 17.12,
+    "role": -0.015,
+    "rz": -0.364,
+    "boom": 0.233,
+    "bust": 0.115,
+    "boomAt": 22.8,
+    "bustAt": 7.8
+   },
+   "4426515": {
+    "espn": 22.4,
+    "custom": 22,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 21.65,
+    "role": -0.058,
+    "rz": -0.247,
+    "boom": 0.194,
+    "bust": 0.158,
+    "boomAt": 31.5,
+    "bustAt": 13.5
+   },
+   "4426553": {
+    "espn": 4.7,
+    "custom": 2.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 1.06,
+    "role": 0,
+    "rz": -0.14
+   },
+   "4426844": {
+    "espn": 4.3,
+    "custom": 3.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 2.27,
+    "role": 0,
+    "rz": -0.05
+   },
+   "4426948": {
+    "espn": 1.6,
+    "custom": 1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.42,
+    "role": 0,
+    "rz": 0
+   },
+   "4427095": {
+    "espn": 10.6,
+    "custom": 9.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 8.82,
+    "role": 0.027,
+    "rz": 0.052,
+    "boom": 0.21,
+    "bust": 0.09,
+    "boomAt": 13.7,
+    "bustAt": 1.9
+   },
+   "4427366": {
+    "espn": 15.4,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "RB",
+    "sleeper": 14.79,
+    "role": 0.06,
+    "rz": -0.22
+   },
+   "4427834": {
+    "espn": 4.5,
+    "custom": 3.3,
+    "actual": null,
+    "status": "Questionable",
+    "pos": "TE",
+    "sleeper": 2.01,
+    "role": 0,
+    "rz": -0.105
+   },
+   "4428331": {
+    "espn": 12.6,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "WR",
+    "sleeper": 12.84,
+    "role": -0.19,
+    "rz": 0.236
+   },
+   "4428396": {
+    "espn": 0.4,
+    "custom": 0.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.56,
+    "role": 0,
+    "rz": 0.126
+   },
+   "4428557": {
+    "espn": 6.8,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "RB",
+    "sleeper": 7.64,
+    "role": -0.062,
+    "rz": -0.371
+   },
+   "4428718": {
+    "espn": 10.8,
+    "custom": 10.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 9.44,
+    "role": 0.079,
+    "rz": 0.031,
+    "boom": 0.163,
+    "bust": 0.175,
+    "boomAt": 17.6,
+    "bustAt": 4.4
+   },
+   "4428850": {
+    "espn": 8.4,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "WR",
+    "role": 0,
+    "rz": 0.03
+   },
+   "4429023": {
+    "espn": 4.9,
+    "custom": 4.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 5.2,
+    "prop": -0.32,
+    "role": 0.443,
+    "rz": 0.402
+   },
+   "4429025": {
+    "espn": 6.1,
+    "custom": 6.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 6.75,
+    "role": -0.057,
+    "rz": -0.327,
+    "boom": 0.157,
+    "bust": 0.221,
+    "boomAt": 12.8,
+    "bustAt": 1.2
+   },
+   "4429086": {
+    "espn": 7.4,
+    "custom": 7.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 7.44,
+    "role": 0.185,
+    "rz": -0.358,
+    "boom": 0.211,
+    "bust": 0.186,
+    "boomAt": 14,
+    "bustAt": 2
+   },
+   "4429096": {
+    "espn": 11.5,
+    "custom": 9.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 7.42,
+    "role": 0.036,
+    "rz": -0.563,
+    "boom": 0.239,
+    "bust": 0.112,
+    "boomAt": 14.5,
+    "bustAt": 2.3
+   },
+   "4429205": {
+    "espn": 9.8,
+    "custom": 9.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 9.05,
+    "prop": -0.2,
+    "role": 0.01,
+    "rz": -0.356,
+    "boom": 0.167,
+    "bust": 0.14,
+    "boomAt": 14.8,
+    "bustAt": 2.6
+   },
+   "4429501": {
+    "espn": 2.2,
+    "custom": 1.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 0.91,
+    "role": 0,
+    "rz": -0.088
+   },
+   "4429615": {
+    "espn": 20.1,
+    "custom": 19.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 18.02,
+    "role": 0.042,
+    "rz": 0.054,
+    "boom": 0.182,
+    "bust": 0.139,
+    "boomAt": 27,
+    "bustAt": 10.6
+   },
+   "4429676": {
+    "espn": 3.7,
+    "custom": 3.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 3.83,
+    "role": 0,
+    "rz": 0.076
+   },
+   "4429795": {
+    "espn": 24.6,
+    "custom": 25.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 23.14,
+    "prop": 1.91,
+    "role": 0.063,
+    "rz": 1.334,
+    "boom": 0.195,
+    "bust": 0.216,
+    "boomAt": 36.8,
+    "bustAt": 17
+   },
+   "4429835": {
+    "espn": 4.6,
+    "custom": 5.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 6.45,
+    "role": -0.026,
+    "rz": 0.216,
+    "boom": 0.122,
+    "bust": 0.234,
+    "boomAt": 12.9,
+    "bustAt": 1.3
+   },
+   "4430027": {
+    "espn": 10.7,
+    "custom": 11,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 11.07,
+    "prop": 0.13,
+    "role": 0.114,
+    "rz": 0.354,
+    "boom": 0.162,
+    "bust": 0.191,
+    "boomAt": 19.2,
+    "bustAt": 5.4
+   },
+   "4430539": {
+    "espn": 9.8,
+    "custom": 10.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 10.54,
+    "role": 0.032,
+    "rz": -0.219,
+    "boom": 0.148,
+    "bust": 0.125,
+    "boomAt": 16.6,
+    "bustAt": 3.8
+   },
+   "4430656": {
+    "espn": 0.2,
+    "custom": 0.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.11,
+    "role": 0,
+    "rz": 0.113
+   },
+   "4430681": {
+    "espn": 1.2,
+    "custom": 1.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 1.04,
+    "role": 0,
+    "rz": 0
+   },
+   "4430737": {
+    "espn": 17.9,
+    "custom": 18.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 19.68,
+    "role": 0.051,
+    "rz": -0.115,
+    "boom": 0.179,
+    "bust": 0.149,
+    "boomAt": 26.7,
+    "bustAt": 10.3
+   },
+   "4430802": {
+    "espn": 6.5,
+    "custom": 6.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 6.06,
+    "role": 0.034,
+    "rz": 0.071,
+    "boom": 0.168,
+    "bust": 0.131,
+    "boomAt": 11.7,
+    "bustAt": 0.5
+   },
+   "4430807": {
+    "espn": 19.3,
+    "custom": 20.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 21.22,
+    "role": 0.008,
+    "rz": -0.39,
+    "boom": 0.183,
+    "bust": 0.191,
+    "boomAt": 29.6,
+    "bustAt": 12.2
+   },
+   "4430870": {
+    "espn": 0.7,
+    "custom": 1.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 1.69,
+    "role": 0,
+    "rz": -0.017
+   },
+   "4430871": {
+    "espn": 1.8,
+    "custom": 1.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 1.43,
+    "role": 0,
+    "rz": 0.342
+   },
+   "4430878": {
+    "espn": 22,
+    "custom": 23.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 25.05,
+    "role": 0.031,
+    "rz": 0.256,
+    "boom": 0.182,
+    "bust": 0.152,
+    "boomAt": 33.6,
+    "bustAt": 14.8
+   },
+   "4430968": {
+    "espn": 7.9,
+    "custom": 7.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 6.2,
+    "role": -0.111,
+    "rz": -0.162,
+    "boom": 0.249,
+    "bust": 0.144,
+    "boomAt": 11.2,
+    "bustAt": 0.2
+   },
+   "4431268": {
+    "espn": 1,
+    "custom": 1.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 1.91,
+    "role": 0,
+    "rz": -0.088
+   },
+   "4431280": {
+    "espn": 3.6,
+    "custom": 3.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 3.49,
+    "role": 0,
+    "rz": 0.077
+   },
+   "4431299": {
+    "espn": 9.3,
+    "custom": 9.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 10.16,
+    "role": -0.081,
+    "rz": 0.015,
+    "boom": 0.156,
+    "bust": 0.219,
+    "boomAt": 17.2,
+    "bustAt": 4.2
+   },
+   "4431346": {
+    "espn": 0.5,
+    "custom": 0.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "role": 0,
+    "rz": -0.028
+   },
+   "4431431": {
+    "espn": 4,
+    "custom": 4.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 5.14,
+    "role": -0.153,
+    "rz": 0.318
+   },
+   "4431452": {
+    "espn": 23.6,
+    "custom": 23,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 22.34,
+    "role": -0.025,
+    "rz": -0.27,
+    "boom": 0.235,
+    "bust": 0.091,
+    "boomAt": 28.4,
+    "bustAt": 11.4
+   },
+   "4431459": {
+    "espn": 11.5,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "TE",
+    "sleeper": 10.89,
+    "role": 0.097,
+    "rz": -0.126
+   },
+   "4431487": {
+    "espn": 6.8,
+    "custom": 6.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 5.66,
+    "prop": 0.16,
+    "role": 0.105,
+    "rz": 0.053,
+    "boom": 0.158,
+    "bust": 0.183,
+    "boomAt": 12.5,
+    "bustAt": 1.1
+   },
+   "4431574": {
+    "espn": 0.5,
+    "custom": 0.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.99,
+    "role": 0,
+    "rz": 0
+   },
+   "4431611": {
+    "espn": 15.6,
+    "custom": 15.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 15.93,
+    "role": -0.009,
+    "rz": 0.312,
+    "boom": 0.119,
+    "bust": 0.264,
+    "boomAt": 27.9,
+    "bustAt": 11.1
+   },
+   "4432260": {
+    "espn": 1.7,
+    "custom": 2.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 3.03,
+    "role": 0,
+    "rz": 0
+   },
+   "4432620": {
+    "espn": 16.2,
+    "custom": 15.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 15.61,
+    "role": -0.005,
+    "rz": 0.199,
+    "boom": 0.248,
+    "bust": 0.121,
+    "boomAt": 22.5,
+    "bustAt": 7.6
+   },
+   "4432665": {
+    "espn": 16.1,
+    "custom": 16.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 16.9,
+    "role": 0.122,
+    "rz": 0.035,
+    "boom": 0.149,
+    "bust": 0.172,
+    "boomAt": 25.2,
+    "bustAt": 9.4
+   },
+   "4432710": {
+    "espn": 6.6,
+    "custom": 7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 7.4,
+    "role": 0.042,
+    "rz": -0.616,
+    "boom": 0.157,
+    "bust": 0.171,
+    "boomAt": 13.4,
+    "bustAt": 1.6
+   },
+   "4432773": {
+    "espn": 5.4,
+    "custom": 4.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 3.45,
+    "role": 0,
+    "rz": 0.057
+   },
+   "4433959": {
+    "espn": 0.5,
+    "custom": 0.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.22,
+    "role": 0,
+    "rz": -0.031
+   },
+   "4565185": {
+    "espn": 1,
+    "custom": 1.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 1.65,
+    "role": 0,
+    "rz": 0.029
+   },
+   "4567048": {
+    "espn": 19.9,
+    "custom": 20.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 20.8,
+    "role": 0.055,
+    "rz": 1.305,
+    "boom": 0.167,
+    "bust": 0.188,
+    "boomAt": 30.2,
+    "bustAt": 12.6
+   },
+   "4567096": {
+    "espn": 4.6,
+    "custom": 3.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 1.53,
+    "role": 0,
+    "rz": -0.052
+   },
+   "4567156": {
+    "espn": 8.7,
+    "custom": 6.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 5.19,
+    "role": -0.106,
+    "rz": 0.078,
+    "boom": 0.183,
+    "bust": 0.149,
+    "boomAt": 12.5,
+    "bustAt": 1.1
+   },
+   "4567750": {
+    "espn": 12.9,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "WR",
+    "sleeper": 11.87,
+    "role": 0.067,
+    "rz": -0.025
+   },
+   "4568490": {
+    "espn": 9.4,
+    "custom": 8.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 8.35,
+    "role": 0.162,
+    "rz": -0.271,
+    "boom": 0.171,
+    "bust": 0.182,
+    "boomAt": 17,
+    "bustAt": 4
+   },
+   "4569173": {
+    "espn": 13.2,
+    "custom": 11.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 10.65,
+    "role": 0.159,
+    "rz": -0.584,
+    "boom": 0.182,
+    "bust": 0.192,
+    "boomAt": 18.8,
+    "bustAt": 5.2
+   },
+   "4569371": {
+    "espn": 1.5,
+    "custom": 0.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.36,
+    "role": 0,
+    "rz": -0.086
+   },
+   "4569382": {
+    "espn": 1.7,
+    "custom": 2.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 3.97,
+    "role": 0,
+    "rz": -0.049
+   },
+   "4569587": {
+    "espn": 8.8,
+    "custom": 10,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 11.11,
+    "role": -0.041,
+    "rz": 0.009,
+    "boom": 0.189,
+    "bust": 0.154,
+    "boomAt": 16.4,
+    "bustAt": 3.6
+   },
+   "4569603": {
+    "espn": 10.2,
+    "custom": 9.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 9.26,
+    "role": 0.122,
+    "rz": -0.128,
+    "boom": 0.124,
+    "bust": 0.119,
+    "boomAt": 16.2,
+    "bustAt": 3.4
+   },
+   "4569618": {
+    "espn": 14,
+    "custom": 15.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 16.31,
+    "role": -0.022,
+    "rz": -0.289,
+    "boom": 0.208,
+    "bust": 0.163,
+    "boomAt": 22,
+    "bustAt": 7.2
+   },
+   "4569987": {
+    "espn": 16,
+    "custom": 15.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 15.03,
+    "role": 0.045,
+    "rz": -1.084,
+    "boom": 0.169,
+    "bust": 0.114,
+    "boomAt": 22.8,
+    "bustAt": 7.8
+   },
+   "4572680": {
+    "espn": 10.8,
+    "custom": 10.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 10.81,
+    "prop": -0.39,
+    "role": -0.012,
+    "rz": 0.107,
+    "boom": 0.177,
+    "bust": 0.153,
+    "boomAt": 17.4,
+    "bustAt": 4.2
+   },
+   "4573699": {
+    "espn": 0.5,
+    "custom": 0.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.81,
+    "role": 0,
+    "rz": -0.017
+   },
+   "4576297": {
+    "espn": 8.5,
+    "custom": 8.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 8.39,
+    "role": -0.101,
+    "rz": 0.144,
+    "boom": 0.2,
+    "bust": 0.109,
+    "boomAt": 13.1,
+    "bustAt": 1.5
+   },
+   "4578436": {
+    "espn": 0.1,
+    "custom": 0.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "role": 0,
+    "rz": 0
+   },
+   "4595342": {
+    "espn": 3.7,
+    "custom": 4.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 4.44,
+    "role": 0.182,
+    "rz": 0.251
+   },
+   "4596334": {
+    "espn": 5.9,
+    "custom": 6.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 6.65,
+    "role": 0.082,
+    "rz": -0.368,
+    "boom": 0.128,
+    "bust": 0.178,
+    "boomAt": 12.8,
+    "bustAt": 1.2
+   },
+   "4596448": {
+    "espn": 17.3,
+    "custom": 16.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 15.74,
+    "role": -0.032,
+    "rz": 0.009,
+    "boom": 0.175,
+    "bust": 0.12,
+    "boomAt": 23.1,
+    "bustAt": 7.9
+   },
+   "4597500": {
+    "espn": 7.5,
+    "custom": 6.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 4.74,
+    "role": 0.483,
+    "rz": -0.307,
+    "boom": 0.17,
+    "bust": 0.187,
+    "boomAt": 12.5,
+    "bustAt": 1.1
+   },
+   "4597703": {
+    "espn": 2.1,
+    "custom": 2.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 3.65,
+    "role": 0,
+    "rz": -0.012
+   },
+   "4608686": {
+    "espn": 8.7,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "RB",
+    "sleeper": 6.1,
+    "role": 0.483,
+    "rz": 0.61
+   },
+   "4608810": {
+    "espn": 5.1,
+    "custom": 4.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 4.06,
+    "role": 0,
+    "rz": -0.004
+   },
+   "4612826": {
+    "espn": 10.4,
+    "custom": 10.4,
+    "actual": null,
+    "status": "Questionable",
+    "pos": "WR",
+    "sleeper": 10.34,
+    "role": -0.278,
+    "rz": -0.041,
+    "boom": 0.165,
+    "bust": 0.209,
+    "boomAt": 16.8,
+    "bustAt": 3.8
+   },
+   "4613104": {
+    "espn": 0.1,
+    "custom": 0.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.2,
+    "role": 0,
+    "rz": 0
+   },
+   "4613202": {
+    "espn": 4.6,
+    "custom": 4.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 4.92,
+    "role": -0.17,
+    "rz": -0.132
+   },
+   "4635008": {
+    "espn": 6.6,
+    "custom": 7.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 7.56,
+    "role": 0.107,
+    "rz": 0.034,
+    "boom": 0.147,
+    "bust": 0.238,
+    "boomAt": 14.2,
+    "bustAt": 2.2
+   },
+   "4682745": {
+    "espn": 4.4,
+    "custom": 4.3,
+    "actual": null,
+    "status": "Questionable",
+    "pos": "RB",
+    "sleeper": 4.16,
+    "role": -0.277,
+    "rz": -0.027
+   },
+   "4683062": {
+    "espn": 8.2,
+    "custom": 8.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 9.23,
+    "role": -0.05,
+    "rz": 0.049,
+    "boom": 0.107,
+    "bust": 0.214,
+    "boomAt": 16.5,
+    "bustAt": 3.7
+   },
+   "4683151": {
+    "espn": 2.5,
+    "custom": 1.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.64,
+    "role": 0,
+    "rz": -0.11
+   },
+   "4683153": {
+    "espn": 0.5,
+    "custom": 0.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.27,
+    "role": 0,
+    "rz": -0.02
+   },
+   "4683243": {
+    "espn": 2.9,
+    "custom": 2.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 1.81,
+    "role": 0,
+    "rz": 0.065
+   },
+   "4685201": {
+    "espn": 12.8,
+    "custom": 13.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 14.73,
+    "role": -0.226,
+    "rz": -0.026,
+    "boom": 0.191,
+    "bust": 0.126,
+    "boomAt": 19.5,
+    "bustAt": 5.7
+   },
+   "4685247": {
+    "espn": 9.9,
+    "custom": 8.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 7.7,
+    "role": 0.259,
+    "rz": -0.477,
+    "boom": 0.142,
+    "bust": 0.159,
+    "boomAt": 15.4,
+    "bustAt": 3
+   },
+   "4685261": {
+    "espn": 10.8,
+    "custom": 10.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 10.06,
+    "role": -0.08,
+    "rz": 0.195,
+    "boom": 0.338,
+    "bust": 0.067,
+    "boomAt": 11.3,
+    "bustAt": 0.3
+   },
+   "4685278": {
+    "espn": 13.5,
+    "custom": 12.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 11.69,
+    "role": 0.09,
+    "rz": 0.342,
+    "boom": 0.153,
+    "bust": 0.138,
+    "boomAt": 20.3,
+    "bustAt": 6.1
+   },
+   "4685307": {
+    "espn": 1.8,
+    "custom": 2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 2.11,
+    "role": 0,
+    "rz": -0.009
+   },
+   "4685350": {
+    "espn": 0.1,
+    "custom": 1.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 2.57,
+    "role": 0,
+    "rz": -0.032
+   },
+   "4685382": {
+    "espn": 8.2,
+    "custom": 9.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 10.16,
+    "role": 0.029,
+    "rz": -0.224,
+    "boom": 0.138,
+    "bust": 0.25,
+    "boomAt": 17.6,
+    "bustAt": 4.4
+   },
+   "4685415": {
+    "espn": 2.8,
+    "custom": 2.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "role": 0,
+    "rz": 0
+   },
+   "4685472": {
+    "espn": 15.6,
+    "custom": 14.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 14.33,
+    "prop": -0.37,
+    "role": 0.092,
+    "rz": 0.124,
+    "boom": 0.149,
+    "bust": 0.171,
+    "boomAt": 22.1,
+    "bustAt": 7.3
+   },
+   "4685504": {
+    "espn": 2,
+    "custom": 2.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 2.14,
+    "role": 0,
+    "rz": 0.045
+   },
+   "4685553": {
+    "espn": 0.4,
+    "custom": 0.6,
+    "actual": null,
+    "status": "Questionable",
+    "pos": "WR",
+    "sleeper": 0.83,
+    "role": 0,
+    "rz": -0.053
+   },
+   "4685702": {
+    "espn": 11.2,
+    "custom": 10.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 9.63,
+    "role": 0.115,
+    "rz": -0.191,
+    "boom": 0.135,
+    "bust": 0.264,
+    "boomAt": 18.9,
+    "bustAt": 5.3
+   },
+   "4685720": {
+    "espn": 16.9,
+    "custom": 16.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 18.31,
+    "prop": -0.74,
+    "role": 0.013,
+    "rz": 0.465,
+    "boom": 0.134,
+    "bust": 0.21,
+    "boomAt": 25.6,
+    "bustAt": 9.6
+   },
+   "4686248": {
+    "espn": 2.9,
+    "custom": 2.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 1.48,
+    "role": 0,
+    "rz": 0.057
+   },
+   "4686468": {
+    "espn": 3.7,
+    "custom": 3.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 2.87,
+    "role": 0,
+    "rz": -0.099
+   },
+   "4686472": {
+    "espn": 5.5,
+    "custom": 4.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 4.1,
+    "role": -0.065,
+    "rz": -0.159
+   },
+   "4686612": {
+    "espn": 5.9,
+    "custom": 5.2,
+    "actual": null,
+    "status": "Questionable",
+    "pos": "WR",
+    "sleeper": 4.53,
+    "role": 0.359,
+    "rz": -0.007,
+    "boom": 0.128,
+    "bust": 0.211,
+    "boomAt": 11.9,
+    "bustAt": 0.7
+   },
+   "4686658": {
+    "espn": 6.9,
+    "custom": 6.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 5.73,
+    "role": -0.073,
+    "rz": -0.017,
+    "boom": 0.153,
+    "bust": 0.166,
+    "boomAt": 12.3,
+    "bustAt": 0.9
+   },
+   "4686728": {
+    "espn": 4.3,
+    "custom": 4.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 5.54,
+    "role": -0.212,
+    "rz": 0.092
+   },
+   "4688380": {
+    "espn": 10.9,
+    "custom": 12.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "QB",
+    "sleeper": 14.15,
+    "role": -0.077,
+    "rz": 0.141,
+    "boom": 0.134,
+    "bust": 0.205,
+    "boomAt": 19.8,
+    "bustAt": 5.8
+   },
+   "4688813": {
+    "espn": 8.4,
+    "custom": 9.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 9.94,
+    "role": 0.038,
+    "rz": 0.07,
+    "boom": 0.13,
+    "bust": 0.184,
+    "boomAt": 16,
+    "bustAt": 3.4
+   },
+   "4690070": {
+    "espn": 1.3,
+    "custom": 1.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "role": 0,
+    "rz": 0
+   },
+   "4690143": {
+    "espn": 0.6,
+    "custom": 0.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.22,
+    "role": 0,
+    "rz": -0.052
+   },
+   "4692835": {
+    "espn": 7.3,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "WR",
+    "role": 0,
+    "rz": 0.048
+   },
+   "4695193": {
+    "espn": 5.9,
+    "custom": 5.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 5.35,
+    "role": 0.072,
+    "rz": 0.018,
+    "boom": 0.147,
+    "bust": 0.188,
+    "boomAt": 11.8,
+    "bustAt": 0.6
+   },
+   "4695883": {
+    "espn": 14.5,
+    "custom": 14.2,
+    "actual": null,
+    "status": "Questionable",
+    "pos": "WR",
+    "sleeper": 16.14,
+    "prop": -1.08,
+    "role": 0.043,
+    "rz": 0.11,
+    "boom": 0.184,
+    "bust": 0.176,
+    "boomAt": 21.5,
+    "bustAt": 6.9
+   },
+   "4696882": {
+    "espn": 1.8,
+    "custom": 2.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 2.75,
+    "role": 0,
+    "rz": -0.012
+   },
+   "4697815": {
+    "espn": 11.8,
+    "custom": 11.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 10.51,
+    "role": -0.118,
+    "rz": -0.125,
+    "boom": 0.209,
+    "bust": 0.094,
+    "boomAt": 15.3,
+    "bustAt": 2.9
+   },
+   "4701936": {
+    "espn": 15.1,
+    "custom": 13.7,
+    "actual": null,
+    "status": "Questionable",
+    "pos": "WR",
+    "sleeper": 13.3,
+    "prop": -0.55,
+    "role": 0.065,
+    "rz": 0.186,
+    "boom": 0.149,
+    "bust": 0.184,
+    "boomAt": 22.2,
+    "bustAt": 7.4
+   },
+   "4702555": {
+    "espn": 6.9,
+    "custom": 8.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 10.04,
+    "role": -0.138,
+    "rz": 0.157,
+    "boom": 0.168,
+    "bust": 0.162,
+    "boomAt": 14.6,
+    "bustAt": 2.4
+   },
+   "4708049": {
+    "espn": 2.6,
+    "custom": 1.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.82,
+    "role": 0,
+    "rz": -0.011
+   },
+   "4710855": {
+    "espn": 4.4,
+    "custom": 4.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 4.44,
+    "role": 0.089,
+    "rz": -0.121
+   },
+   "4711533": {
+    "espn": 14.4,
+    "custom": 13.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 12.85,
+    "role": -0.173,
+    "rz": 0.641,
+    "boom": 0.308,
+    "bust": 0.063,
+    "boomAt": 14.5,
+    "bustAt": 2.3
+   },
+   "4714379": {
+    "espn": 0.4,
+    "custom": 0.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.09,
+    "role": 0,
+    "rz": 0
+   },
+   "4715355": {
+    "espn": 3.1,
+    "custom": 2.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 2.79,
+    "role": 0,
+    "rz": 0.236
+   },
+   "4722908": {
+    "espn": 0.5,
+    "custom": 0.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.61,
+    "role": 0,
+    "rz": -0.047
+   },
+   "4723086": {
+    "espn": 11.8,
+    "custom": 10.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 9.5,
+    "role": -0.118,
+    "rz": 0.308,
+    "boom": 0.196,
+    "bust": 0.141,
+    "boomAt": 16.6,
+    "bustAt": 3.8
+   },
+   "4723820": {
+    "espn": 10.5,
+    "custom": 10.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 9.83,
+    "role": -0.041,
+    "rz": 0.003,
+    "boom": 0.264,
+    "bust": 0.08,
+    "boomAt": 12.5,
+    "bustAt": 1.1
+   },
+   "4808766": {
+    "espn": 8.7,
+    "custom": 6.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 3.62,
+    "role": 0,
+    "rz": -0.086,
+    "boom": 0.211,
+    "bust": 0.125,
+    "boomAt": 10.4,
+    "bustAt": 0
+   },
+   "4808839": {
+    "espn": 0.4,
+    "custom": 1.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 2.33,
+    "role": 0,
+    "rz": -0.11
+   },
+   "4831959": {
+    "espn": 7.8,
+    "custom": 6.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 5.64,
+    "role": -0.032,
+    "rz": 0.235,
+    "boom": 0.169,
+    "bust": 0.162,
+    "boomAt": 12.4,
+    "bustAt": 1
+   },
+   "4832800": {
+    "espn": 11.4,
+    "custom": 10.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 10.31,
+    "role": 0.056,
+    "rz": 0.001,
+    "boom": 0.2,
+    "bust": 0.145,
+    "boomAt": 16.8,
+    "bustAt": 3.8
+   },
+   "4832955": {
+    "espn": 4.8,
+    "custom": 4.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 4.26,
+    "role": 0.081,
+    "rz": -0.141
+   },
+   "4869645": {
+    "espn": 9.6,
+    "custom": 8.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 6.91,
+    "role": 0.065,
+    "rz": -0.038,
+    "boom": 0.148,
+    "bust": 0.183,
+    "boomAt": 15.1,
+    "bustAt": 2.7
+   },
+   "4869748": {
+    "espn": 2,
+    "custom": 1.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 1.67,
+    "role": 0,
+    "rz": -0.074
+   },
+   "4869961": {
+    "espn": 7.5,
+    "custom": 6.6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 5.73,
+    "role": -0.164,
+    "rz": -0.121,
+    "boom": 0.197,
+    "bust": 0.13,
+    "boomAt": 11,
+    "bustAt": 0
+   },
+   "4870612": {
+    "espn": 3.1,
+    "custom": 3.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 3.04,
+    "role": 0,
+    "rz": -0.109
+   },
+   "4870653": {
+    "espn": 10.2,
+    "custom": 9.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 9.12,
+    "role": 0.088,
+    "rz": -0.212,
+    "boom": 0.136,
+    "bust": 0.195,
+    "boomAt": 17,
+    "bustAt": 4
+   },
+   "4870795": {
+    "espn": 5.9,
+    "custom": 5.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 5.66,
+    "role": 0.193,
+    "rz": -0.361,
+    "boom": 0.121,
+    "bust": 0.221,
+    "boomAt": 13.1,
+    "bustAt": 1.5
+   },
+   "4870808": {
+    "espn": 12,
+    "custom": 0,
+    "actual": null,
+    "status": "Out",
+    "pos": "RB",
+    "sleeper": 9.89,
+    "role": 0.148,
+    "rz": 0.02
+   },
+   "4870847": {
+    "espn": 8,
+    "custom": 6.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 5.75,
+    "role": 0.028,
+    "rz": 0.337,
+    "boom": 0.21,
+    "bust": 0.111,
+    "boomAt": 10.7,
+    "bustAt": 0
+   },
+   "4871023": {
+    "espn": 11.8,
+    "custom": 12.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 13.59,
+    "role": -0.078,
+    "rz": -0.357,
+    "boom": 0.193,
+    "bust": 0.159,
+    "boomAt": 19.4,
+    "bustAt": 5.6
+   },
+   "4876132": {
+    "espn": 1.7,
+    "custom": 1.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 1.7,
+    "role": 0,
+    "rz": -0.003
+   },
+   "4878695": {
+    "espn": 0.5,
+    "custom": 0.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 0.11,
+    "role": 0,
+    "rz": 0
+   },
+   "4879194": {
+    "espn": 5.6,
+    "custom": 4.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 4.11,
+    "role": 0,
+    "rz": 0.273
+   },
+   "4880236": {
+    "espn": 2.1,
+    "custom": 1.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 1.26,
+    "role": 0,
+    "rz": -0.105
+   },
+   "4882093": {
+    "espn": 14.7,
+    "custom": 14.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 13.89,
+    "role": 0.054,
+    "rz": 0.211,
+    "boom": 0.18,
+    "bust": 0.11,
+    "boomAt": 20.3,
+    "bustAt": 6.1
+   },
+   "4883647": {
+    "espn": 5.1,
+    "custom": 5.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 6.2,
+    "role": -0.222,
+    "rz": 0.551,
+    "boom": 0.172,
+    "bust": 0.115,
+    "boomAt": 10.4,
+    "bustAt": 0
+   },
+   "4887558": {
+    "espn": 8.8,
+    "custom": 8.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 8,
+    "role": 0.263,
+    "rz": 0,
+    "boom": 0.125,
+    "bust": 0.333,
+    "boomAt": 18.3,
+    "bustAt": 4.8
+   },
+   "4890373": {
+    "espn": 0.5,
+    "custom": 0.3,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 0.12,
+    "role": 0,
+    "rz": -0.019
+   },
+   "4890973": {
+    "espn": 16.8,
+    "custom": 16.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 16.56,
+    "role": 0.046,
+    "rz": 0.523,
+    "boom": 0.17,
+    "bust": 0.218,
+    "boomAt": 25.1,
+    "bustAt": 9.3
+   },
+   "4911851": {
+    "espn": 0.9,
+    "custom": 1.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 1.82,
+    "role": 0,
+    "rz": 0.025
+   },
+   "4912218": {
+    "espn": 0.4,
+    "custom": 0.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.91,
+    "role": 0,
+    "rz": -0.054
+   },
+   "4912274": {
+    "espn": 3.1,
+    "custom": 3.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 3.75,
+    "role": -0.106,
+    "rz": -0.241
+   },
+   "5081338": {
+    "espn": 0.2,
+    "custom": 0.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.14,
+    "role": 0,
+    "rz": 0
+   },
+   "5081397": {
+    "espn": 6.8,
+    "custom": 6.4,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "RB",
+    "sleeper": 5.93,
+    "role": -0.2,
+    "rz": 0,
+    "boom": 0.182,
+    "bust": 0.137,
+    "boomAt": 11.2,
+    "bustAt": 0.2
+   },
+   "5081432": {
+    "espn": 7.9,
+    "custom": 7.5,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 7.15,
+    "role": 0.02,
+    "rz": -0.078,
+    "boom": 0.157,
+    "bust": 0.145,
+    "boomAt": 13.3,
+    "bustAt": 1.5
+   },
+   "5082630": {
+    "espn": 4.2,
+    "custom": 2.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 1.51,
+    "role": 0,
+    "rz": 0.1
+   },
+   "5083076": {
+    "espn": 8.9,
+    "custom": 9.7,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 10.4,
+    "role": -0.065,
+    "rz": -0.172,
+    "boom": 0.2,
+    "bust": 0.141,
+    "boomAt": 16.2,
+    "bustAt": 3.4
+   },
+   "5083315": {
+    "espn": 4.9,
+    "custom": 6.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "TE",
+    "sleeper": 8.78,
+    "role": -0.083,
+    "rz": -0.156,
+    "boom": 0.163,
+    "bust": 0.202,
+    "boomAt": 13,
+    "bustAt": 1.4
+   },
+   "5083754": {
+    "espn": 9.4,
+    "custom": 9.1,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 8.78,
+    "role": 0.118,
+    "rz": -0.021,
+    "boom": 0.181,
+    "bust": 0.125,
+    "boomAt": 14.6,
+    "bustAt": 2.4
+   },
+   "5093923": {
+    "espn": 1.9,
+    "custom": 1.2,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.51,
+    "role": 0,
+    "rz": 0.151
+   },
+   "5123663": {
+    "espn": 5.9,
+    "custom": 4.8,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 3.75,
+    "role": 0.28,
+    "rz": 0.186
+   },
+   "5150247": {
+    "espn": 1.3,
+    "custom": 0.9,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 0.41,
+    "role": 0,
+    "rz": 0.01
+   },
+   "5220680": {
+    "espn": 6.8,
+    "custom": 6,
+    "actual": null,
+    "status": "Healthy",
+    "pos": "WR",
+    "sleeper": 5.26,
+    "role": 0.078,
+    "rz": 0.028,
+    "boom": 0.202,
+    "bust": 0.135,
+    "boomAt": 10.7,
+    "bustAt": 0
    }
   }
  }
