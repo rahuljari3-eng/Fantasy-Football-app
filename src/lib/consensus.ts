@@ -312,8 +312,10 @@ const POINTS_PER = { reception: 1, passTd: 4, passInt: -2 } as const;
 /** Fantasy points the sportsbook's lines imply beyond (or short of) the
  * projection model's own stat line: every stat with a posted line -- yardage,
  * receptions, passing TDs, interceptions -- swapped from the model's number
- * to the book's. Stats without a line (rushing/receiving TDs, a QB's rushing)
- * contribute nothing, i.e. stay as the model has them. Null when no line
+ * to the book's. QBs' rushing yards are lined too (ESPN posts them for
+ * starters). Stats without a usable line -- rushing/receiving TDs (the
+ * anytime-scorer markets come through ESPN unpriced) -- contribute nothing,
+ * i.e. stay as the model has them. Null when no line
  * lines up with a model stat. Used for the season-long Vegas value
  * (lib/bettingValue.ts); the weekly projection (applyPropLines) keeps to
  * yardage, since count lines are posted at x.5 medians -- 1.5 passing TDs

@@ -12,6 +12,27 @@ evidence, what (if anything) changed in the shipped calculation, and ideas
 queued for next time. Experiments that failed are recorded too, so they aren't
 re-run blindly.
 
+## 2026-11-02 — QB inputs: what the prop feed does and doesn't carry (by hand)
+
+**Standing:** Custom still ahead through week 7 (MAE 5.59 vs 5.73, 1,269
+games). Week 8 unofficial live grade (Sunday games, MNF pending): 5.81 vs
+5.89; QB the only position behind (7.58 vs 7.52). Season QB edge is ~0
+(−0.4%), won 3/8 weeks, and when Custom moves a QB ≥1.5 pts off ESPN it's
+right only 14–16 — the prop swing isn't helping QBs.
+
+**Checked (no calculation change):**
+- QB rushing-yard lines (ESPN prop type 12) are posted for every starter and
+  are already in the prop delta: e.g. week 8 Lamar's −1.69 was −0.20 passing,
+  −1.48 rushing. So "add QB rushing props" is not a lever — it's already in.
+- QB TD markets come through ESPN's prop feed without prices: passing TDs are
+  a bare 1.5 line for nearly everyone; anytime/2+/3+ scorer are empty. No
+  usable per-QB TD signal without a priced odds source.
+
+**Next to try:** the Vegas implied team total as a QB input (already in
+`vegasHistory.json` for backtesting) to cover the TD gap the yardage props
+miss; and per-position prop weight with QB → 0, which the full-data fit
+already leans toward.
+
 ## 2026-10-25 — Baseline review (weeks 1–6, week 7 partial)
 
 **Standing:** Custom beats ESPN all season: MAE 5.64 vs 5.78 over 1,082
