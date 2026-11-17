@@ -1,12 +1,12 @@
 {
-  "fittedAt": "2026-11-10T12:22:24.211Z",
+  "fittedAt": "2026-11-17T12:58:03.850Z",
   "params": {
     "sleeperShare": 0.5,
     "propWeight": 0.5,
     "propCap": 0.3,
     "scale": {
       "QB": 1,
-      "RB": 0.95,
+      "RB": 1,
       "WR": 1,
       "TE": 1
     },
@@ -16,7 +16,7 @@
   },
   "adopted": false,
   "backtest": {
-    "games": 1501,
+    "games": 1689,
     "weeks": [
       2,
       3,
@@ -25,13 +25,14 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
-    "fittedRmse": 6.955413825144695,
-    "defaultRmse": 6.95004493392747,
-    "espnRmse": 6.993012120752117,
-    "fittedMae": 5.49533644237176,
-    "defaultMae": 5.470419720186545,
-    "espnMae": 5.59407061958695
+    "fittedRmse": 6.997575914535846,
+    "defaultRmse": 6.990924930187309,
+    "espnRmse": 7.034512316338301,
+    "fittedMae": 5.515512137359391,
+    "defaultMae": 5.495263469508589,
+    "espnMae": 5.610479573712261
   }
 }
