@@ -12,6 +12,50 @@ evidence, what (if anything) changed in the shipped calculation, and ideas
 queued for next time. Experiments that failed are recorded too, so they aren't
 re-run blindly.
 
+## 2026-11-21 — No change: week 11 not final yet; Questionable discount close but short
+
+**Standing (through week 10; week 11 still in progress, so same data as the
+Nov 20 entry):** Custom MAE 5.56 vs ESPN 5.68 over 1,840 player-games, closer
+990–767, ahead or tied every week (tie in week 4). By position: QB 6.12 vs
+6.14, RB 5.47 vs 5.62, WR 5.50 vs 5.65, TE 5.34 vs 5.41. Most recent finished
+week (10): 5.69 vs 5.74, closer 98–85; lost at QB (5.97 vs 5.78) and RB (6.19
+vs 6.15), won WR and TE. `projectionModel.json`: not adopted (refit 6.998 vs
+defaults 6.991 walk-forward RMSE, 1,689 games, weeks 2–10); defaults remain in
+use.
+
+**Where Custom is weak:** Questionable players who played (20 graded games,
+Custom 6.67 MAE, and it ran 5.8 pts too high on average); and players where
+Sleeper sits 2+ points above ESPN (108 games; Custom 5.50 vs ESPN 5.41 MAE).
+
+**Experiments (walk-forward, weeks 2–10, 1,689 games; each week fit only on
+earlier weeks; shipped = defaults, 6.991 / 5.495):**
+
+| Idea | RMSE | MAE | QB / RB / WR / TE MAE | Weeks better |
+|---|---|---|---|---|
+| Shipped (defaults) | 6.991 | 5.495 | 6.049 / 5.378 / 5.463 / 5.269 | — |
+| Questionable discount, fit on Q games, shrunk (10-game prior toward 1) | 6.974 (−0.24%) | 5.484 | 6.016 / 5.375 / 5.458 / 5.247 | 6 of 6 weeks with Q games (3 weeks had none) |
+| Same, 20-game prior | 6.979 (−0.18%) | 5.486 | 6.019 / 5.375 / 5.460 / 5.254 | 6 of 6 |
+| Separate Sleeper share when Sleeper > ESPN vs below (shrunk, 500-game prior) | 6.990 (−0.01%) | 5.497 | 6.067 / 5.381 / 5.458 / 5.268 | 5 of 9 |
+| Same, unshrunk | 6.997 (+0.08%) | 5.497 | 6.105 / 5.372 / 5.450 / 5.272 | 4 of 9 |
+
+The Questionable discount helps every week it applies and never hurts, but it
+only touches ~1% of games, so it can't reach the 0.5% overall RMSE bar.
+On all data the best discount is 0.7 or lower (Q RMSE 8.57 → 6.17), but that's
+20 games. The asymmetric Sleeper share is noise — rejected.
+
+**Changed:** nothing in the calculation.
+
+**Needs owner's decision:** the Nov 20 question (judge a change that only
+touches one group — QBs, or now Questionable players — on that group's own
+RMSE, with the other checks unchanged) is still open. A yes would make two
+changes eligible: the QB Vegas implied total and a shrunk Questionable
+discount (~0.9). Separately, the Nov 20 entry says the routine's pushes were
+getting 403s; if this entry isn't on main, that's still happening.
+
+**Next to try:** re-run both pending candidates once week 11 is final; check
+whether high projections (20+, 69 games, ran 2.6 pts low) are a real lean or
+noise once there are more of them.
+
 ## 2026-11-20 — Recovered: Nov 3/10/17/20 routine runs couldn't push (by hand)
 
 The cloud routine has run every Tuesday, but GitHub rejects its push with a 403
