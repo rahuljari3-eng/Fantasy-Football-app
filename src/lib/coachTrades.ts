@@ -713,7 +713,9 @@ export function byeCoverageScore(s: TradeSuggestion, week: number, needy: Positi
   return score;
 }
 
-function urgencyScore(s: TradeSuggestion, urgency: TradeUrgency): number {
+/** How well a package's incoming players fit an urgency: this-week value for
+ * must_win, mostly season value for playoff_push (0 for neutral). */
+export function urgencyScore(s: TradeSuggestion, urgency: TradeUrgency): number {
   if (urgency === "neutral") return 0;
   const getWeek = s.get.reduce((sum, p) => sum + playerValue(p), 0);
   const getSeason = s.get.reduce((sum, p) => sum + qualityScore(p), 0);

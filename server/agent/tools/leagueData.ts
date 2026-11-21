@@ -211,6 +211,8 @@ export function serializePlayer(p: Player) {
     /** Asset quality used by needs / FA / coach (includes schedule ease when stamped). */
     qualityScore: Math.round(qualityScore(p) * 10) / 10,
     scheduleEase: p.scheduleEase ?? 1,
+    /** Ease over the fantasy-playoff weeks alone (already weighted into scheduleEase); null when none left. */
+    playoffEase: p.playoffEase != null ? Math.round(p.playoffEase * 1000) / 1000 : null,
     ownedBy: owner,
     isFreeAgent: !owner,
     boomBust: serializeBoomBust(p),

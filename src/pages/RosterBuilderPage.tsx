@@ -7,6 +7,7 @@ import { PosBadge } from "../components/PosBadge";
 import { StatusIndicator } from "../components/StatusIndicator";
 import { PlayerNameLink } from "../components/PlayerNameLink";
 import { BoomBustBadge } from "../components/BoomBustBadge";
+import { ProjectionLeanBadge } from "../components/ProjectionLeanBadge";
 import { AddPlayerActions } from "../components/AddPlayerActions";
 import { MatchupBadge } from "../components/MatchupBadge";
 import { LockBadge } from "../components/LockBadge";
@@ -314,6 +315,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                         </span>
                         <MatchupBadge matchup={matchupForPlayer(p)} />
                         <BoomBustBadge player={p} />
+                        <ProjectionLeanBadge player={p} />
                         <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                         {locked && <LockBadge />}
                       </div>
@@ -379,6 +381,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                       </span>
                       <MatchupBadge matchup={matchupForPlayer(p)} />
                         <BoomBustBadge player={p} />
+                        <ProjectionLeanBadge player={p} />
                       {locked && <LockBadge label="Can't start" />}
                     </div>
                   </div>
@@ -450,6 +453,7 @@ export function RosterBuilderPage({ app }: { app: FantasyApp }) {
                       {p.team} · bye {p.bye}
                     </span>
                     <BoomBustBadge player={p} />
+                    <ProjectionLeanBadge player={p} />
                     <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                   </div>
                 </div>

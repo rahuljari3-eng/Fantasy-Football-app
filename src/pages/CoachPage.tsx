@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SeasonOutlookBanner } from "../components/SeasonOutlookBanner";
 import { AlertTriangle, ArrowRightLeft, Bookmark, BookmarkCheck, Copy, EyeOff, Repeat, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
 import { POSITIONS } from "../config/league";
 import { suggestionKey } from "../lib/coachTrades";
@@ -167,6 +168,9 @@ export function CoachPage({ app }: { app: FantasyApp }) {
           <Sparkles size={18} className="text-[#C9A227]" /> AI Coach
         </h2>
         <p className="text-sm text-[#98989D] max-w-2xl mt-1">Trade ideas and targets built around where your roster is thin.</p>
+        <div className="mt-3">
+          <SeasonOutlookBanner outlook={app.seasonOutlook} />
+        </div>
         <div className="mt-1">
           <HowItWorks summary="How the Coach values players">
             <p>

@@ -1,9 +1,11 @@
 import { Plus } from "lucide-react";
+import { SeasonOutlookBanner } from "../components/SeasonOutlookBanner";
 import { POSITIONS } from "../config/league";
 import { PosBadge } from "../components/PosBadge";
 import { StatusIndicator } from "../components/StatusIndicator";
 import { PlayerNameLink } from "../components/PlayerNameLink";
 import { BoomBustBadge } from "../components/BoomBustBadge";
+import { ProjectionLeanBadge } from "../components/ProjectionLeanBadge";
 import { MatchupBadge } from "../components/MatchupBadge";
 import { AddPlayerActions } from "../components/AddPlayerActions";
 import { InactiveToggle } from "../components/InactiveToggle";
@@ -33,6 +35,7 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
 
   return (
     <div className="space-y-6">
+      <SeasonOutlookBanner outlook={app.seasonOutlook} showDeadline={false} />
       <div>
         <h2 className="text-lg font-semibold mb-1">Recommended pickups</h2>
         <p className="text-xs text-[#98989D]">
@@ -67,6 +70,7 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
                         </span>
                         <MatchupBadge matchup={matchupForPlayer(p)} />
                         <BoomBustBadge player={p} />
+                        <ProjectionLeanBadge player={p} />
                     <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                       </div>
                     </div>
@@ -105,6 +109,7 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
                     </span>
                     <MatchupBadge matchup={matchupForPlayer(p)} />
                     <BoomBustBadge player={p} />
+                    <ProjectionLeanBadge player={p} />
                   </div>
                 </div>
               </div>
@@ -162,6 +167,7 @@ export function FreeAgentsPage({ app }: { app: FantasyApp }) {
                     </span>
                     <MatchupBadge matchup={matchupForPlayer(p)} />
                     <BoomBustBadge player={p} />
+                    <ProjectionLeanBadge player={p} />
                     <StatusIndicator status={p.status} onClick={playerHasNews(p.id) ? () => openPlayerNews(p.id) : undefined} />
                   </div>
                 </div>

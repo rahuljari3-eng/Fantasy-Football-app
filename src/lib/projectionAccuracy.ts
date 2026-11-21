@@ -130,7 +130,7 @@ export interface ProjectionAccuracy extends AccuracySlice {
 
 /** Players neither source expected to matter (both under this) are left out,
  * so deep-bench near-zeros don't drown out the players you'd actually start. */
-const MIN_RELEVANT_PROJECTION = 5;
+export const MIN_RELEVANT_PROJECTION = 5;
 const POSITIONS = ["QB", "RB", "WR", "TE"];
 
 type Graded = ProjectionRecord & { actual: number; week: number };
@@ -167,4 +167,47 @@ export function computeProjectionAccuracy(history: ProjectionHistory): Projectio
     byWeek: weeks.map((week) => ({ week, ...slice(graded.filter((r) => r.week === week)) })),
     byPos: POSITIONS.map((pos) => ({ pos, ...slice(graded.filter((r) => r.pos === pos)) })).filter((s) => s.games > 0),
   };
+}
+
+/** When Custom and ESPN differ by at least this many points on a player, the
+ * gap is a real call worth flagging (and grading) -- smaller gaps are noise. */
+export const DISAGREEMENT_MIN_GAP = 1.5;
+/** A position's disagreements are only flagged once Custom has made at least
+ * this many such calls there, and won at least this share of them -- so the
+ * flag only appears where it has actually earned trust (through week 10: RB
+ * 70%, WR 66% -- but QB 58%, and TE has too few calls yet). */
+const DISAGREEMENT_MIN_CALLS = 15;
+const DISAGREEMENT_MIN_HIT_RATE = 0.6;
+
+export interface DisagreementRecord {
+  /** Games where the actual landed on Custom's side of ESPN. */
+  right: number;
+  calls: number;
+  hitRate: number;
+  /** Enough calls at a high enough hit rate to flag this position's gaps. */
+  trusted: boolean;
+}
+
+/** Per position: when Custom moved DISAGREEMENT_MIN_GAP+ off ESPN, how often
+ * the actual score landed on Custom's side of ESPN's number. Same games as
+ * computeProjectionAccuracy (full games, 5-point relevance cut). */
+export function disagreementTrackRecord(history: ProjectionHistory): Record<string, DisagreementRecord> {
+  const tally = new Map<string, { right: number; calls: number }>();
+  Object.values(history.weeks).forEach((players) =>
+    Object.values(players).forEach((r) => {
+      if (!r.pos || !isFullGame(r) || Math.max(r.espn, r.custom) < MIN_RELEVANT_PROJECTION) return;
+      const gap = r.custom - r.espn;
+      if (Math.abs(gap) < DISAGREEMENT_MIN_GAP) return;
+      const t = tally.get(r.pos) ?? { right: 0, calls: 0 };
+      t.calls++;
+      if ((r.actual - r.espn) * gap > 0) t.right++;
+      tally.set(r.pos, t);
+    })
+  );
+  const out: Record<string, DisagreementRecord> = {};
+  tally.forEach((t, pos) => {
+    const hitRate = t.calls ? t.right / t.calls : 0;
+    out[pos] = { ...t, hitRate, trusted: t.calls >= DISAGREEMENT_MIN_CALLS && hitRate >= DISAGREEMENT_MIN_HIT_RATE };
+  });
+  return out;
 }

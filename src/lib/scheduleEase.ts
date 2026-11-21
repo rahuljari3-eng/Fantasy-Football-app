@@ -1,8 +1,11 @@
 // Coarse remaining-schedule "ease" for season-long player value. Not a full
 // week-by-week projection rebuild -- a small multiplier (±~10%) from home/away
 // and opponent offensive environment (Vegas implied totals seen so far).
-// Missing signals → 1.0. Applied via Player.scheduleEase inside qualityScore.
-import { SCHEDULE_EASE_MAX, SCHEDULE_EASE_MIN } from "../config/scoring.js";
+// Fantasy-playoff-week games count PLAYOFF_GAME_WEIGHT times in the average,
+// since that's when a contender's season is decided -- folded into the same
+// clamped factor, not a separate playoff score. Missing signals → 1.0.
+// Applied via Player.scheduleEase inside qualityScore.
+import { FANTASY_PLAYOFF_START_WEEK, PLAYOFF_GAME_WEIGHT, SCHEDULE_EASE_MAX, SCHEDULE_EASE_MIN } from "../config/scoring.js";
 import type { VegasHistory } from "./bettingValue.js";
 import { getRosThroughWeek } from "./rosHorizon.js";
 import { normalizeNflAbbrev, teamScheduleRemaining, type NflGameSlot, type NflScheduleSnapshot } from "./nflSchedule.js";
@@ -12,11 +15,24 @@ function clampEase(n: number): number {
   return Math.min(SCHEDULE_EASE_MAX, Math.max(SCHEDULE_EASE_MIN, n));
 }
 
-/** Average of per-game ease factors, or 1.0 when empty / invalid. */
-export function scheduleEaseMultiplier(signals: number[]): number {
-  const ok = signals.filter((s) => Number.isFinite(s));
-  if (!ok.length) return 1;
-  return clampEase(ok.reduce((a, b) => a + b, 0) / ok.length);
+/** Average of per-game ease factors (optionally weighted per game), or 1.0
+ * when empty / invalid. */
+export function scheduleEaseMultiplier(signals: number[], weights?: number[]): number {
+  let sum = 0;
+  let total = 0;
+  signals.forEach((s, i) => {
+    const w = weights?.[i] ?? 1;
+    if (!Number.isFinite(s) || !(w > 0)) return;
+    sum += s * w;
+    total += w;
+  });
+  if (!total) return 1;
+  return clampEase(sum / total);
+}
+
+/** How much one game counts in the ease average: fantasy-playoff weeks more. */
+export function scheduleGameWeight(week: number): number {
+  return week >= FANTASY_PLAYOFF_START_WEEK ? PLAYOFF_GAME_WEIGHT : 1;
 }
 
 /** Build NFL-team → average Vegas-implied team total from recorded history. */
@@ -92,6 +108,14 @@ export function applyScheduleEase<P extends Player>(
     const games = remaining.filter((s): s is NflGameSlot => !("bye" in s && s.bye) && s.week <= throughWeek);
     if (!games.length) return { ...p, scheduleEase: 1 };
     const signals = games.map((g) => gameEase(p, g, byTeam, leagueAvg));
-    return { ...p, scheduleEase: scheduleEaseMultiplier(signals) };
+    const playoffSignals = signals.filter((_, i) => games[i].week >= FANTASY_PLAYOFF_START_WEEK);
+    return {
+      ...p,
+      scheduleEase: scheduleEaseMultiplier(
+        signals,
+        games.map((g) => scheduleGameWeight(g.week))
+      ),
+      ...(playoffSignals.length ? { playoffEase: playoffSignals.reduce((a, b) => a + b, 0) / playoffSignals.length } : {}),
+    };
   });
 }

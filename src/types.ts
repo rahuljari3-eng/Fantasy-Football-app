@@ -124,6 +124,11 @@ export interface Player {
   /** Coarse remaining-schedule ease (≈0.9–1.1), stamped by lib/scheduleEase.ts.
    * Multiplies qualityScore / rosValue; absent or 1 = neutral. */
   scheduleEase?: number;
+  /** The same ease measured over the fantasy-playoff weeks alone (unclamped
+   * average of those games' factors) -- for display only; it already counts
+   * inside scheduleEase via PLAYOFF_GAME_WEIGHT. Absent when no playoff-week
+   * game is left on his schedule or the inputs are missing. */
+  playoffEase?: number;
   /** Rank at the position by FantasyCalc redraft trade value (real trades,
    * 1QB/12-team/PPR) -- see lib/consensus.ts. Absent when the market doesn't
    * value the player. */

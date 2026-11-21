@@ -4,6 +4,7 @@ import { SLOTS } from "../config/league";
 import { PosBadge } from "../components/PosBadge";
 import { PlayerNameLink } from "../components/PlayerNameLink";
 import { BoomBustBadge } from "../components/BoomBustBadge";
+import { ProjectionLeanBadge } from "../components/ProjectionLeanBadge";
 import { LockBadge } from "../components/LockBadge";
 import { statusColor } from "../lib/format";
 import type { FantasyApp } from "../hooks/useFantasyApp";
@@ -118,6 +119,7 @@ export function LineupPage({ app }: { app: FantasyApp }) {
                           />
                           {locked && <LockBadge />}
                           <BoomBustBadge player={p} />
+                          <ProjectionLeanBadge player={p} />
                           {p.status !== "Healthy" && (
                             playerHasNews(p.id) ? (
                               <button

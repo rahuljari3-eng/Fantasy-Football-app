@@ -479,12 +479,12 @@ export async function syncLiveRosters(knownPlayers: Player[]): Promise<LiveLeagu
   for (const t of teams) {
     t.roster = t.roster.map((p) => {
       const e = easedById.get(p.id);
-      return e ? { ...p, scheduleEase: e.scheduleEase } : p;
+      return e ? { ...p, scheduleEase: e.scheduleEase, playoffEase: e.playoffEase } : p;
     });
   }
   const easedFreeAgents = freeAgents.map((p) => {
     const e = easedById.get(p.id);
-    return e ? { ...p, scheduleEase: e.scheduleEase } : p;
+    return e ? { ...p, scheduleEase: e.scheduleEase, playoffEase: e.playoffEase } : p;
   });
 
   // Standings from the same payload when present; otherwise a light refetch.

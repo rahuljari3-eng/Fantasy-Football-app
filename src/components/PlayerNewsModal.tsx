@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { ExternalLink, X } from "lucide-react";
-import { MARKET_VALUE_WEIGHT } from "../config/scoring";
+import { FANTASY_PLAYOFF_START_WEEK, MARKET_VALUE_WEIGHT, PLAYOFF_GAME_WEIGHT } from "../config/scoring";
 import { boomBustGames, boomBustModel, boomBustTrackRecord, typicalBoomBust, weeklyBoomBust } from "../lib/boomBust";
 import { blendWeeklyProj } from "../lib/consensus";
 import { newsTypeColor, newsTypeIcon } from "../lib/format";
@@ -46,6 +46,9 @@ function ScoreRow({ perf }: { perf: WeekPerformance }) {
     </div>
   );
 }
+
+const signedPct = (factor: number) => `${factor >= 1 ? "+" : ""}${((factor - 1) * 100).toFixed(1)}%`;
+const playoffLabel = (ease: number) => (ease >= 1.02 ? "favorable" : ease <= 0.98 ? "tough" : "neutral");
 
 function SourceRow({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
@@ -172,6 +175,20 @@ function ValueBreakdown({ player }: { player: Player }) {
             label="Vegas pts/game"
             value={player.vegasProj.toFixed(1)}
             detail={`Sportsbook prop + game lines, ${player.vegasWeeks} week${player.vegasWeeks === 1 ? "" : "s"}`}
+          />
+        )}
+        {player.scheduleEase != null && (player.playoffEase != null || Math.abs(player.scheduleEase - 1) >= 0.005) && (
+          <SourceRow
+            label="Remaining schedule"
+            value={signedPct(player.scheduleEase)}
+            detail={[
+              player.playoffEase != null
+                ? `playoff weeks ${FANTASY_PLAYOFF_START_WEEK}+ ${playoffLabel(player.playoffEase)} (${signedPct(player.playoffEase)}), counted ${PLAYOFF_GAME_WEIGHT}×`
+                : null,
+              "applied to season value",
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           />
         )}
       </div>

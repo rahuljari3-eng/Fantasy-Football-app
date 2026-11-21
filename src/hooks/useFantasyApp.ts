@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FREE_AGENTS } from "../data/freeAgents";
 import { ALL_TEAMS, DEFAULT_TEAM_ID } from "../data/allTeams";
 import { POSITIONS, REQUIRED_STARTERS, SLOTS, SLOT_ELIGIBILITY } from "../config/league";
-import { DEFAULT_TAB } from "../config/pages";
+import { DEFAULT_TAB, PAGE_NAV } from "../config/pages";
 import { playerValue, qualityScore, rosValue } from "../lib/scoring";
 import { analyzeRosterNeeds } from "../lib/rosterNeeds";
 import { applyPropLines, rankPlayerPool } from "../lib/consensus";
@@ -25,7 +25,9 @@ import {
   isTradeablePosition,
   mixCoachSuggestions,
   suggestionKey,
+  urgencyScore,
 } from "../lib/coachTrades";
+import { computeSeasonOutlook } from "../lib/seasonOutlook";
 import { applyLiveRosters, deriveAssignments, deriveAssignmentsFromEspnSlots } from "../lib/teamRoster";
 import { fetchEspnCompletedTrades, type CompletedTrade } from "../lib/espn";
 import { fetchLiveFreeAgents, fetchLiveRosterPlayers } from "../lib/espnLeague";
@@ -106,7 +108,18 @@ const RELEVANT_PLAYER_IDS = new Set<number>([
 const VEGAS_HISTORY = vegasHistoryJson as VegasHistory;
 
 export function useFantasyApp() {
-  const [tab, setTab] = useState<TabId>(DEFAULT_TAB);
+  // The tab you were last on, remembered per browser -- mid-season you're
+  // usually going straight back to the same page (Matchup on Sunday, Free
+  // agents on waiver night), not starting from the default every visit.
+  const [tab, setTabState] = useState<TabId>(readStoredTab);
+  const setTab = useCallback((id: TabId) => {
+    setTabState(id);
+    try {
+      window.localStorage.setItem(SELECTED_TAB_KEY, id);
+    } catch {
+      // Storage unavailable -- the tab just isn't remembered.
+    }
+  }, []);
 
   // Which team you're managing. Any team in the league can be selected; the
   // roster builder, AI Coach, free agents, and trade analyzer all re-center on
@@ -629,6 +642,7 @@ export function useFantasyApp() {
       vegasWeeks: ranksById.get(player.id)?.vegasWeeks,
       fantasyCalcQuality: ranksById.get(player.id)?.fantasyCalcQuality,
       scheduleEase: ranksById.get(player.id)?.scheduleEase,
+      playoffEase: ranksById.get(player.id)?.playoffEase,
     }),
     [applyOverrideRaw, ranksById]
   );
@@ -652,6 +666,19 @@ export function useFantasyApp() {
     if (!leagueSchedule) return null;
     return computePlayoffOutlook(leagueSchedule.standings, leagueSchedule.schedule, leagueSchedule.playoffTeamCount, projectedTeamStrength);
   }, [leagueSchedule, projectedTeamStrength]);
+
+  // Where the managed team stands (playoff odds + trade deadline) and how
+  // advice should lean because of it -- see lib/seasonOutlook.ts.
+  const seasonOutlook = useMemo(
+    () =>
+      computeSeasonOutlook({
+        outlook: playoffOutlook?.find((o) => o.teamId === selectedTeamId),
+        currentWeek: leagueSchedule?.currentWeek,
+        regularSeasonWeeks: leagueSchedule?.regularSeasonWeeks,
+        tradeDeadline: leagueSchedule?.tradeDeadline,
+      }),
+    [playoffOutlook, selectedTeamId, leagueSchedule]
+  );
 
   // Your player pool = the team you're managing plus every free agent. Switch
   // teams and this whole pipeline (needs, coach, trade values) re-centers.
@@ -1140,20 +1167,26 @@ export function useFantasyApp() {
   );
 
   // Top 3 available free agents at each needy position, best qualityScore
-  // first -- qualityScore already folds in tier and current injury status.
+  // first -- qualityScore already folds in tier, current injury status and
+  // the (playoff-weighted) remaining schedule. A team that needs wins now
+  // (bubble, long shot, or in the playoffs -- see seasonOutlook) ranks by an
+  // even split of season value and THIS week's value instead, so a pickup
+  // who helps immediately isn't buried under a slow-burn stash.
   const recommendedPickups = useMemo(() => {
+    const now = seasonOutlook?.urgency === "must_win";
+    const pickupScore = (p: Player) => (now ? 0.5 * qualityScore(p) + 0.5 * playerValue(p) : qualityScore(p));
     return needyPositionsRanked
       .map((pos) => ({
         pos,
         reason: needReason(pos),
         candidates: freeAgentPool
           .filter((p) => p.pos === pos)
-          .map((p) => ({ ...p, qScore: qualityScore(p) }))
+          .map((p) => ({ ...p, qScore: pickupScore(p) }))
           .sort((a, b) => b.qScore - a.qScore)
           .slice(0, 3),
       }))
       .filter((group) => group.candidates.length > 0);
-  }, [needyPositionsRanked, freeAgentPool, needReason]);
+  }, [needyPositionsRanked, freeAgentPool, needReason, seasonOutlook?.urgency]);
 
   // Same idea as recommendedPickups, but for players you'd have to trade
   // for: everyone rostered by someone else in the league (never a free
@@ -1328,7 +1361,16 @@ export function useFantasyApp() {
     [allCoachCandidateKeys, excludedCoachKeys]
   );
 
-  const coachSuggestions = useMemo(() => mixCoachSuggestions(visibleCoachPools, excludedCoachKeys), [visibleCoachPools, excludedCoachKeys]);
+  // Same fair trades either way; only their order leans with the season
+  // outlook (contender: rest-of-season value, bubble/long shot: this week)
+  // -- within each fit tier, so a better-fitting trade is never buried
+  // under a bigger-name one.
+  const coachSuggestions = useMemo(() => {
+    const mixed = mixCoachSuggestions(visibleCoachPools, excludedCoachKeys);
+    const urgency = seasonOutlook?.urgency ?? "neutral";
+    if (urgency === "neutral") return mixed;
+    return [...mixed].sort((a, b) => b.fit.tier - a.fit.tier || urgencyScore(b, urgency) - urgencyScore(a, urgency));
+  }, [visibleCoachPools, excludedCoachKeys, seasonOutlook?.urgency]);
 
   // Swap the current batch out for the next-best one. Once every reasonable
   // trade has been cycled through, it loops back to the top rather than
@@ -1613,6 +1655,7 @@ export function useFantasyApp() {
     // standings + playoff race
     ...standingsState,
     playoffOutlook,
+    seasonOutlook,
 
     // week browsing (the header's "WEEK N" control)
     viewedWeek,
@@ -1657,6 +1700,18 @@ export function useFantasyApp() {
 const SELECTED_TEAM_KEY = "gridiron.selectedTeamId";
 
 /** The team id persisted from a previous visit, or the default if none/invalid. */
+const SELECTED_TAB_KEY = "selected-tab";
+
+function readStoredTab(): TabId {
+  try {
+    const raw = window.localStorage.getItem(SELECTED_TAB_KEY);
+    if (raw && PAGE_NAV.some((p) => p.id === raw)) return raw as TabId;
+  } catch {
+    // Storage unavailable (private mode, etc.) -- fall back to the default.
+  }
+  return DEFAULT_TAB;
+}
+
 function readStoredTeamId(): number {
   try {
     const raw = window.localStorage.getItem(SELECTED_TEAM_KEY);

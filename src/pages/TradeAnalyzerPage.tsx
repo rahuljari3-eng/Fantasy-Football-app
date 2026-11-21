@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { SeasonOutlookBanner } from "../components/SeasonOutlookBanner";
 import { ChevronRight, Plus, ShieldAlert, TrendingDown, TrendingUp, X } from "lucide-react";
 import { HowItWorks } from "../components/HowItWorks";
 import { LineupImpactPanel } from "../components/LineupImpactPanel";
@@ -236,6 +237,7 @@ export function TradeAnalyzerPage({ app }: { app: FantasyApp }) {
   return (
     <div className="space-y-4">
       <h2 className="display-font text-xl">Trade analyzer</h2>
+      <SeasonOutlookBanner outlook={app.seasonOutlook} />
 
       <div className="inline-flex bg-[#1C1C1E] border border-[#38383A] rounded-lg p-1">
         {SUB_TABS.map((t) => (

@@ -119,6 +119,16 @@ export const ROS_TIER_TREND: Record<1 | 2 | 3, number> = { 1: 1.05, 2: 1.0, 3: 0
 export const SCHEDULE_EASE_MIN = 0.9;
 export const SCHEDULE_EASE_MAX = 1.1;
 
+/** How much more a fantasy-playoff-week game (week FANTASY_PLAYOFF_START_WEEK
+ * through the championship week) counts than a regular-season game in the
+ * schedule-ease average above. Those are the weeks a contender's season is
+ * decided in, so a tough playoff slate should weigh more than a tough week 12
+ * -- but it stays ONE input to the ease average, which stays clamped to
+ * SCHEDULE_EASE_MIN..MAX and is one multiplier among the projections, market,
+ * injury and tier terms in qualityScore. A good playoff schedule nudges a
+ * player's value; it never decides it. */
+export const PLAYOFF_GAME_WEIGHT = 2;
+
 /** Minimum season PPG we'll accept as a seasonProj fallback from this week's
  * proj. Below this we treat the week number as collapsed (bye / Out) and do
  * not let it poison seasonModelValue. */

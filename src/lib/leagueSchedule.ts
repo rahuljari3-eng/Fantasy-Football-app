@@ -45,7 +45,10 @@ interface EspnScheduleEntry {
 
 interface EspnLeaguePayload {
   status?: { currentMatchupPeriod?: number; finalScoringPeriod?: number };
-  settings?: { scheduleSettings?: { matchupPeriodCount?: number; playoffTeamCount?: number } };
+  settings?: {
+    scheduleSettings?: { matchupPeriodCount?: number; playoffTeamCount?: number };
+    tradeSettings?: { deadlineDate?: number };
+  };
   teams?: EspnTeam[];
   members?: EspnMember[];
   schedule?: EspnScheduleEntry[];
@@ -84,6 +87,9 @@ export interface LeagueScheduleSnapshot {
    * where rest-of-season valuation stops counting games. */
   finalWeek: number;
   playoffTeamCount: number;
+  /** The league's trade deadline (ms since epoch, ESPN
+   * settings.tradeSettings.deadlineDate), or null if the league has none. */
+  tradeDeadline: number | null;
   standings: StandingRow[];
   schedule: ScheduledMatchup[];
 }
@@ -153,6 +159,7 @@ export async function fetchLeagueScheduleSnapshot(): Promise<LeagueScheduleSnaps
     regularSeasonWeeks,
     finalWeek: data.status?.finalScoringPeriod ?? ROS_HORIZON_THROUGH_WEEK,
     playoffTeamCount: data.settings?.scheduleSettings?.playoffTeamCount ?? 6,
+    tradeDeadline: data.settings?.tradeSettings?.deadlineDate || null,
     standings,
     schedule,
   };
