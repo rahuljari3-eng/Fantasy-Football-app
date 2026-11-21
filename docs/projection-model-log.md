@@ -12,6 +12,40 @@ evidence, what (if anything) changed in the shipped calculation, and ideas
 queued for next time. Experiments that failed are recorded too, so they aren't
 re-run blindly.
 
+## 2026-11-20 — Recovered: Nov 3/10/17/20 routine runs couldn't push (by hand)
+
+The cloud routine has run every Tuesday, but GitHub rejects its push with a 403
+("Claude doesn't have GitHub access"), so its entries were lost. This is a
+summary of what the Nov 17 and Nov 20 runs found, from their run logs.
+
+**Standing (through week 10):** Custom MAE 5.56 vs ESPN 5.68 over 1,840
+player-games, closer 990–767, ahead or tied every week (tie in week 4). By
+position: RB 5.47 vs 5.62, WR 5.50 vs 5.65, TE 5.34 vs 5.41, QB 6.12 vs 6.14.
+Week 10: 5.69 vs 5.74 (QB 5.97 vs 5.78 and RB lost). Hourly refit still not
+adopted (6.998 vs 6.991 walk-forward RMSE).
+
+**Experiments (walk-forward, weeks 2–10, 1,689 games; shipped 6.991 / 5.495):**
+
+| Idea | RMSE | MAE | Weeks better |
+|---|---|---|---|
+| QB + Vegas implied team total (shrunk) | 6.986 | 5.489 | 8 of 9 |
+| QB prop weight 0–0.5 | 6.984–6.985 | 5.492–5.493 | 6 of 9 |
+| Per-position prop weight | 6.989–7.000 | 5.499–5.514 | 5–6 of 9 |
+| Prop weight 0.5 for all (refit's pick) | 6.982 | 5.519 (worse) | 5 of 9 |
+
+QB-only: the implied-total input cuts QB MAE 6.05 → 6.00 and QB RMSE ~0.5%;
+the fit is about +0.3 pts per point of team total above ~22.8.
+
+**Changed:** nothing in the calculation.
+
+**Needs owner's decision:** QBs are ~16% of graded games, so a QB-only fix
+can't clear the 0.5% all-positions bar. Allow single-position changes to be
+judged on that position's own RMSE (other checks unchanged)? If yes, the QB
+Vegas implied total is the first candidate.
+
+**Next to try:** the above if approved; re-check the questionable discount
+once more than ~20 graded Questionable games exist.
+
 ## 2026-11-02 — QB inputs: what the prop feed does and doesn't carry (by hand)
 
 **Standing:** Custom still ahead through week 7 (MAE 5.59 vs 5.73, 1,269
