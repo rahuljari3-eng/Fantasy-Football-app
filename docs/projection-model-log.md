@@ -12,6 +12,58 @@ evidence, what (if anything) changed in the shipped calculation, and ideas
 queued for next time. Experiments that failed are recorded too, so they aren't
 re-run blindly.
 
+## 2026-11-24 — No change: week 11 still not final; the 20+ lean and a simpler refit don't hold up
+
+**Standing (through week 10):** week 11 has no results recorded yet (all 307 of
+its records are still waiting for actuals as of Tuesday morning), so the
+numbers match the last two entries. Custom MAE 5.56 vs ESPN 5.68 over 1,840
+player-games, closer 990–767, ahead or tied every week (tie in week 4). By
+position: QB 6.12 vs 6.14, RB 5.47 vs 5.62, WR 5.50 vs 5.65, TE 5.33 vs 5.41.
+Latest finished week (10): 5.69 vs 5.74, closer 98–85; lost QB (5.97 vs 5.78)
+and RB (6.19 vs 6.15), won WR (5.74 vs 5.87) and TE (4.60 vs 4.77).
+`projectionModel.json`: not adopted (refit 6.998 vs defaults 6.991
+walk-forward RMSE, 1,689 games, weeks 2–10); the defaults are still in use.
+
+**Experiments (walk-forward, weeks 2–10, 1,689 games; each week fit only on
+earlier weeks; shipped = defaults, 6.991 / 5.495).** Both pending candidates
+(QB Vegas total, Questionable discount) were left alone: no new data since
+Nov 21. Tried instead:
+
+| Idea | RMSE | MAE | QB / RB / WR / TE MAE | Weeks better |
+|---|---|---|---|---|
+| Shipped (defaults) | 6.991 | 5.495 | 6.049 / 5.378 / 5.463 / 5.269 | — |
+| Hourly refit as it is (7 params) | 6.998 (+0.10%) | 5.516 | 6.005 / 5.435 / 5.483 / 5.285 | 3 of 9 |
+| Simpler refit: only Sleeper share + prop weight | 6.994 (+0.05%) | 5.486 | 6.035 / 5.358 / 5.455 / 5.277 | 5 of 9 |
+| Same, pulled toward the defaults (light) | 6.986 (−0.08%) | 5.497 | 6.033 / 5.380 / 5.468 / 5.274 | 5 of 8 |
+| Same, pulled toward the defaults (heavy) | 6.990 (−0.01%) | 5.502 | 6.036 / 5.392 / 5.472 / 5.272 | 3 of 5 |
+| Bump projections of 20+ (fit, unshrunk) | 7.010 (+0.28%) | 5.510 | 6.061 / 5.423 / 5.465 / 5.269 | 4 of 9 |
+| Bump projections of 20+ (shrunk) | 6.997 (+0.09%) | 5.501 | 6.064 / 5.389 / 5.463 / 5.269 | 5 of 9 |
+| Bump projections of 15+ (shrunk) | 6.998 (+0.11%) | 5.505 | 6.083 / 5.402 / 5.457 / 5.273 | 4 of 9 |
+| Stretch/shrink all projections around the average (shrunk) | 7.000–7.005 (+0.13–0.21%) | 5.512–5.518 | QB +0.03–0.05 worse | 2–3 of 9 |
+
+- **The 20+ lean is noise.** On all the data, projections of 20+ (69 games)
+  ran 2.6 pts low, but 15–20 ran 0.2 high and 5–15 were within 0.2. Fitting a
+  bump on earlier weeks and applying it the next week makes things worse, not
+  better. Rejected; check again only once there are ~150 games at 20+.
+- **A simpler refit** (2 params instead of 7) chases less noise than the
+  current hourly refit (MAE 5.486–5.502 vs 5.516) but still doesn't beat the
+  defaults. Swapping fitters would change nothing in the app (the refit isn't
+  adopted either way), so I left it alone.
+- **Stretching projections** (higher ones higher, lower ones lower, or the
+  reverse) loses in 6–7 of 9 weeks. Rejected.
+
+**Changed:** nothing in the calculation.
+
+**Needs owner's decision:** still open from Nov 20/21: should a change that
+only touches one group (QBs, or Questionable players) be judged on that
+group's own RMSE, with the other checks unchanged? A yes makes two changes
+eligible: the QB Vegas implied total and a shrunk Questionable discount
+(~0.9). The Nov 21 entry reached main, so the 403 push failures look fixed.
+
+**Next to try:** once week 11 is final (~180 more games), re-run the QB Vegas
+total and the Questionable discount; re-check per-position Sleeper share and
+prop weight (shrunk) with 10 graded weeks.
+
 ## 2026-11-21 — No change: week 11 not final yet; Questionable discount close but short
 
 **Standing (through week 10; week 11 still in progress, so same data as the
